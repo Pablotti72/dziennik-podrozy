@@ -1,0 +1,29 @@
+[
+  {
+    "id": 1,
+    "name": "Edynburg",
+    "lat": 55.9533,
+    "lng": -3.1883,
+    "description": "Piękny zamek i stara dzielnica.",
+    "image": "https://cdn-imgix.headout.com/media/images/e87de52c14e5ed44c472de964beb21bf-25331-EdinburghCastle-GuidedwalkingtourwithFastTrackEntry---002.jpg",
+    "category": "zabytek"
+  },
+  {
+    "id": 2,
+    "name": "Londyn",
+    "lat": 51.5074,
+    "lng": -0.1278,
+    "description": "Big Ben, Tower Bridge i muzea.",
+    "image": "https://example.com/london.jpg",
+    "category": "miasto"
+  },
+  {
+    "id": 1754949690473,
+    "name": "Bath",
+    "lat": 51.39063844817058,
+    "lng": -2.3670312743933146,
+    "description": "fajne",
+    "image": "https://www.historic-uk.com/wp-content/uploads/2020/11/roman-bath.jpg",
+    "category": "miasto"
+  }
+]

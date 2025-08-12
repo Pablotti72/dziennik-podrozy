@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dziennik podróży UK</title>
+  <link rel="stylesheet" href="style.css" />
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+</head>
+<body>
+  <h1>Moje miejsca w Wielkiej Brytanii</h1>
+  <div id="map"></div>
+
+  <!-- Przycisk eksportu danych -->
+  <button id="exportBtn" class="export-btn">💾 Zapisz zmiany do pliku JSON</button>
+
+  <!-- Modal - formularz dodawania/edycji miejsca -->
+  <div id="modal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <h2 id="modalTitle">Dodaj nowe miejsce</h2>
+      <form id="placeForm">
+        <input type="hidden" id="placeId">
+        <input type="hidden" id="placeLat">
+        <input type="hidden" id="placeLng">
+
+        <label>Nazwa: <input type="text" id="placeName" required></label><br><br>
+
+        <label>Opis: <textarea id="placeDescription" rows="3" required></textarea></label><br><br>
+
+        <label>Zdjęcie (URL): <input type="url" id="placeImage" placeholder="https://..." required></label><br><br>
+
+        <label>Kategoria:
+          <select id="placeCategory">
+            <option value="miasto">Miasto</option>
+            <option value="park">Park</option>
+            <option value="zabytek">Zabytek</option>
+            <option value="muzeum">Muzeum</option>
+            <option value="inny">Inny</option>
+          </select>
+        </label><br><br>
+
+        <button type="submit" id="saveBtn">Zapisz</button>
+        <button type="button" onclick="closeModal()">Anuluj</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
