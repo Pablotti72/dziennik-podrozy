@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
-  <!-- Nagłówek w lewym górnym rogu -->
+  <!-- Nagłówek w prawym górnym rogu -->
   <div class="header-box">Nasze podróże</div>
 
   <!-- Mapa -->
@@ -39,6 +39,9 @@
             <option value="inny">Inny</option>
           </select>
         </label><br><br>
+
+        <label>Data od: <input type="date" id="placeDateFrom" required></label><br><br>
+        <label>Data do: <input type="date" id="placeDateTo"></label><br><br>
 
         <button type="submit" id="saveBtn">Zapisz</button>
         <button type="button" onclick="closeModal()">Anuluj</button>
