@@ -3,17 +3,17 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Dziennik podróży UK</title>
+  <title>Nasze podróże</title>
   <link rel="stylesheet" href="style.css" />
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
- <div class="header-box">    Nasze podróże</div>
-  <div id="map"></div>
+  <!-- Nagłówek w lewym górnym rogu -->
+  <div class="header-box">Nasze podróże</div>
 
-  <!-- Przycisk eksportu danych -->
-  <button id="exportBtn" class="export-btn">💾 Zapisz zmiany do pliku JSON</button>
+  <!-- Mapa -->
+  <div id="map"></div>
 
   <!-- Modal - formularz dodawania/edycji miejsca -->
   <div id="modal" class="modal" style="display: none;">
@@ -50,6 +50,4 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="script.js"></script>
 </body>
-
 </html>
-
