@@ -157,5 +157,4 @@ h1 {
   color: #333;
   z-index: 1000; /* żeby był nad mapą */
   backdrop-filter: blur(2px); /* lekki efekt rozmycia (opcjonalny) */
-
 }
