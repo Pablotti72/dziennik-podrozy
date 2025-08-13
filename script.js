@@ -40,7 +40,7 @@ document.addEventListener("DOMContentLoaded", function () {
     })
     .catch(error => {
       console.error("❌ Błąd ładowania z Firebase:", error);
-      alert("Nie udało się połączyć z bazą danych.");
+      showMessage("Nie udało się połączyć z bazą danych.");
     });
 
   // Funkcja dodająca pinezki
@@ -86,7 +86,6 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById("placeLat").value = lat;
     document.getElementById("placeLng").value = lng;
     document.getElementById("placeForm").reset();
-    // ✅ Wyczyść pola dat
     document.getElementById("placeDateFrom").value = "";
     document.getElementById("placeDateTo").value = "";
     document.getElementById("modalTitle").textContent = "Dodaj nowe miejsce";
@@ -124,14 +123,14 @@ document.addEventListener("DOMContentLoaded", function () {
           if (response.ok) {
             places = places.filter(p => p.id !== id);
             addMarkersToMap(places, map);
-            alert("✅ Miejsce usunięte! Zmiana zapisana w chmurze.");
+            showMessage("✅ Miejsce usunięte! Zmiana zapisana w chmurze.");
           } else {
             throw new Error("Błąd serwera: " + response.status);
           }
         })
         .catch(err => {
           console.error("❌ Błąd podczas usuwania:", err);
-          alert("Nie udało się usunąć miejsca.");
+          showMessage("Nie udało się usunąć miejsca.");
         });
     }
   };
@@ -159,7 +158,6 @@ document.addEventListener("DOMContentLoaded", function () {
       dateTo: document.getElementById("placeDateTo").value || ""
     };
 
-    // ✅ Poprawny adres: tylko jedno miejsce
     const method = isEdit ? "PUT" : "POST";
     const url = isEdit 
       ? `${firebaseBaseUrl}/places/${id}.json` 
@@ -186,11 +184,23 @@ document.addEventListener("DOMContentLoaded", function () {
 
       addMarkersToMap(places, map);
       closeModal();
-      alert(isEdit ? "✅ Miejsce zaktualizowane!" : "✅ Miejsce dodane i zapisane w chmurze!");
+      showMessage(isEdit ? "✅ Miejsce zaktualizowane!" : "✅ Miejsce dodane i zapisane w chmurze!");
     })
     .catch(err => {
       console.error("❌ Błąd zapisu do Firebase:", err);
-      alert("Nie udało się zapisać danych.");
+      showMessage("Nie udało się zapisać danych.");
     });
   });
+
+  // === FUNKCJE DLA WŁASNEGO KOMUNIKATU ===
+  window.showMessage = function(text) {
+    const modal = document.getElementById("msgModal");
+    const msgText = document.getElementById("msgText");
+    msgText.textContent = text;
+    modal.style.display = "flex";
+  };
+
+  window.closeMsgModal = function() {
+    document.getElementById("msgModal").style.display = "none";
+  };
 });
