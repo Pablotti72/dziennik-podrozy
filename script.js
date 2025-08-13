@@ -3,8 +3,6 @@ let places = [];
 
 // 🔥 Adres Twojej bazy Firebase – ZMIEN NA SWÓJ!
 const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
-
-// Adres do głównej gałęzi 'places'
 const firebasePlacesUrl = `${firebaseBaseUrl}/places.json`;
 
 // Uruchom, gdy strona się załaduje
@@ -14,13 +12,12 @@ document.addEventListener("DOMContentLoaded", function () {
   // 1. Utwórz mapę i ustaw widok na Wielką Brytanię
   const map = L.map("map").setView([54.5, -3.0], 6);
 
-  // 2. Dodaj warstwę mapy (OpenStreetMap)
+  // 2. Dodaj warstwę mapy
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
   }).addTo(map);
 
-  // 3. Załaduj dane z Firebase – z gałęzi 'places'
-  console.log("🔧 Ładowanie danych z Firebase...");
+  // 3. Załaduj dane z Firebase
   fetch(firebasePlacesUrl)
     .then(response => {
       if (response.ok && response.status !== 404) {
@@ -46,31 +43,26 @@ document.addEventListener("DOMContentLoaded", function () {
       alert("Nie udało się połączyć z bazą danych.");
     });
 
-  // Funkcja dodająca pinezki na mapie
+  // Funkcja dodająca pinezki
   function addMarkersToMap(data, map) {
-    // Usuń wszystkie istniejące pinezki
     map.eachLayer(layer => {
-      if (layer instanceof L.Marker) {
-        map.removeLayer(layer);
-      }
+      if (layer instanceof L.Marker) map.removeLayer(layer);
     });
 
     data.forEach(place => {
       const marker = L.marker([place.lat, place.lng]).addTo(map);
 
-      // Tooltip (po najechaniu)
       marker.bindTooltip(place.name, {
         permanent: false,
         direction: "top",
         offset: [0, -10]
       });
 
-      // Popup (po kliknięciu)
       marker.bindPopup(`
         <div class="popup-content">
           <strong><a href="place.html?id=${place.id}" style="color: inherit; text-decoration: none;">${place.name}</a></strong><br>
           ${place.description}<br>
-          <img src="${place.image}" alt="Zdjęcie" width="100"><br>
+          <img src="${place.image.trim()}" alt="Zdjęcie" width="100"><br>
           <small>Kategoria: ${place.category}</small><br><br>
           <button onclick="editPlace('${place.id}')" style="background: #FFC107; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 14px;">✏️ Edytuj</button>
           <button onclick="deletePlace('${place.id}')" style="background: #F44336; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 14px; margin-left: 5px;">🗑️ Usuń</button>
@@ -79,14 +71,12 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-  // Obsługa kliknięcia w mapę – dodanie nowego miejsca
+  // Obsługa kliknięcia w mapę
   map.on("click", function(event) {
     const lat = event.latlng.lat;
     const lng = event.latlng.lng;
 
-    const chceszDodac = confirm(`Czy chcesz dodać nowe miejsce w: ${lat.toFixed(4)}, ${lng.toFixed(4)}?`);
-
-    if (chceszDodac) {
+    if (confirm(`Czy chcesz dodać nowe miejsce w: ${lat.toFixed(4)}, ${lng.toFixed(4)}?`)) {
       openAddModal(lat, lng);
     }
   });
@@ -98,11 +88,11 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById("placeForm").reset();
     document.getElementById("modalTitle").textContent = "Dodaj nowe miejsce";
     document.getElementById("saveBtn").textContent = "Zapisz";
-    document.getElementById("placeId").value = ""; // brak ID = nowe miejsce
+    document.getElementById("placeId").value = "";
     document.getElementById("modal").style.display = "flex";
   };
 
-  // Edytuj istniejące miejsce
+  // Edytuj miejsce
   window.editPlace = function(id) {
     const place = places.find(p => p.id === id);
     if (!place) return;
@@ -111,6 +101,8 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById("placeDescription").value = place.description;
     document.getElementById("placeImage").value = place.image;
     document.getElementById("placeCategory").value = place.category;
+    document.getElementById("placeDateFrom").value = place.dateFrom || "";
+    document.getElementById("placeDateTo").value = place.dateTo || "";
     document.getElementById("placeLat").value = place.lat;
     document.getElementById("placeLng").value = place.lng;
     document.getElementById("placeId").value = id;
@@ -120,28 +112,24 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById("modal").style.display = "flex";
   };
 
-  // Usuń miejsce (trwałe usunięcie z Firebase)
+  // Usuń miejsce
   window.deletePlace = function(id) {
     if (confirm("Czy na pewno chcesz usunąć to miejsce?")) {
-      const deleteUrl = `${firebaseBaseUrl}/places/${id}.json`; // poprawny adres
-
-      fetch(deleteUrl, {
-        method: "DELETE"
-      })
-      .then(response => {
-        if (response.ok) {
-          // Usuń z lokalnej tablicy
-          places = places.filter(p => p.id !== id);
-          addMarkersToMap(places, map);
-          alert("✅ Miejsce usunięte! Zmiana zapisana w chmurze.");
-        } else {
-          throw new Error("Błąd serwera: " + response.status);
-        }
-      })
-      .catch(err => {
-        console.error("❌ Błąd podczas usuwania:", err);
-        alert("Nie udało się usunąć miejsca. Sprawdź połączenie.");
-      });
+      const deleteUrl = `${firebaseBaseUrl}/places/${id}.json`;
+      fetch(deleteUrl, { method: "DELETE" })
+        .then(response => {
+          if (response.ok) {
+            places = places.filter(p => p.id !== id);
+            addMarkersToMap(places, map);
+            alert("✅ Miejsce usunięte! Zmiana zapisana w chmurze.");
+          } else {
+            throw new Error("Błąd serwera: " + response.status);
+          }
+        })
+        .catch(err => {
+          console.error("❌ Błąd podczas usuwania:", err);
+          alert("Nie udało się usunąć miejsca.");
+        });
     }
   };
 
@@ -150,7 +138,7 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById("modal").style.display = "none";
   };
 
-  // Obsługa zapisu formularza (dodawanie i edycja)
+  // Zapisz (dodaj/edytuj)
   document.getElementById("placeForm").addEventListener("submit", function(e) {
     e.preventDefault();
 
@@ -163,10 +151,11 @@ document.addEventListener("DOMContentLoaded", function () {
       lng: parseFloat(document.getElementById("placeLng").value),
       description: document.getElementById("placeDescription").value,
       image: document.getElementById("placeImage").value,
-      category: document.getElementById("placeCategory").value
+      category: document.getElementById("placeCategory").value,
+      dateFrom: document.getElementById("placeDateFrom").value,
+      dateTo: document.getElementById("placeDateTo").value || ""
     };
 
-    // Adres do zapisu: POST do /places.json (nowe) lub PUT do /places/id.json (edycja)
     const method = isEdit ? "PUT" : "POST";
     const url = isEdit 
       ? `${firebaseBaseUrl}/places/${id}.json` 
@@ -181,16 +170,14 @@ document.addEventListener("DOMContentLoaded", function () {
     })
     .then(response => response.json())
     .then(dataFromFirebase => {
-      const finalId = isEdit ? id : dataFromFirebase.name; // Firebase generuje ID przy POST
+      const finalId = isEdit ? id : dataFromFirebase.name;
 
       if (!isEdit) {
         placeData.id = finalId;
         places.push(placeData);
       } else {
         const index = places.findIndex(p => p.id === id);
-        if (index !== -1) {
-          places[index] = { ...placeData, id: finalId };
-        }
+        if (index !== -1) places[index] = { ...placeData, id: finalId };
       }
 
       addMarkersToMap(places, map);
@@ -199,7 +186,7 @@ document.addEventListener("DOMContentLoaded", function () {
     })
     .catch(err => {
       console.error("❌ Błąd zapisu do Firebase:", err);
-      alert("Nie udało się zapisać danych. Sprawdź połączenie.");
+      alert("Nie udało się zapisać danych.");
     });
   });
 });
