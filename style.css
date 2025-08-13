@@ -6,43 +6,32 @@ body {
   line-height: 1.6;
 }
 
-/* Nagłówek */
-h1 {
-  text-align: center;
-  padding: 20px;
-  background: rgba(255, 255, 255, 0.9);
-  margin: 0;
+/* Nagłówek w lewym górnym rogu */
+.header-box {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 10px 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  font-size: 20px;
+  font-weight: bold;
+  color: #333;
+  z-index: 1000;
+  backdrop-filter: blur(2px); /* delikatny efekt rozmycia tła */
 }
 
 /* Mapa */
 #map {
   width: 100%;
-  height: 80vh;
+  height: 100vh;
   border: 1px solid #ccc;
-  margin: 20px auto;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
-/* Przycisk eksportu */
-.export-btn {
-  display: block;
-  margin: 10px auto;
-  padding: 10px 20px;
-  background-color: #4a6fa5;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-}
-
-.export-btn:hover {
-  background-color: #3a5a8c;
-}
-
-/* Modal */
+/* Modal - tło i zawartość */
 .modal {
   position: fixed;
   top: 0; left: 0;
@@ -141,20 +130,4 @@ h1 {
   background: #f9f9f9;
   border-radius: 6px;
   font-size: 14px;
-}
-
-/* Przezroczysty nagłówek w lewym górnym rogu */
-.header-box {
-  position: absolute;
-  top: 20px;
-  left: 20px;
-  background: rgba(255, 255, 255, 0.8); /* przezroczysty biały prostokąt */
-  padding: 10px 15px;
-  border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-  font-size: 20px; /* taki sam jak h1 */
-  font-weight: bold;
-  color: #333;
-  z-index: 1000; /* żeby był nad mapą */
-  backdrop-filter: blur(2px); /* lekki efekt rozmycia (opcjonalny) */
 }
