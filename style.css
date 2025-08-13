@@ -45,11 +45,16 @@ body {
 
 .modal-content {
   background: white;
-  padding: 30px;
+  padding: 15px 20px;    /* mniejszy padding – cieńszy pasek */
   border-radius: 10px;
   width: 90%;
   max-width: 500px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+
+.modal-content h2 {
+  margin: 0 0 15px 0;
+  font-size: 18px;       /* lekko mniejszy nagłówek w formularzu */
 }
 
 .modal-content label {
@@ -131,3 +136,4 @@ body {
   border-radius: 6px;
   font-size: 14px;
 }
+
