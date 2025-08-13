@@ -6,20 +6,20 @@ body {
   line-height: 1.6;
 }
 
-/* Nagłówek w lewym górnym rogu */
+/* Nagłówek w prawym górnym rogu */
 .header-box {
   position: absolute;
   top: 20px;
-  left: 20px;
+  right: 20px;
   background: rgba(255, 255, 255, 0.85);
   padding: 10px 15px;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  font-size: 20px;
+  font-size: 22px;
   font-weight: bold;
   color: #333;
   z-index: 1000;
-  backdrop-filter: blur(2px); /* delikatny efekt rozmycia tła */
+  backdrop-filter: blur(2px);
 }
 
 /* Mapa */
@@ -43,9 +43,10 @@ body {
   z-index: 1000;
 }
 
+/* Modal - formularz (cieńszy pasek) */
 .modal-content {
   background: white;
-  padding: 15px 20px;    /* mniejszy padding – cieńszy pasek */
+  padding: 15px 20px;
   border-radius: 10px;
   width: 90%;
   max-width: 500px;
@@ -54,7 +55,7 @@ body {
 
 .modal-content h2 {
   margin: 0 0 15px 0;
-  font-size: 18px;       /* lekko mniejszy nagłówek w formularzu */
+  font-size: 18px;
 }
 
 .modal-content label {
@@ -136,4 +137,5 @@ body {
   border-radius: 6px;
   font-size: 14px;
 }
+
 
