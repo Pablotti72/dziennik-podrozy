@@ -33,7 +33,7 @@
     // Adres do konkretnego miejsca
     const placeUrl = `${firebaseBaseUrl}/places/${placeId}.json`;
 
-    // Funkcja formatująca datę do postaci "15 marca"
+    // Format daty: "5 marca"
     function formatShortDate(dateStr) {
       if (!dateStr) return "";
       const date = new Date(dateStr);
@@ -48,7 +48,6 @@
         return response.json();
       })
       .then(data => {
-        // Format daty
         let dateText = "";
         if (data.dateFrom) {
           const from = formatShortDate(data.dateFrom);
@@ -61,10 +60,8 @@
           }
         }
 
-        // Wyczyść URL zdjęcia z białych znaków
         const cleanImage = data.image.trim();
 
-        // Wypełnij treścią
         document.getElementById("place-content").innerHTML = `
           <h1>${data.name}</h1>
           <img src="${cleanImage}" alt="Zdjęcie: ${data.name}" class="place-image">
