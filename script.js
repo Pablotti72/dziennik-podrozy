@@ -120,22 +120,30 @@ document.addEventListener("DOMContentLoaded", function () {
   };
 
   // Usuń miejsce
-  window.deletePlace = function(id) {
-    if (confirm("Czy na pewno chcesz usunąć to miejsce?")) {
-      fetch(`${firebaseUrl.replace('/places.json', '')}/${id}.json`, {
-        method: "DELETE"
-      })
-      .then(() => {
+window.deletePlace = function(id) {
+  if (confirm("Czy na pewno chcesz usunąć to miejsce?")) {
+    // Adres konkretnego miejsca w Firebase
+    const placeUrl = `${firebaseUrl.replace('/places.json', '')}/places/${id}.json`;
+
+    fetch(placeUrl, {
+      method: "DELETE"
+    })
+    .then(response => {
+      if (response.ok) {
+        // Usuń z lokalnej tablicy
         places = places.filter(p => p.id !== id);
         addMarkersToMap(places, map);
         alert("Miejsce usunięte! Zmiany zapisane w chmurze.");
-      })
-      .catch(err => {
-        console.error("❌ Błąd podczas usuwania:", err);
-        alert("Nie udało się usunąć miejsca. Sprawdź połączenie.");
-      });
-    }
-  };
+      } else {
+        throw new Error("Błąd serwera: " + response.status);
+      }
+    })
+    .catch(err => {
+      console.error("❌ Błąd podczas usuwania:", err);
+      alert("Nie udało się usunąć miejsca. Sprawdź połączenie.");
+    });
+  }
+};
 
   // Zamknij formularz
   window.closeModal = function() {
@@ -193,4 +201,5 @@ document.addEventListener("DOMContentLoaded", function () {
       alert("Nie udało się zapisać danych. Sprawdź połączenie i adres Firebase.");
     });
   });
+
 });
