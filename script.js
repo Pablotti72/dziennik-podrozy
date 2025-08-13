@@ -86,6 +86,9 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById("placeLat").value = lat;
     document.getElementById("placeLng").value = lng;
     document.getElementById("placeForm").reset();
+    // ✅ Wyczyść pola dat
+    document.getElementById("placeDateFrom").value = "";
+    document.getElementById("placeDateTo").value = "";
     document.getElementById("modalTitle").textContent = "Dodaj nowe miejsce";
     document.getElementById("saveBtn").textContent = "Zapisz";
     document.getElementById("placeId").value = "";
@@ -156,6 +159,7 @@ document.addEventListener("DOMContentLoaded", function () {
       dateTo: document.getElementById("placeDateTo").value || ""
     };
 
+    // ✅ Poprawny adres: tylko jedno miejsce
     const method = isEdit ? "PUT" : "POST";
     const url = isEdit 
       ? `${firebaseBaseUrl}/places/${id}.json` 
