@@ -2,8 +2,10 @@
 let places = [];
 
 // 🔥 Adres Twojej bazy Firebase – ZMIEN NA SWÓJ!
-// Pobierz go z: https://console.firebase.google.com → Realtime Database
-const firebaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app/places.json";
+const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
+
+// Adres do głównej gałęzi 'places'
+const firebasePlacesUrl = `${firebaseBaseUrl}/places.json`;
 
 // Uruchom, gdy strona się załaduje
 document.addEventListener("DOMContentLoaded", function () {
@@ -17,9 +19,9 @@ document.addEventListener("DOMContentLoaded", function () {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
   }).addTo(map);
 
-  // 3. Załaduj dane z Firebase
+  // 3. Załaduj dane z Firebase – z gałęzi 'places'
   console.log("🔧 Ładowanie danych z Firebase...");
-  fetch(firebaseUrl)
+  fetch(firebasePlacesUrl)
     .then(response => {
       if (response.ok && response.status !== 404) {
         return response.json();
@@ -29,7 +31,6 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     })
     .then(data => {
-      // Firebase zwraca obiekt, a nie tablicę – trzeba przekształcić
       places = [];
       if (data) {
         places = Object.keys(data).map(key => ({
@@ -42,7 +43,7 @@ document.addEventListener("DOMContentLoaded", function () {
     })
     .catch(error => {
       console.error("❌ Błąd ładowania z Firebase:", error);
-      alert("Nie udało się połączyć z bazą danych. Sprawdź połączenie i adres Firebase.");
+      alert("Nie udało się połączyć z bazą danych.");
     });
 
   // Funkcja dodająca pinezki na mapie
@@ -119,31 +120,30 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById("modal").style.display = "flex";
   };
 
-  // Usuń miejsce
-window.deletePlace = function(id) {
-  if (confirm("Czy na pewno chcesz usunąć to miejsce?")) {
-    // Adres konkretnego miejsca w Firebase
-    const placeUrl = `${firebaseUrl.replace('/places.json', '')}/places/${id}.json`;
+  // Usuń miejsce (trwałe usunięcie z Firebase)
+  window.deletePlace = function(id) {
+    if (confirm("Czy na pewno chcesz usunąć to miejsce?")) {
+      const deleteUrl = `${firebaseBaseUrl}/places/${id}.json`; // poprawny adres
 
-    fetch(placeUrl, {
-      method: "DELETE"
-    })
-    .then(response => {
-      if (response.ok) {
-        // Usuń z lokalnej tablicy
-        places = places.filter(p => p.id !== id);
-        addMarkersToMap(places, map);
-        alert("Miejsce usunięte! Zmiany zapisane w chmurze.");
-      } else {
-        throw new Error("Błąd serwera: " + response.status);
-      }
-    })
-    .catch(err => {
-      console.error("❌ Błąd podczas usuwania:", err);
-      alert("Nie udało się usunąć miejsca. Sprawdź połączenie.");
-    });
-  }
-};
+      fetch(deleteUrl, {
+        method: "DELETE"
+      })
+      .then(response => {
+        if (response.ok) {
+          // Usuń z lokalnej tablicy
+          places = places.filter(p => p.id !== id);
+          addMarkersToMap(places, map);
+          alert("✅ Miejsce usunięte! Zmiana zapisana w chmurze.");
+        } else {
+          throw new Error("Błąd serwera: " + response.status);
+        }
+      })
+      .catch(err => {
+        console.error("❌ Błąd podczas usuwania:", err);
+        alert("Nie udało się usunąć miejsca. Sprawdź połączenie.");
+      });
+    }
+  };
 
   // Zamknij formularz
   window.closeModal = function() {
@@ -166,10 +166,11 @@ window.deletePlace = function(id) {
       category: document.getElementById("placeCategory").value
     };
 
+    // Adres do zapisu: POST do /places.json (nowe) lub PUT do /places/id.json (edycja)
     const method = isEdit ? "PUT" : "POST";
     const url = isEdit 
-      ? `${firebaseUrl.replace('/places.json', '')}/${id}.json` 
-      : firebaseUrl;
+      ? `${firebaseBaseUrl}/places/${id}.json` 
+      : `${firebaseBaseUrl}/places.json`;
 
     fetch(url, {
       method: method,
@@ -198,8 +199,7 @@ window.deletePlace = function(id) {
     })
     .catch(err => {
       console.error("❌ Błąd zapisu do Firebase:", err);
-      alert("Nie udało się zapisać danych. Sprawdź połączenie i adres Firebase.");
+      alert("Nie udało się zapisać danych. Sprawdź połączenie.");
     });
   });
-
 });
