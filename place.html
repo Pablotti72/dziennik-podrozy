@@ -18,42 +18,50 @@
   </main>
 
   <script>
-    // Pobierz ID z adresu URL (np. ?id=1)
-    const urlParams = new URLSearchParams(window.location.search);
-    const placeId = parseInt(urlParams.get("id"));
+    // 🔥 Adres Twojej bazy Firebase – UŻYJ SWÓJ!
+    const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
 
-    if (isNaN(placeId)) {
-      document.getElementById("place-content").innerHTML = "<p>Brak miejsca do wyświetlenia.</p>";
-      console.error("Nieprawidłowe ID miejsca.");
-      throw new Error("Nieprawidłowe ID.");
+    // Pobierz ID z URL (np. ?id=-OXYbYt6Gwri5P8DesAD)
+    const urlParams = new URLSearchParams(window.location.search);
+    const placeId = urlParams.get("id");
+
+    if (!placeId) {
+      document.getElementById("place-content").innerHTML = "<p>Brak ID miejsca do wyświetlenia.</p>";
+      console.error("Brak ID w URL.");
+      throw new Error("Brak ID.");
     }
 
-    // Załaduj dane z places.json
-    fetch("places.json")
-      .then(response => response.json())
-      .then(data => {
-        const place = data.find(p => p.id === placeId);
+    // Adres do konkretnego miejsca
+    const placeUrl = `${firebaseBaseUrl}/places/${placeId}.json`;
 
-        if (!place) {
-          document.getElementById("place-content").innerHTML = "<p>Nie znaleziono miejsca o podanym ID.</p>";
-          return;
+    // Załaduj dane
+    fetch(placeUrl)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`Nie znaleziono miejsca: ${response.status}`);
         }
+        return response.json();
+      })
+      .then(data => {
+        // Usuń białe znaki w URL-u zdjęcia
+        const cleanImage = data.image.trim();
 
-        // Wypełnij treścią
         document.getElementById("place-content").innerHTML = `
-          <h1>${place.name}</h1>
-          <img src="${place.image}" alt="Zdjęcie: ${place.name}" class="place-image">
-          <p><strong>Kategoria:</strong> ${place.category}</p>
-          <p>${place.description}</p>
+          <h1>${data.name}</h1>
+          <img src="${cleanImage}" alt="Zdjęcie: ${data.name}" class="place-image">
+          <p><strong>Kategoria:</strong> ${data.category}</p>
+          <p>${data.description}</p>
           <div class="details">
-            <p><strong>Szerokość geograficzna:</strong> ${place.lat.toFixed(4)}°</p>
-            <p><strong>Długość geograficzna:</strong> ${place.lng.toFixed(4)}°</p>
+            <p><strong>Współrzędne:</strong> ${data.lat.toFixed(4)}, ${data.lng.toFixed(4)}</p>
           </div>
         `;
       })
       .catch(error => {
-        document.getElementById("place-content").innerHTML = "<p>Błąd ładowania danych. Sprawdź plik places.json.</p>";
-        console.error("Błąd:", error);
+        console.error("Błąd ładowania miejsca:", error);
+        document.getElementById("place-content").innerHTML = `
+          <p><strong>Błąd:</strong> ${error.message}</p>
+          <p>Spróbuj ponownie lub wróć do mapy.</p>
+        `;
       });
   </script>
 </body>
