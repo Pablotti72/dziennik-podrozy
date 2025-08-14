@@ -18,22 +18,17 @@
   </main>
 
   <script>
-    // 🔥 Twój adres Firebase
     const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
-
-    // Pobierz ID z URL
     const urlParams = new URLSearchParams(window.location.search);
     const placeId = urlParams.get("id");
 
     if (!placeId) {
-      document.getElementById("place-content").innerHTML = "<p>Brak ID miejsca do wyświetlenia.</p>";
+      document.getElementById("place-content").innerHTML = "<p>Brak ID miejsca.</p>";
       throw new Error("Brak ID.");
     }
 
-    // Adres do konkretnego miejsca
     const placeUrl = `${firebaseBaseUrl}/places/${placeId}.json`;
 
-    // Format daty: "5 marca"
     function formatShortDate(dateStr) {
       if (!dateStr) return "";
       const date = new Date(dateStr);
@@ -41,7 +36,6 @@
       return date.toLocaleDateString('pl-PL', options);
     }
 
-    // Załaduj dane
     fetch(placeUrl)
       .then(response => {
         if (!response.ok) throw new Error("Nie znaleziono: " + response.status);
@@ -52,15 +46,26 @@
         if (data.dateFrom) {
           const from = formatShortDate(data.dateFrom);
           const to = formatShortDate(data.dateTo);
-
-          if (data.dateTo) {
-            dateText = `<p><strong>Data wizyty:</strong> ${from} – ${to}</p>`;
-          } else {
-            dateText = `<p><strong>Data wizyty:</strong> ${from}</p>`;
-          }
+          dateText = data.dateTo 
+            ? `<p><strong>Data wizyty:</strong> ${from} – ${to}</p>`
+            : `<p><strong>Data wizyty:</strong> ${from}</p>`;
         }
 
         const cleanImage = data.image.trim();
+
+        let galleryHtml = "";
+        if (data.photos && data.photos.length > 0) {
+          galleryHtml = `<div class="photo-gallery"><h3>Galeria zdjęć</h3>`;
+          data.photos.forEach(photo => {
+            galleryHtml += `
+              <div class="gallery-item">
+                <img src="${photo.url.trim()}" alt="Zdjęcie" style="width:100%; max-height:300px; object-fit:cover; border-radius:8px;">
+                <p style="margin:5px 0; font-size:14px; color:#555;"><em>${photo.caption || ''}</em></p>
+              </div>
+            `;
+          });
+          galleryHtml += `</div>`;
+        }
 
         document.getElementById("place-content").innerHTML = `
           <h1>${data.name}</h1>
@@ -68,17 +73,15 @@
           ${dateText}
           <p><strong>Kategoria:</strong> ${data.category}</p>
           <p>${data.description}</p>
+          ${galleryHtml}
           <div class="details">
             <p><strong>Współrzędne:</strong> ${data.lat.toFixed(4)}, ${data.lng.toFixed(4)}</p>
           </div>
         `;
       })
       .catch(error => {
-        console.error("Błąd ładowania miejsca:", error);
-        document.getElementById("place-content").innerHTML = `
-          <p><strong>Błąd:</strong> ${error.message}</p>
-          <p>Spróbuj ponownie lub wróć do mapy.</p>
-        `;
+        console.error("Błąd ładowania:", error);
+        document.getElementById("place-content").innerHTML = `<p><strong>Błąd:</strong> ${error.message}</p>`;
       });
   </script>
 </body>
