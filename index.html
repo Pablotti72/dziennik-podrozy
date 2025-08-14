@@ -26,9 +26,9 @@
 
         <label>Nazwa: <input type="text" id="placeName" required></label><br><br>
 
-        <label>Opis: <textarea id="placeDescription" rows="2" style="width: 100%; max-width: 500px;"></textarea></label><br><br>
+        <label>Opis: <textarea id="placeDescription" rows="2" style="max-height: 80px; resize: vertical;" required></textarea></label><br><br>
 
-        <label>Zdjęcie (URL) głównego zdjęcia: <input type="url" id="placeImage" placeholder="https://..." required></label><br><br>
+        <label>Zdjęcie (URL): <input type="url" id="placeImage" placeholder="https://..." required></label><br><br>
 
         <label>Kategoria:
           <select id="placeCategory">
@@ -43,7 +43,7 @@
         <label>Data od: <input type="date" id="placeDateFrom" required></label><br><br>
         <label>Data do: <input type="date" id="placeDateTo"></label><br><br>
 
-        <!-- Galeria zdjęć z komentarzami -->
+        <!-- Galeria zdjęć -->
         <h3>Galeria zdjęć</h3>
         <div id="photos-container">
           <div class="photo-item">
@@ -54,6 +54,7 @@
 
         <button type="button" onclick="addPhotoField()">➕ Dodaj kolejne zdjęcie</button><br><br>
 
+        <!-- Przyciski zawsze widoczne -->
         <button type="submit" id="saveBtn">Zapisz</button>
         <button type="button" onclick="closeModal()">Anuluj</button>
       </form>
@@ -73,4 +74,3 @@
   <script src="script.js"></script>
 </body>
 </html>
-
