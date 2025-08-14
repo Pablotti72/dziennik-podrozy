@@ -31,7 +31,7 @@ body {
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
-/* Modal - tło i zawartość */
+/* Modal - tło */
 .modal {
   position: fixed;
   top: 0; left: 0;
@@ -43,26 +43,22 @@ body {
   z-index: 1000;
 }
 
-/* Modal - formularz (cieńszy pasek) */
+/* Modal - formularz z ograniczoną wysokością i przewijaniem */
 .modal-content {
   background: white;
-  padding: 15px 20px;
+  padding: 20px;
   border-radius: 10px;
   width: 90%;
   max-width: 500px;
+  max-height: 80vh;            /* Maksymalna wysokość: 80% ekranu */
+  overflow-y: auto;            /* Przewijanie tylko w formularzu */
   box-shadow: 0 4px 20px rgba(0,0,0,0.2);
 }
 
-.modal-content h2 {
-  margin: 0 0 15px 0;
-  font-size: 18px;
-  font-weight: bold;
-  color: #333;
-}
-
+/* Styli dla pól formularza */
 .modal-content label {
   display: block;
-  margin: 8px 0 4px;
+  margin: 6px 0 4px;
   font-size: 14px;
   color: #555;
 }
@@ -74,8 +70,13 @@ body {
   padding: 6px 8px;
   border: 1px solid #ccc;
   border-radius: 4px;
-  box-sizing: border-box;
   font-size: 14px;
+  box-sizing: border-box;
+}
+
+.modal-content textarea {
+  resize: vertical;
+  max-height: 80px;
 }
 
 .modal-content button {
@@ -149,6 +150,33 @@ body {
   color: #555;
 }
 
+/* Galeria zdjęć */
+.photo-gallery {
+  margin-top: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.gallery-item {
+  flex: 1 1 300px;
+  max-width: 300px;
+}
+
+.gallery-item img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.gallery-item p {
+  margin: 5px 0 0 0;
+  font-size: 14px;
+  color: #555;
+  text-align: center;
+}
+
 /* Styl dla własnego komunikatu */
 .msg-modal {
   position: fixed;
@@ -183,56 +211,4 @@ body {
 .msg-modal-content p {
   margin: 0 0 15px 0;
   font-size: 16px;
-}
-
-/* Galeria zdjęć */
-.photo-gallery {
-  margin-top: 20px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 15px;
-}
-
-.gallery-item {
-  flex: 1 1 300px;
-  max-width: 300px;
-}
-
-.gallery-item img {
-  width: 100%;
-  height: 200px;
-  object-fit: cover;
-  border-radius: 8px;
-}
-
-.gallery-item p {
-  margin: 5px 0 0 0;
-  font-size: 14px;
-  color: #555;
-  text-align: center;
-}
-
-/* Formularz edycji */
-.modal-content {
-  padding: 20px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-  max-width: 600px; /* Ograniczenie szerokości */
-}
-
-.modal-content textarea {
-  width: 100%;
-  max-width: 500px;
-  resize: none; /* Uniknij możliwości zmiany rozmiaru textarea */
-}
-
-.modal-content button {
-  margin-top: 10px;
-  padding: 6px 12px;
-  background: #4CAF50;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
 }
