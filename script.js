@@ -1,7 +1,7 @@
 // Zmienna do przechowywania miejsc
 let places = [];
 
-// 🔥 Adres Twojej bazy Firebase – ZMIEN NA SWÓJ!
+// 🔥 Adres Twojej bazy Firebase
 const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
 const firebasePlacesUrl = `${firebaseBaseUrl}/places.json`;
 
@@ -9,38 +9,25 @@ const firebasePlacesUrl = `${firebaseBaseUrl}/places.json`;
 document.addEventListener("DOMContentLoaded", function () {
   console.log("✅ Skrypt się uruchomił");
 
-  // 1. Utwórz mapę i ustaw widok na Wielką Brytanię
+  // 1. Utwórz mapę
   const map = L.map("map").setView([54.5, -3.0], 6);
-
-  // 2. Dodaj warstwę mapy
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
   }).addTo(map);
 
-  // 3. Załaduj dane z Firebase
+  // 2. Załaduj dane z Firebase
   fetch(firebasePlacesUrl)
-    .then(response => {
-      if (response.ok && response.status !== 404) {
-        return response.json();
-      } else {
-        console.warn("Brak danych w Firebase – zaczynam od pustej listy");
-        return null;
-      }
-    })
+    .then(response => response.json().catch(() => null))
     .then(data => {
       places = [];
       if (data) {
-        places = Object.keys(data).map(key => ({
-          id: key,
-          ...data[key]
-        }));
+        places = Object.keys(data).map(key => ({ id: key, ...data[key] }));
       }
-      console.log("📥 Pobrano dane z Firebase:", places);
       addMarkersToMap(places, map);
     })
     .catch(error => {
-      console.error("❌ Błąd ładowania z Firebase:", error);
-      showMessage("Nie udało się połączyć z bazą danych.");
+      console.error("❌ Błąd ładowania:", error);
+      showMessage("Błąd ładowania danych.");
     });
 
   // Funkcja dodająca pinezki
@@ -51,12 +38,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     data.forEach(place => {
       const marker = L.marker([place.lat, place.lng]).addTo(map);
-
-      marker.bindTooltip(place.name, {
-        permanent: false,
-        direction: "top",
-        offset: [0, -10]
-      });
+      marker.bindTooltip(place.name, { direction: "top", offset: [0, -10] });
 
       marker.bindPopup(`
         <div class="popup-content">
@@ -75,7 +57,6 @@ document.addEventListener("DOMContentLoaded", function () {
   map.on("click", function(event) {
     const lat = event.latlng.lat;
     const lng = event.latlng.lng;
-
     if (confirm(`Czy chcesz dodać nowe miejsce w: ${lat.toFixed(4)}, ${lng.toFixed(4)}?`)) {
       openAddModal(lat, lng);
     }
@@ -86,8 +67,12 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById("placeLat").value = lat;
     document.getElementById("placeLng").value = lng;
     document.getElementById("placeForm").reset();
-    document.getElementById("placeDateFrom").value = "";
-    document.getElementById("placeDateTo").value = "";
+    document.getElementById("photos-container").innerHTML = `
+      <div class="photo-item">
+        <label>Zdjęcie URL: <input type="url" class="photo-url" placeholder="https://..."></label><br>
+        <label>Komentarz: <input type="text" class="photo-caption" placeholder="Opis zdjęcia"></label><br><br>
+      </div>
+    `;
     document.getElementById("modalTitle").textContent = "Dodaj nowe miejsce";
     document.getElementById("saveBtn").textContent = "Zapisz";
     document.getElementById("placeId").value = "";
@@ -109,6 +94,28 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById("placeLng").value = place.lng;
     document.getElementById("placeId").value = id;
 
+    // Wypełnij galerię
+    const container = document.getElementById("photos-container");
+    container.innerHTML = "";
+    if (place.photos && place.photos.length > 0) {
+      place.photos.forEach(photo => {
+        const item = document.createElement("div");
+        item.className = "photo-item";
+        item.innerHTML = `
+          <label>Zdjęcie URL: <input type="url" class="photo-url" value="${photo.url}" placeholder="https://..."></label><br>
+          <label>Komentarz: <input type="text" class="photo-caption" value="${photo.caption || ''}" placeholder="Opis zdjęcia"></label><br><br>
+        `;
+        container.appendChild(item);
+      });
+    } else {
+      container.innerHTML = `
+        <div class="photo-item">
+          <label>Zdjęcie URL: <input type="url" class="photo-url" placeholder="https://..."></label><br>
+          <label>Komentarz: <input type="text" class="photo-caption" placeholder="Opis zdjęcia"></label><br><br>
+        </div>
+      `;
+    }
+
     document.getElementById("modalTitle").textContent = "Edytuj miejsce";
     document.getElementById("saveBtn").textContent = "Zaktualizuj";
     document.getElementById("modal").style.display = "flex";
@@ -117,19 +124,14 @@ document.addEventListener("DOMContentLoaded", function () {
   // Usuń miejsce
   window.deletePlace = function(id) {
     if (confirm("Czy na pewno chcesz usunąć to miejsce?")) {
-      const deleteUrl = `${firebaseBaseUrl}/places/${id}.json`;
-      fetch(deleteUrl, { method: "DELETE" })
-        .then(response => {
-          if (response.ok) {
-            places = places.filter(p => p.id !== id);
-            addMarkersToMap(places, map);
-            showMessage("✅ Miejsce usunięte! Zmiana zapisana w chmurze.");
-          } else {
-            throw new Error("Błąd serwera: " + response.status);
-          }
+      fetch(`${firebaseBaseUrl}/places/${id}.json`, { method: "DELETE" })
+        .then(() => {
+          places = places.filter(p => p.id !== id);
+          addMarkersToMap(places, map);
+          showMessage("✅ Miejsce usunięte!");
         })
         .catch(err => {
-          console.error("❌ Błąd podczas usuwania:", err);
+          console.error("❌ Błąd usuwania:", err);
           showMessage("Nie udało się usunąć miejsca.");
         });
     }
@@ -140,12 +142,37 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById("modal").style.display = "none";
   };
 
-  // Zapisz (dodaj/edytuj)
+  // Dodaj nowe pole zdjęcia
+  window.addPhotoField = function() {
+    const container = document.getElementById("photos-container");
+    const item = document.createElement("div");
+    item.className = "photo-item";
+    item.innerHTML = `
+      <label>Zdjęcie URL: <input type="url" class="photo-url" placeholder="https://..."></label><br>
+      <label>Komentarz: <input type="text" class="photo-caption" placeholder="Opis zdjęcia"></label><br><br>
+    `;
+    container.appendChild(item);
+  };
+
+  // Zapisz formularz
   document.getElementById("placeForm").addEventListener("submit", function(e) {
     e.preventDefault();
 
     const id = document.getElementById("placeId").value;
     const isEdit = id !== "";
+
+    // Zbierz zdjęcia i komentarze
+    const photos = [];
+    const photoUrls = document.querySelectorAll(".photo-url");
+    const photoCaptions = document.querySelectorAll(".photo-caption");
+    photoUrls.forEach((urlInput, i) => {
+      if (urlInput.value.trim() !== "") {
+        photos.push({
+          url: urlInput.value.trim(),
+          caption: photoCaptions[i]?.value.trim() || ""
+        });
+      }
+    });
 
     const placeData = {
       name: document.getElementById("placeName").value,
@@ -155,7 +182,8 @@ document.addEventListener("DOMContentLoaded", function () {
       image: document.getElementById("placeImage").value,
       category: document.getElementById("placeCategory").value,
       dateFrom: document.getElementById("placeDateFrom").value,
-      dateTo: document.getElementById("placeDateTo").value || ""
+      dateTo: document.getElementById("placeDateTo").value || "",
+      photos: photos
     };
 
     const method = isEdit ? "PUT" : "POST";
@@ -166,14 +194,11 @@ document.addEventListener("DOMContentLoaded", function () {
     fetch(url, {
       method: method,
       body: JSON.stringify(placeData),
-      headers: {
-        "Content-Type": "application/json"
-      }
+      headers: { "Content-Type": "application/json" }
     })
     .then(response => response.json())
     .then(dataFromFirebase => {
       const finalId = isEdit ? id : dataFromFirebase.name;
-
       if (!isEdit) {
         placeData.id = finalId;
         places.push(placeData);
@@ -181,18 +206,17 @@ document.addEventListener("DOMContentLoaded", function () {
         const index = places.findIndex(p => p.id === id);
         if (index !== -1) places[index] = { ...placeData, id: finalId };
       }
-
       addMarkersToMap(places, map);
       closeModal();
-      showMessage(isEdit ? "✅ Miejsce zaktualizowane!" : "✅ Miejsce dodane i zapisane w chmurze!");
+      showMessage(isEdit ? "✅ Miejsce zaktualizowane!" : "✅ Miejsce dodane!");
     })
     .catch(err => {
-      console.error("❌ Błąd zapisu do Firebase:", err);
+      console.error("❌ Błąd zapisu:", err);
       showMessage("Nie udało się zapisać danych.");
     });
   });
 
-  // === FUNKCJE DLA WŁASNEGO KOMUNIKATU ===
+  // === FUNKCJE DLA KOMUNIKATÓW ===
   window.showMessage = function(text) {
     const modal = document.getElementById("msgModal");
     const msgText = document.getElementById("msgText");
