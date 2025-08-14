@@ -28,7 +28,7 @@
 
         <label>Opis: <textarea id="placeDescription" rows="3" required></textarea></label><br><br>
 
-        <label>Zdjęcie (URL): <input type="url" id="placeImage" placeholder="https://..." required></label><br><br>
+        <label>Zdjęcie (URL) głównego zdjęcia: <input type="url" id="placeImage" placeholder="https://..." required></label><br><br>
 
         <label>Kategoria:
           <select id="placeCategory">
@@ -42,6 +42,17 @@
 
         <label>Data od: <input type="date" id="placeDateFrom" required></label><br><br>
         <label>Data do: <input type="date" id="placeDateTo"></label><br><br>
+
+        <!-- Galeria zdjęć z komentarzami -->
+        <h3>Galeria zdjęć</h3>
+        <div id="photos-container">
+          <div class="photo-item">
+            <label>Zdjęcie URL: <input type="url" class="photo-url" placeholder="https://..."></label><br>
+            <label>Komentarz: <input type="text" class="photo-caption" placeholder="Opis zdjęcia"></label><br><br>
+          </div>
+        </div>
+
+        <button type="button" onclick="addPhotoField()">➕ Dodaj kolejne zdjęcie</button><br><br>
 
         <button type="submit" id="saveBtn">Zapisz</button>
         <button type="button" onclick="closeModal()">Anuluj</button>
