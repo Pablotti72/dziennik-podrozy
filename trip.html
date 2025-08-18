@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Wyprawa</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    #trip-map {
+      width: 100%;
+      height: 500px;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="back-link">
+    <a href="index.html">← Wróć do mapy</a>
+  </div>
+
+  <main class="place-page">
+    <article id="trip-content">
+      <p>Ładowanie wyprawy...</p>
+    </article>
+    <div id="trip-map"></div>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
+    const urlParams = new URLSearchParams(window.location.search);
+    const tripId = urlParams.get("id");
+
+    if (!tripId) {
+      document.getElementById("trip-content").innerHTML = "<p>Brak ID wyprawy.</p>";
+      throw new Error("Brak ID.");
+    }
+
+    const tripUrl = `${firebaseBaseUrl}/trips/${tripId}.json`;
+
+    fetch(tripUrl)
+      .then(response => {
+        if (!response.ok) throw new Error("Nie znaleziono: " + response.status);
+        return response.json();
+      })
+      .then(trip => {
+        document.getElementById("trip-content").innerHTML = `
+          <h1>${trip.name}</h1>
+          <p><strong>Okres:</strong> ${formatDate(trip.dateFrom)} – ${formatDate(trip.dateTo)}</p>
+          <p>${trip.description}</p>
+        `;
+
+        const map = L.map("trip-map").setView([trip.lat, trip.lng], 10);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+
+        if (trip.places) {
+          Object.keys(trip.places).forEach(key => {
+            const place = trip.places[key];
+            const marker = L.marker([place.lat, place.lng]).addTo(map);
+            marker.bindPopup(`
+              <strong><a href="place.html?tripId=${tripId}&placeId=${key}" style="color: inherit;">${place.name}</a></strong><br>
+              ${place.description}<br>
+              <img src="${place.image}" width="100"><br>
+              <small>${place.category}</small>
+            `);
+          });
+        }
+      })
+      .catch(error => {
+        console.error("Błąd ładowania wyprawy:", error);
+        document.getElementById("trip-content").innerHTML = `<p><strong>Błąd:</strong> ${error.message}</p>`;
+      });
+
+    function formatDate(dateStr) {
+      if (!dateStr) return "";
+      const date = new Date(dateStr);
+      return date.toLocaleDateString("pl-PL", { day: "numeric", month: "long", year: "numeric" });
+    }
+  </script>
+</body>
+</html>
