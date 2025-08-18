@@ -5,61 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Nasze podróże</title>
   <link rel="stylesheet" href="style.css" />
-  <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
-  <!-- Nagłówek w prawym górnym rogu -->
-  <div class="header-box">Nasze podróże ver 1.004</div>
-
-  <!-- Mapa -->
+  <div class="header-box">Nasze podróże</div>
   <div id="map"></div>
-
-  <!-- Modal - formularz dodawania/edycji miejsca -->
-  <div id="modal" class="modal" style="display: none;">
-    <div class="modal-content">
-      <h2 id="modalTitle">Dodaj nowe miejsce</h2>
-      <form id="placeForm">
-        <input type="hidden" id="placeId">
-        <input type="hidden" id="placeLat">
-        <input type="hidden" id="placeLng">
-
-        <label>Nazwa: <input type="text" id="placeName" required></label><br><br>
-
-        <label>Opis: <textarea id="placeDescription" rows="2" style="max-height: 80px; resize: vertical;" required></textarea></label><br><br>
-
-        <label>Zdjęcie (URL): <input type="url" id="placeImage" placeholder="https://..." required></label><br><br>
-
-        <label>Kategoria:
-          <select id="placeCategory">
-            <option value="miasto">Miasto</option>
-            <option value="park">Park</option>
-            <option value="zabytek">Zabytek</option>
-            <option value="muzeum">Muzeum</option>
-            <option value="inny">Inny</option>
-          </select>
-        </label><br><br>
-
-        <label>Data od: <input type="date" id="placeDateFrom" required></label><br><br>
-        <label>Data do: <input type="date" id="placeDateTo"></label><br><br>
-
-        <!-- Galeria zdjęć -->
-        <h3>Galeria zdjęć</h3>
-        <div id="photos-container">
-          <div class="photo-item">
-            <label>Zdjęcie URL: <input type="url" class="photo-url" placeholder="https://..."></label><br>
-            <label>Komentarz: <input type="text" class="photo-caption" placeholder="Opis zdjęcia"></label><br><br>
-          </div>
-        </div>
-
-        <button type="button" onclick="addPhotoField()">➕ Dodaj kolejne zdjęcie</button><br><br>
-
-        <!-- Przyciski -->
-        <button type="submit" id="saveBtn">Zapisz</button>
-        <button type="button" onclick="closeModal()">Anuluj</button>
-      </form>
-    </div>
-  </div>
 
   <!-- Modal komunikatu -->
   <div id="msgModal" class="msg-modal" style="display: none;">
@@ -69,7 +19,6 @@
     </div>
   </div>
 
-  <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="script.js"></script>
 </body>
