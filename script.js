@@ -53,14 +53,34 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-  // Obsługa kliknięcia w mapę
-  map.on("click", function(event) {
-    const lat = event.latlng.lat;
-    const lng = event.latlng.lng;
-    if (confirm(`Czy chcesz dodać nowe miejsce w: ${lat.toFixed(4)}, ${lng.toFixed(4)}?`)) {
-      openAddModal(lat, lng);
+  // --- OPÓŹNIENIE DODAWANIA PINEZKI (1 sekunda) ---
+  let clickTimeout;
+
+  map.on("mousedown", function(e) {
+    const lat = e.latlng.lat;
+    const lng = e.latlng.lng;
+
+    clickTimeout = setTimeout(() => {
+      if (confirm(`Czy chcesz dodać nowe miejsce w: ${lat.toFixed(4)}, ${lng.toFixed(4)}?`)) {
+        openAddModal(lat, lng);
+      }
+    }, 1000);
+  });
+
+  map.on("mouseup", function() {
+    if (clickTimeout) {
+      clearTimeout(clickTimeout);
+      clickTimeout = null;
     }
   });
+
+  map.on("mouseout", function() {
+    if (clickTimeout) {
+      clearTimeout(clickTimeout);
+      clickTimeout = null;
+    }
+  });
+  // --- KONIEC OPÓŹNIENIA ---
 
   // Otwórz formularz dodawania
   window.openAddModal = function(lat, lng) {
