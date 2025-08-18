@@ -6,7 +6,6 @@
   <title>Miejsce w dzienniku</title>
   <link rel="stylesheet" href="style.css" />
   <style>
-    /* Styl dla lightboxa */
     .lightbox {
       display: none;
       position: fixed;
@@ -18,22 +17,16 @@
       align-items: center;
       flex-direction: column;
     }
-
     .lightbox img {
       max-width: 90%;
       max-height: 80vh;
       border-radius: 8px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
     }
-
     .lightbox .caption {
       color: white;
       font-size: 18px;
       margin-top: 15px;
-      text-align: center;
-      max-width: 80%;
     }
-
     .lightbox .nav {
       position: absolute;
       top: 50%;
@@ -48,17 +41,7 @@
       justify-content: center;
       align-items: center;
       cursor: pointer;
-      user-select: none;
     }
-
-    .lightbox .prev {
-      left: 20px;
-    }
-
-    .lightbox .next {
-      right: 20px;
-    }
-
     .lightbox .close {
       position: absolute;
       top: 20px;
@@ -71,7 +54,7 @@
 </head>
 <body>
   <div class="back-link">
-    <a href="index.html">← Wróć do mapy</a>
+    <a href="trip.html?id=<!-- tripId -->">← Wróć do wyprawy</a>
   </div>
 
   <main class="place-page">
@@ -80,11 +63,10 @@
     </article>
   </main>
 
-  <!-- Lightbox -->
   <div id="lightbox" class="lightbox">
     <span class="close" onclick="closeLightbox()">&times;</span>
     <div class="nav prev" onclick="prevImage()">&#10094;</div>
-    <img id="lightbox-img" src="" alt="Zdjęcie w pełnym rozmiarze">
+    <img id="lightbox-img" src="" alt="Pełny rozmiar">
     <div class="caption" id="lightbox-caption"></div>
     <div class="nav next" onclick="nextImage()">&#10095;</div>
   </div>
@@ -92,85 +74,61 @@
   <script>
     const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
     const urlParams = new URLSearchParams(window.location.search);
-    const placeId = urlParams.get("id");
+    const tripId = urlParams.get("tripId");
+    const placeId = urlParams.get("placeId");
 
-    if (!placeId) {
-      document.getElementById("place-content").innerHTML = "<p>Brak ID miejsca.</p>";
+    if (!tripId || !placeId) {
+      document.getElementById("place-content").innerHTML = "<p>Brak danych.</p>";
       throw new Error("Brak ID.");
     }
 
-    const placeUrl = `${firebaseBaseUrl}/places/${placeId}.json`;
-
-    function formatShortDate(dateStr) {
-      if (!dateStr) return "";
-      const date = new Date(dateStr);
-      const options = { day: 'numeric', month: 'long' };
-      return date.toLocaleDateString('pl-PL', options);
-    }
-
-    // Dane galerii
-    let photos = [];
-    let currentImageIndex = 0;
+    const placeUrl = `${firebaseBaseUrl}/trips/${tripId}/places/${placeId}.json`;
 
     fetch(placeUrl)
-      .then(response => {
-        if (!response.ok) throw new Error("Nie znaleziono: " + response.status);
-        return response.json();
-      })
-      .then(data => {
-        let dateText = "";
-        if (data.dateFrom) {
-          const from = formatShortDate(data.dateFrom);
-          const to = formatShortDate(data.dateTo);
-          dateText = data.dateTo 
-            ? `<p><strong>Data pobytu:</strong> ${from} – ${to}</p>`
-            : `<p><strong>Data pobytu:</strong> ${from}</p>`;
+      .then(res => res.json())
+      .then(place => {
+        let galleryHtml = "";
+        if (place.photos && place.photos.length > 0) {
+          galleryHtml = `<div style="margin-top: 20px;"><h3>Galeria zdjęć</h3>`;
+          place.photos.forEach((photo, index) => {
+            galleryHtml += `
+              <div class="gallery-item" style="margin-bottom: 20px;">
+                <img src="${photo.url.trim()}" 
+                     alt="Zdjęcie" 
+                     style="width:100%; max-height:400px; object-fit:cover; border-radius:8px; cursor: pointer;"
+                     onclick="openLightbox(${index})"
+                     loading="lazy">
+                <p style="margin:5px 0 0 0; font-size:14px; color:#555;"><em>${photo.caption || ''}</em></p>
+              </div>`;
+          });
+          galleryHtml += `</div>`;
         }
 
-        const cleanImage = data.image.trim();
-
-        // Przygotuj galerię
-        photos = data.photos?.filter(p => p.url.trim() !== "") || [];
-
-        const galleryHtml = photos.length > 0
-          ? `
-            <div style="margin-top: 20px;">
-              <h3>Galeria zdjęć</h3>
-              ${photos.map((photo, index) => `
-                <div class="gallery-item" style="margin-bottom: 20px;">
-                  <img src="${photo.url.trim()}" 
-                       alt="Zdjęcie" 
-                       style="width:100%; max-height:400px; object-fit:cover; border-radius:8px; cursor: pointer;"
-                       onclick="openLightbox(${index})"
-                       loading="lazy">
-                  <p style="margin:5px 0 0 0; font-size:14px; color:#555;"><em>${photo.caption || ''}</em></p>
-                </div>
-              `).join('')}
-            </div>
-          `
-          : '';
-
         document.getElementById("place-content").innerHTML = `
-          <h1>${data.name}</h1>
-          <p><strong>Kategoria:</strong> ${data.category}</p>
-          ${dateText}
-          <img src="${cleanImage}" alt="Zdjęcie: ${data.name}" class="place-image">
-          <p>${data.description}</p>
+          <h1>${place.name}</h1>
+          <p><strong>Kategoria:</strong> ${place.category}</p>
+          <p><strong>Data wizyty:</strong> ${formatDate(place.date)}</p>
+          <img src="${place.image.trim()}" alt="Zdjęcie" class="place-image">
+          <p>${place.description}</p>
           ${galleryHtml}
         `;
+
+        // Dane dla lightboxa
+        window.photos = place.photos?.filter(p => p.url.trim() !== "") || [];
       })
-      .catch(error => {
-        console.error("Błąd ładowania miejsca:", error);
-        document.getElementById("place-content").innerHTML = `<p><strong>Błąd:</strong> ${error.message}</p>`;
+      .catch(err => {
+        console.error("Błąd ładowania miejsca:", err);
+        document.getElementById("place-content").innerHTML = "<p>Błąd ładowania danych.</p>";
       });
 
-    // === FUNKCJE LIGHTBOXA ===
+    let currentImageIndex = 0;
+
     function openLightbox(index) {
       currentImageIndex = index;
       const img = document.getElementById("lightbox-img");
       const caption = document.getElementById("lightbox-caption");
-      img.src = photos[currentImageIndex].url.trim();
-      caption.textContent = photos[currentImageIndex].caption || '';
+      img.src = window.photos[currentImageIndex].url.trim();
+      caption.textContent = window.photos[currentImageIndex].caption || '';
       document.getElementById("lightbox").style.display = "flex";
     }
 
@@ -179,23 +137,22 @@
     }
 
     function nextImage() {
-      currentImageIndex = (currentImageIndex + 1) % photos.length;
+      currentImageIndex = (currentImageIndex + 1) % window.photos.length;
       updateLightbox();
     }
 
     function prevImage() {
-      currentImageIndex = (currentImageIndex - 1 + photos.length) % photos.length;
+      currentImageIndex = (currentImageIndex - 1 + window.photos.length) % window.photos.length;
       updateLightbox();
     }
 
     function updateLightbox() {
       const img = document.getElementById("lightbox-img");
       const caption = document.getElementById("lightbox-caption");
-      img.src = photos[currentImageIndex].url.trim();
-      caption.textContent = photos[currentImageIndex].caption || '';
+      img.src = window.photos[currentImageIndex].url.trim();
+      caption.textContent = window.photos[currentImageIndex].caption || '';
     }
 
-    // Obsługa klawiszy strzałek
     document.addEventListener("keydown", function(e) {
       if (document.getElementById("lightbox").style.display === "flex") {
         if (e.key === "ArrowRight") nextImage();
