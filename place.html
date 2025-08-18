@@ -54,7 +54,7 @@
 </head>
 <body>
   <div class="back-link">
-    <a href="trip.html?id=<!-- tripId -->">← Wróć do wyprawy</a>
+    <a href="trip.html?id=zakopane2025">← Wróć do wyprawy</a>
   </div>
 
   <main class="place-page">
@@ -72,38 +72,63 @@
   </div>
 
   <script>
+    // 🔥 Adres Firebase
     const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
+    
+    // Pobierz ID z URL
     const urlParams = new URLSearchParams(window.location.search);
     const tripId = urlParams.get("tripId");
     const placeId = urlParams.get("placeId");
 
     if (!tripId || !placeId) {
-      document.getElementById("place-content").innerHTML = "<p>Brak danych.</p>";
+      document.getElementById("place-content").innerHTML = "<p>Brak ID wyprawy lub miejsca.</p>";
       throw new Error("Brak ID.");
     }
 
+    // Adres do miejsca w wyprawie
     const placeUrl = `${firebaseBaseUrl}/trips/${tripId}/places/${placeId}.json`;
 
+    // Funkcja formatująca datę (np. "15 marca 2025")
+    function formatDate(dateStr) {
+      if (!dateStr) return "Brak daty";
+      const date = new Date(dateStr);
+      return date.toLocaleDateString("pl-PL", { 
+        day: "numeric", 
+        month: "long", 
+        year: "numeric" 
+      });
+    }
+
+    // Załaduj dane miejsca
     fetch(placeUrl)
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error(`Błąd serwera: ${res.status}`);
+        return res.json();
+      })
       .then(place => {
+        // Przygotuj galerię zdjęć
         let galleryHtml = "";
         if (place.photos && place.photos.length > 0) {
           galleryHtml = `<div style="margin-top: 20px;"><h3>Galeria zdjęć</h3>`;
-          place.photos.forEach((photo, index) => {
-            galleryHtml += `
-              <div class="gallery-item" style="margin-bottom: 20px;">
-                <img src="${photo.url.trim()}" 
-                     alt="Zdjęcie" 
-                     style="width:100%; max-height:400px; object-fit:cover; border-radius:8px; cursor: pointer;"
-                     onclick="openLightbox(${index})"
-                     loading="lazy">
-                <p style="margin:5px 0 0 0; font-size:14px; color:#555;"><em>${photo.caption || ''}</em></p>
-              </div>`;
-          });
+          place.photos
+            .filter(photo => photo.url && photo.url.trim() !== "")
+            .forEach((photo, index) => {
+              const url = photo.url.trim();
+              const caption = photo.caption || '';
+              galleryHtml += `
+                <div class="gallery-item" style="margin-bottom: 20px;">
+                  <img src="${url}" 
+                       alt="Zdjęcie" 
+                       style="width:100%; max-height:400px; object-fit:cover; border-radius:8px; cursor: pointer;"
+                       onclick="openLightbox(${index})"
+                       loading="lazy">
+                  <p style="margin:5px 0 0 0; font-size:14px; color:#555;"><em>${caption}</em></p>
+                </div>`;
+            });
           galleryHtml += `</div>`;
         }
 
+        // Wypełnij treścią
         document.getElementById("place-content").innerHTML = `
           <h1>${place.name}</h1>
           <p><strong>Kategoria:</strong> ${place.category}</p>
@@ -113,14 +138,17 @@
           ${galleryHtml}
         `;
 
-        // Dane dla lightboxa
-        window.photos = place.photos?.filter(p => p.url.trim() !== "") || [];
+        // Zapisz zdjęcia dla lightboxa
+        window.photos = place.photos?.filter(p => p.url && p.url.trim() !== "") || [];
       })
       .catch(err => {
         console.error("Błąd ładowania miejsca:", err);
-        document.getElementById("place-content").innerHTML = "<p>Błąd ładowania danych.</p>";
+        document.getElementById("place-content").innerHTML = `
+          <p><strong>Błąd:</strong> Nie udało się załadować miejsca. Spróbuj ponownie.</p>
+        `;
       });
 
+    // === LIGHTBOX ===
     let currentImageIndex = 0;
 
     function openLightbox(index) {
@@ -153,8 +181,10 @@
       caption.textContent = window.photos[currentImageIndex].caption || '';
     }
 
+    // Obsługa klawiszy
     document.addEventListener("keydown", function(e) {
-      if (document.getElementById("lightbox").style.display === "flex") {
+      const lightbox = document.getElementById("lightbox");
+      if (lightbox.style.display === "flex") {
         if (e.key === "ArrowRight") nextImage();
         if (e.key === "ArrowLeft") prevImage();
         if (e.key === "Escape") closeLightbox();
