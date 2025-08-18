@@ -53,21 +53,28 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-  // --- OPÓŹNIENIE DODAWANIA PINEZKI (1 sekunda) ---
-  let clickTimeout;
+  // --- OPÓŹNIENIE DODAWANIA PINEZKI (0.5 sekundy) ---
+  let clickTimeout = null;
+  let isHolding = false;
+
+  map.getContainer().style.cursor = ''; // Resetuj kursor
 
   map.on("mousedown", function(e) {
-    const lat = e.latlng.lat;
-    const lng = e.latlng.lng;
+    isHolding = true;
 
     clickTimeout = setTimeout(() => {
-      if (confirm(`Czy chcesz dodać nowe miejsce w: ${lat.toFixed(4)}, ${lng.toFixed(4)}?`)) {
-        openAddModal(lat, lng);
+      if (isHolding) {
+        const lat = e.latlng.lat;
+        const lng = e.latlng.lng;
+        if (confirm(`Czy chcesz dodać nowe miejsce w: ${lat.toFixed(4)}, ${lng.toFixed(4)}?`)) {
+          openAddModal(lat, lng);
+        }
       }
-    }, 1000);
+    }, 500); // 0.5 sekundy
   });
 
   map.on("mouseup", function() {
+    isHolding = false;
     if (clickTimeout) {
       clearTimeout(clickTimeout);
       clickTimeout = null;
@@ -75,10 +82,16 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
   map.on("mouseout", function() {
+    isHolding = false;
     if (clickTimeout) {
       clearTimeout(clickTimeout);
       clickTimeout = null;
     }
+  });
+
+  // Zablokuj przesuwanie mapy podczas długiego kliknięcia
+  map.getContainer().addEventListener('selectstart', function(e) {
+    if (isHolding) e.preventDefault();
   });
   // --- KONIEC OPÓŹNIENIA ---
 
