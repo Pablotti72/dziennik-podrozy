@@ -53,47 +53,16 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-  // --- OPÓŹNIENIE DODAWANIA PINEZKI (0.5 sekundy) ---
-  let clickTimeout = null;
-  let isHolding = false;
+  // --- PROSTE KLIKNIĘCIE NA MAPIE ---
+  map.on("click", function(e) {
+    const lat = e.latlng.lat;
+    const lng = e.latlng.lng;
 
-  map.getContainer().style.cursor = ''; // Resetuj kursor
-
-  map.on("mousedown", function(e) {
-    isHolding = true;
-
-    clickTimeout = setTimeout(() => {
-      if (isHolding) {
-        const lat = e.latlng.lat;
-        const lng = e.latlng.lng;
-        if (confirm(`Czy chcesz dodać nowe miejsce w: ${lat.toFixed(4)}, ${lng.toFixed(4)}?`)) {
-          openAddModal(lat, lng);
-        }
-      }
-    }, 500); // 0.5 sekundy
-  });
-
-  map.on("mouseup", function() {
-    isHolding = false;
-    if (clickTimeout) {
-      clearTimeout(clickTimeout);
-      clickTimeout = null;
+    if (confirm(`Czy chcesz dodać nowe miejsce w: ${lat.toFixed(4)}, ${lng.toFixed(4)}?`)) {
+      openAddModal(lat, lng);
     }
   });
-
-  map.on("mouseout", function() {
-    isHolding = false;
-    if (clickTimeout) {
-      clearTimeout(clickTimeout);
-      clickTimeout = null;
-    }
-  });
-
-  // Zablokuj przesuwanie mapy podczas długiego kliknięcia
-  map.getContainer().addEventListener('selectstart', function(e) {
-    if (isHolding) e.preventDefault();
-  });
-  // --- KONIEC OPÓŹNIENIA ---
+  // --- KONIEC OBSŁUGI KLIKNIĘCIA ---
 
   // Otwórz formularz dodawania
   window.openAddModal = function(lat, lng) {
