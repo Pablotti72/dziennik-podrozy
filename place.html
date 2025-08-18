@@ -5,6 +5,69 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Miejsce w dzienniku</title>
   <link rel="stylesheet" href="style.css" />
+  <style>
+    /* Styl dla lightboxa */
+    .lightbox {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.9);
+      z-index: 3000;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+    }
+
+    .lightbox img {
+      max-width: 90%;
+      max-height: 80vh;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+
+    .lightbox .caption {
+      color: white;
+      font-size: 18px;
+      margin-top: 15px;
+      text-align: center;
+      max-width: 80%;
+    }
+
+    .lightbox .nav {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(255,255,255,0.2);
+      color: white;
+      font-size: 30px;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .lightbox .prev {
+      left: 20px;
+    }
+
+    .lightbox .next {
+      right: 20px;
+    }
+
+    .lightbox .close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      font-size: 35px;
+      color: white;
+      cursor: pointer;
+    }
+  </style>
 </head>
 <body>
   <div class="back-link">
@@ -16,6 +79,15 @@
       <p>Ładowanie miejsca...</p>
     </article>
   </main>
+
+  <!-- Lightbox -->
+  <div id="lightbox" class="lightbox">
+    <span class="close" onclick="closeLightbox()">&times;</span>
+    <div class="nav prev" onclick="prevImage()">&#10094;</div>
+    <img id="lightbox-img" src="" alt="Zdjęcie w pełnym rozmiarze">
+    <div class="caption" id="lightbox-caption"></div>
+    <div class="nav next" onclick="nextImage()">&#10095;</div>
+  </div>
 
   <script>
     const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
@@ -36,6 +108,10 @@
       return date.toLocaleDateString('pl-PL', options);
     }
 
+    // Dane galerii
+    let photos = [];
+    let currentImageIndex = 0;
+
     fetch(placeUrl)
       .then(response => {
         if (!response.ok) throw new Error("Nie znaleziono: " + response.status);
@@ -53,39 +129,80 @@
 
         const cleanImage = data.image.trim();
 
+        // Przygotuj galerię
+        photos = data.photos?.filter(p => p.url.trim() !== "") || [];
+
+        const galleryHtml = photos.length > 0
+          ? `
+            <div style="margin-top: 20px;">
+              <h3>Galeria zdjęć</h3>
+              ${photos.map((photo, index) => `
+                <div class="gallery-item" style="margin-bottom: 20px;">
+                  <img src="${photo.url.trim()}" 
+                       alt="Zdjęcie" 
+                       style="width:100%; max-height:400px; object-fit:cover; border-radius:8px; cursor: pointer;"
+                       onclick="openLightbox(${index})"
+                       loading="lazy">
+                  <p style="margin:5px 0 0 0; font-size:14px; color:#555;"><em>${photo.caption || ''}</em></p>
+                </div>
+              `).join('')}
+            </div>
+          `
+          : '';
+
         document.getElementById("place-content").innerHTML = `
           <h1>${data.name}</h1>
-          
           <p><strong>Kategoria:</strong> ${data.category}</p>
-          
           ${dateText}
-          
           <img src="${cleanImage}" alt="Zdjęcie: ${data.name}" class="place-image">
-          
           <p>${data.description}</p>
-          
-          ${data.photos && data.photos.length > 0 
-            ? `
-              <div style="margin-top: 30px;">
-                <div class="photo-gallery">
-                  <h3>Galeria zdjęć</h3>
-                  ${data.photos.map(photo => `
-                    <div class="gallery-item">
-                      <img src="${photo.url.trim()}" alt="Zdjęcie" style="width:100%; max-height:300px; object-fit:cover; border-radius:8px;">
-                      <p style="margin:5px 0; font-size:14px; color:#555;"><em>${photo.caption || ''}</em></p>
-                    </div>
-                  `).join('')}
-                </div>
-              </div>
-            `
-            : ''
-          }
+          ${galleryHtml}
         `;
       })
       .catch(error => {
         console.error("Błąd ładowania miejsca:", error);
         document.getElementById("place-content").innerHTML = `<p><strong>Błąd:</strong> ${error.message}</p>`;
       });
+
+    // === FUNKCJE LIGHTBOXA ===
+    function openLightbox(index) {
+      currentImageIndex = index;
+      const img = document.getElementById("lightbox-img");
+      const caption = document.getElementById("lightbox-caption");
+      img.src = photos[currentImageIndex].url.trim();
+      caption.textContent = photos[currentImageIndex].caption || '';
+      document.getElementById("lightbox").style.display = "flex";
+    }
+
+    function closeLightbox() {
+      document.getElementById("lightbox").style.display = "none";
+    }
+
+    function nextImage() {
+      currentImageIndex = (currentImageIndex + 1) % photos.length;
+      updateLightbox();
+    }
+
+    function prevImage() {
+      currentImageIndex = (currentImageIndex - 1 + photos.length) % photos.length;
+      updateLightbox();
+    }
+
+    function updateLightbox() {
+      const img = document.getElementById("lightbox-img");
+      const caption = document.getElementById("lightbox-caption");
+      img.src = photos[currentImageIndex].url.trim();
+      caption.textContent = photos[currentImageIndex].caption || '';
+    }
+
+    // Obsługa klawiszy strzałek
+    document.addEventListener("keydown", function(e) {
+      if (document.getElementById("lightbox").style.display === "flex") {
+        if (e.key === "ArrowRight") nextImage();
+        if (e.key === "ArrowLeft") prevImage();
+        if (e.key === "Escape") closeLightbox();
+      }
+    });
   </script>
 </body>
 </html>
