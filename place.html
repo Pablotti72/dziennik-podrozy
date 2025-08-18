@@ -47,40 +47,41 @@
           const from = formatShortDate(data.dateFrom);
           const to = formatShortDate(data.dateTo);
           dateText = data.dateTo 
-            ? `<p><strong>Data wizyty:</strong> ${from} – ${to}</p>`
-            : `<p><strong>Data wizyty:</strong> ${from}</p>`;
+            ? `<p><strong>Data pobytu:</strong> ${from} – ${to}</p>`
+            : `<p><strong>Data pobytu:</strong> ${from}</p>`;
         }
 
         const cleanImage = data.image.trim();
 
-        let galleryHtml = "";
-        if (data.photos && data.photos.length > 0) {
-          galleryHtml = `<div class="photo-gallery"><h3>Galeria zdjęć</h3>`;
-          data.photos.forEach(photo => {
-            galleryHtml += `
-              <div class="gallery-item">
-                <img src="${photo.url.trim()}" alt="Zdjęcie" style="width:100%; max-height:300px; object-fit:cover; border-radius:8px;">
-                <p style="margin:5px 0; font-size:14px; color:#555;"><em>${photo.caption || ''}</em></p>
-              </div>
-            `;
-          });
-          galleryHtml += `</div>`;
-        }
-
         document.getElementById("place-content").innerHTML = `
           <h1>${data.name}</h1>
-          <img src="${cleanImage}" alt="Zdjęcie: ${data.name}" class="place-image">
-          ${dateText}
+          
           <p><strong>Kategoria:</strong> ${data.category}</p>
+          
+          ${dateText}
+          
+          <img src="${cleanImage}" alt="Zdjęcie: ${data.name}" class="place-image">
+          
           <p>${data.description}</p>
-          ${galleryHtml}
-          <div class="details">
-            <p><strong>Współrzędne:</strong> ${data.lat.toFixed(4)}, ${data.lng.toFixed(4)}</p>
-          </div>
+          
+          ${data.photos && data.photos.length > 0 
+            ? `
+              <div class="photo-gallery">
+                <h3>Galeria zdjęć</h3>
+                ${data.photos.map(photo => `
+                  <div class="gallery-item">
+                    <img src="${photo.url.trim()}" alt="Zdjęcie" style="width:100%; max-height:300px; object-fit:cover; border-radius:8px;">
+                    <p style="margin:5px 0; font-size:14px; color:#555;"><em>${photo.caption || ''}</em></p>
+                  </div>
+                `).join('')}
+              </div>
+            `
+            : ''
+          }
         `;
       })
       .catch(error => {
-        console.error("Błąd ładowania:", error);
+        console.error("Błąd ładowania miejsca:", error);
         document.getElementById("place-content").innerHTML = `<p><strong>Błąd:</strong> ${error.message}</p>`;
       });
   </script>
