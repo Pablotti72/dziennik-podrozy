@@ -66,14 +66,16 @@
           
           ${data.photos && data.photos.length > 0 
             ? `
-              <div class="photo-gallery">
-                <h3>Galeria zdjęć</h3>
-                ${data.photos.map(photo => `
-                  <div class="gallery-item">
-                    <img src="${photo.url.trim()}" alt="Zdjęcie" style="width:100%; max-height:300px; object-fit:cover; border-radius:8px;">
-                    <p style="margin:5px 0; font-size:14px; color:#555;"><em>${photo.caption || ''}</em></p>
-                  </div>
-                `).join('')}
+              <div style="margin-top: 30px;">
+                <div class="photo-gallery">
+                  <h3>Galeria zdjęć</h3>
+                  ${data.photos.map(photo => `
+                    <div class="gallery-item">
+                      <img src="${photo.url.trim()}" alt="Zdjęcie" style="width:100%; max-height:300px; object-fit:cover; border-radius:8px;">
+                      <p style="margin:5px 0; font-size:14px; color:#555;"><em>${photo.caption || ''}</em></p>
+                    </div>
+                  `).join('')}
+                </div>
               </div>
             `
             : ''
