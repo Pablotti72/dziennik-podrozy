@@ -18,13 +18,14 @@ document.addEventListener("DOMContentLoaded", function () {
         Object.keys(trips).forEach(key => {
           const trip = trips[key];
           const marker = L.marker([trip.lat, trip.lng], { title: trip.name }).addTo(map);
-          marker._isEditing = true; // oznaczenie, że to nie formularz
+          marker._isEditing = true;
           marker.bindPopup(`
             <strong><a href="trip.html?id=${key}">${trip.name}</a></strong><br>
             ${trip.description || ''}<br>
             <img src="${trip.image}" width="100"><br>
             <small>${formatDate(trip.dateFrom)} – ${formatDate(trip.dateTo)}</small><br><br>
             <button onclick="editTrip('${key}', ${trip.lat}, ${trip.lng})" style="background: #FFC107; border: none; padding: 6px 10px; border-radius: 4px; font-size: 14px;">✏️ Edytuj</button>
+            <button onclick="deleteTrip('${key}')" style="background: #F44336; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 14px; margin-left: 5px;">🗑️ Usuń</button>
           `);
         });
       })
@@ -33,7 +34,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   loadTrips();
 
-  // --- Obsługa kliknięcia na mapie (dodaj wyprawę) ---
+  // --- Dodawanie wyprawy ---
   map.on("click", function(e) {
     const lat = e.latlng.lat;
     const lng = e.latlng.lng;
@@ -99,7 +100,7 @@ document.addEventListener("DOMContentLoaded", function () {
     .then(() => {
       closeTripModal();
       showMessage("✅ Wyprawa zapisana!");
-      loadTrips(); // odśwież mapę
+      loadTrips();
     })
     .catch(err => {
       console.error("Błąd zapisu:", err);
@@ -109,6 +110,22 @@ document.addEventListener("DOMContentLoaded", function () {
 
   window.closeTripModal = function() {
     document.getElementById("tripModal").style.display = "none";
+  };
+
+  // --- Usuwanie wyprawy ---
+  window.deleteTrip = function(tripId) {
+    if (confirm("Czy na pewno chcesz usunąć tę wyprawę i wszystkie jej miejsca?")) {
+      const deleteUrl = `${firebaseBaseUrl}/trips/${tripId}.json`;
+      fetch(deleteUrl, { method: "DELETE" })
+        .then(() => {
+          showMessage("✅ Wyprawa usunięta!");
+          loadTrips();
+        })
+        .catch(err => {
+          console.error("Błąd usuwania wyprawy:", err);
+          showMessage("Nie udało się usunąć wyprawy.");
+        });
+    }
   };
 
   // --- Komunikaty ---
