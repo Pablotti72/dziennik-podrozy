@@ -53,11 +53,20 @@ body {
 #map {
   width: 100%;
   height: 100vh;
-  border: 2px solid #ddd;          /* Widoczna ramka do debugowania */
+  border: 2px solid #ddd;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   z-index: 1;
-  background-color: #f0f0f0;       /* Tło, gdyby mapa się nie załadowała */
+  background-color: #f0f0f0;
+}
+
+/* --- MAPA WYPRawy --- */
+#trip-map {
+  width: 100%;
+  height: 500px;
+  border-radius: 8px;
+  margin: 20px 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 /* --- MODAL Z PRZEWIJANIEM --- */
