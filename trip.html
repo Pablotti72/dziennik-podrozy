@@ -119,7 +119,9 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
+    // 🔥 Adres Firebase – upewnij się, że jest poprawny!
     const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
+
     const urlParams = new URLSearchParams(window.location.search);
     const tripId = urlParams.get("id");
 
@@ -216,6 +218,7 @@
       const placeIdToSend = isEdit ? id : generateId(placeData.name);
       const url = `${firebaseBaseUrl}/trips/${tripId}/places/${placeIdToSend}.json`;
 
+      // ✅ KLUCZOWE: dane zapisywane bezpośrednio, BEZ zagnieżdżenia!
       fetch(url, {
         method: method,
         body: JSON.stringify(placeData),
@@ -292,7 +295,9 @@
       return date.toLocaleDateString("pl-PL", { day: "numeric", month: "long", year: "numeric" });
     }
 
-const placeIdToSend = isEdit ? id : `place_${Date.now()}`;
+    function generateId(name) {
+      return name.toLowerCase().replace(/\s+/g, '_') + '_' + Date.now();
+    }
 
     window.showMessage = function(text) {
       const modal = document.getElementById("msgModal");
