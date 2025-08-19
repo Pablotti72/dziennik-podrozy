@@ -212,3 +212,27 @@ body {
   margin: 0 0 15px 0;
   font-size: 16px;
 }
+
+.add-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: #4CAF50;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  font-size: 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  z-index: 1000;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  transition: background 0.2s;
+}
+
+.add-btn:hover {
+  background: #45a049;
+}
+
+.add-btn:active {
+  transform: scale(0.98);
+}
