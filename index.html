@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
-  <!-- Nagłówek -->
+  <!-- Nagłówek z przyciskiem edycji -->
   <div class="header-container right-top">
     <div class="header-box">Nasze podróże</div>
     <button id="editModeBtn" onclick="askForPassword()" style="background: #2196F3; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer;">
@@ -19,9 +19,9 @@
   <!-- Mapa -->
   <div id="map"></div>
 
-  <!-- Modal edycji wyprawy -->
+  <!-- Modal - dodawanie/edycja wyprawy -->
   <div id="tripModal" class="modal" style="display: none;">
-    <div class="modal-content">
+    <div class="modal-content scrollable-modal">
       <h2 id="tripModalTitle">Dodaj wyprawę</h2>
       <form id="tripForm">
         <input type="hidden" id="tripId">
@@ -30,7 +30,7 @@
 
         <label>Nazwa: <input type="text" id="tripName" required></label><br><br>
         <label>Opis: <textarea id="tripDescription" rows="2"></textarea></label><br><br>
-        <label>Zdjęcie: <input type="url" id="tripImage" required></label><br><br>
+        <label>Zdjęcie (URL): <input type="url" id="tripImage" required></label><br><br>
         <label>Data od: <input type="date" id="tripDateFrom" required></label><br><br>
         <label>Data do: <input type="date" id="tripDateTo"></label><br><br>
 
@@ -40,7 +40,7 @@
     </div>
   </div>
 
-  <!-- Komunikat -->
+  <!-- Modal komunikatu -->
   <div id="msgModal" class="msg-modal" style="display: none;">
     <div class="msg-modal-content">
       <p id="msgText"></p>
@@ -54,14 +54,14 @@
     let isEditing = false;
 
     function askForPassword() {
-      const pass = prompt("Hasło:");
+      const pass = prompt("Wprowadź hasło:");
       if (pass === correctPassword) {
         isEditing = true;
         document.getElementById("editModeBtn").textContent = "➕ Dodaj wyprawę";
         document.getElementById("editModeBtn").onclick = () => openAddTripModal();
         showMessage("✅ Tryb edycji włączony");
       } else if (pass !== null) {
-        alert("❌ Błędne hasło");
+        alert("❌ Błędne hasło!");
       }
     }
 
@@ -83,8 +83,8 @@
               <strong><a href="trip.html?id=${key}">${t.name}</a></strong><br>
               ${t.description || ''}<br>
               <img src="${t.image}" width="100"><br>
-              <small>${formatDate(t.dateFrom)} – ${formatDate(t.dateTo)}</small>
-              ${isEditing ? `<br><br><button onclick="editTrip('${key}', ${t.lat}, ${t.lng})">✏️ Edytuj</button>` : ''}
+              <small>${formatDate(t.dateFrom)} – ${formatDate(t.dateTo)}</small><br><br>
+              ${isEditing ? `<button onclick="editTrip('${key}', ${t.lat}, ${t.lng})">✏️ Edytuj</button> <button onclick="deleteTrip('${key}')">🗑️ Usuń</button>` : ''}
             `);
           });
         });
@@ -124,17 +124,13 @@
       }).then(() => {
         closeTripModal();
         loadTrips();
-        showMessage("✅ Zapisano!");
+        showMessage("✅ Wyprawa zapisana!");
       });
     });
 
     window.closeTripModal = function() { document.getElementById("tripModal").style.display = "none"; };
     window.closeMsgModal = function() { document.getElementById("msgModal").style.display = "none"; };
     window.showMessage = function(text) { document.getElementById("msgText").textContent = text; document.getElementById("msgModal").style.display = "flex"; };
-
-    function formatDate(dateStr) {
-      return dateStr ? new Date(dateStr).toLocaleDateString("pl-PL", { day: "numeric", month: "long", year: "numeric" }) : "";
-    }
 
     window.editTrip = function(id, lat, lng) {
       fetch(`${firebaseBaseUrl}/trips/${id}.json`).then(res => res.json()).then(t => {
@@ -150,6 +146,28 @@
         document.getElementById("tripModal").style.display = "flex";
       });
     };
+
+    window.deleteTrip = function(tripId) {
+      if (confirm("Usunąć wyprawę?")) {
+        fetch(`${firebaseBaseUrl}/trips/${tripId}.json`, { method: "DELETE" })
+          .then(() => {
+            showMessage("✅ Usunięto!");
+            loadTrips();
+          });
+      }
+    };
+
+    function formatDate(dateStr) {
+      return dateStr ? new Date(dateStr).toLocaleDateString("pl-PL", { day: "numeric", month: "long", year: "numeric" }) : "";
+    }
+
+    // ESC
+    document.addEventListener("keydown", e => {
+      if (e.key === "Escape") {
+        closeTripModal();
+        closeMsgModal();
+      }
+    });
   </script>
 </body>
 </html>
