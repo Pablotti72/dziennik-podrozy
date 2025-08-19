@@ -19,16 +19,16 @@
     <a href="index.html">← Wróć do mapy</a>
   </div>
 
-  <!-- Treść wyprawy -->
+  <!-- Treść wyprawy i mapa -->
   <main class="place-page">
     <article id="trip-content">
       <p>Ładowanie wyprawy...</p>
     </article>
-    <!-- Mapa z miejscami -->
+    <!-- Kontener mapy -->
     <div id="trip-map"></div>
   </main>
 
-  <!-- Modal - formularz dodawania/edycji miejsca -->
+  <!-- Modal - dodawanie/edycja miejsca -->
   <div id="placeModal" class="modal" style="display: none;">
     <div class="modal-content scrollable-modal">
       <h2 id="placeModalTitle">Dodaj miejsce</h2>
@@ -121,7 +121,7 @@
         const lat = trip.lat || 54.5;
         const lng = trip.lng || -3.0;
         map.setView([lat, lng], 10);
-        map.invalidateSize(); // Naprawia mapę po załadowaniu
+        map.invalidateSize(); // Naprawia mapę, jeśli nie widzi rozmiaru
 
         loadPlacesOnMap();
       })
