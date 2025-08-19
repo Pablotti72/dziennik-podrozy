@@ -8,8 +8,17 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
-  <!-- Nagłówek z przyciskiem -->
-  <div class="header-container right-top">
+  <!-- Modal logowania -->
+  <div id="authModal" class="modal" style="display: flex;">
+    <div class="modal-content">
+      <h2>🔐 Wprowadź hasło, aby edytować</h2>
+      <input type="password" id="editPassword" placeholder="Hasło">
+      <button onclick="checkPassword()">Wejdź</button>
+    </div>
+  </div>
+
+  <!-- Nagłówek z przyciskiem (pokaże się po haśle) -->
+  <div class="header-container right-top" id="editControls" style="display: none;">
     <div class="header-box">Wyprawa</div>
     <button id="addPlaceBtn" class="add-btn">➕ Dodaj miejsce</button>
   </div>
@@ -19,16 +28,15 @@
     <a href="index.html">← Wróć do mapy</a>
   </div>
 
-  <!-- Treść wyprawy i mapa -->
+  <!-- Treść wyprawy -->
   <main class="place-page">
     <article id="trip-content">
       <p>Ładowanie wyprawy...</p>
     </article>
-    <!-- Kontener mapy -->
     <div id="trip-map"></div>
   </main>
 
-  <!-- Modal - dodawanie/edycja miejsca -->
+  <!-- Modal - formularz dodawania/edycji miejsca -->
   <div id="placeModal" class="modal" style="display: none;">
     <div class="modal-content scrollable-modal">
       <h2 id="placeModalTitle">Dodaj miejsce</h2>
@@ -83,10 +91,24 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <script>
-    // 🔥 Adres Firebase
-    const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
+    // 🔐 Ustaw swoje hasło
+    const correctPassword = "sekret2025"; // ← Zmień na swoje
 
-    // Pobierz ID wyprawy z URL
+    function checkPassword() {
+      const password = document.getElementById("editPassword").value;
+      if (password === correctPassword) {
+        document.getElementById("authModal").style.display = "none";
+        document.getElementById("editControls").style.display = "flex";
+        window.isEditing = true;
+        showMessage("✅ Tryb edycji włączony");
+      } else {
+        alert("❌ Błędne hasło!");
+      }
+    }
+
+    window.isEditing = false;
+
+    const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
     const urlParams = new URLSearchParams(window.location.search);
     const tripId = urlParams.get("id");
 
@@ -101,7 +123,6 @@
 
     let tripData = null;
 
-    // --- Ładowanie wyprawy ---
     fetch(tripUrl)
       .then(res => res.json())
       .then(trip => {
@@ -117,11 +138,10 @@
           <p>${trip.description || ''}</p>
         `;
 
-        // Ustawienie widoku mapy
         const lat = trip.lat || 54.5;
         const lng = trip.lng || -3.0;
         map.setView([lat, lng], 10);
-        map.invalidateSize(); // Naprawia mapę, jeśli nie widzi rozmiaru
+        map.invalidateSize();
 
         loadPlacesOnMap();
       })
@@ -130,7 +150,6 @@
         document.getElementById("trip-content").innerHTML = "<p>❌ Błąd ładowania wyprawy.</p>";
       });
 
-    // --- Tryb dodawania miejsca ---
     let isAddingPlace = false;
 
     document.getElementById("addPlaceBtn").addEventListener("click", function () {
@@ -147,7 +166,6 @@
       }
     });
 
-    // Kliknięcie na mapie → dodaj miejsce
     map.on("click", function (e) {
       if (isAddingPlace) {
         isAddingPlace = false;
@@ -157,7 +175,6 @@
       }
     });
 
-    // --- Formularz miejsca ---
     window.openAddPlaceModal = function(lat, lng) {
       document.getElementById("placeForm").reset();
       document.getElementById("photos-container").innerHTML = `
@@ -299,7 +316,6 @@
       }
     };
 
-    // --- Wyświetlanie miejsc na mapie ---
     function loadPlacesOnMap() {
       map.eachLayer(layer => {
         if (layer instanceof L.Marker && !layer._isTripMarker) map.removeLayer(layer);
@@ -313,18 +329,25 @@
 
         const marker = L.marker([place.lat, place.lng]).addTo(map);
         marker._isTripMarker = true;
-        marker.bindPopup(`
+
+        let popupContent = `
           <strong><a href="place.html?tripId=${tripId}&placeId=${key}">${place.name}</a></strong><br>
           ${place.description || ''}<br>
           <img src="${place.image}" width="100"><br>
           <small>${place.category || 'inny'} • ${formatDate(place.date)}</small><br><br>
-          <button onclick="editPlace('${key}', ${place.lat}, ${place.lng})" style="background: #FFC107; border: none; padding: 6px 10px; border-radius: 4px; font-size: 14px;">✏️ Edytuj</button>
-          <button onclick="deletePlace('${key}')" style="background: #F44336; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 14px; margin-left: 5px;">🗑️ Usuń</button>
-        `);
+        `;
+
+        if (window.isEditing) {
+          popupContent += `
+            <button onclick="editPlace('${key}', ${place.lat}, ${place.lng})" style="background: #FFC107; border: none; padding: 6px 10px; border-radius: 4px; font-size: 14px;">✏️ Edytuj</button>
+            <button onclick="deletePlace('${key}')" style="background: #F44336; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 14px; margin-left: 5px;">🗑️ Usuń</button>
+          `;
+        }
+
+        marker.bindPopup(popupContent);
       });
     }
 
-    // --- Pomocnicze ---
     function formatDate(dateStr) {
       if (!dateStr) return "Brak daty";
       const date = new Date(dateStr);
@@ -346,7 +369,6 @@
       document.getElementById("msgModal").style.display = "none";
     };
 
-    // Obsługa ESC
     document.addEventListener("keydown", function(e) {
       if (e.key === "Escape") {
         if (document.getElementById("placeModal").style.display === "flex") {
