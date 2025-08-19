@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Miejsce w dzienniku</title>
+  <title>Miejsce</title>
   <link rel="stylesheet" href="style.css" />
   <style>
     .lightbox {
@@ -12,186 +12,110 @@
       top: 0; left: 0;
       width: 100%; height: 100%;
       background: rgba(0,0,0,0.9);
-      z-index: 3000;
       justify-content: center;
       align-items: center;
       flex-direction: column;
     }
-    .lightbox img {
-      max-width: 90%;
-      max-height: 80vh;
-      border-radius: 8px;
-    }
-    .lightbox .caption {
-      color: white;
-      font-size: 18px;
-      margin-top: 15px;
-    }
-    .lightbox .nav {
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      background: rgba(255,255,255,0.2);
-      color: white;
-      font-size: 30px;
-      width: 50px;
-      height: 50px;
-      border-radius: 50%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      cursor: pointer;
+    .lightbox img { max-width: 90%; max-height: 80vh; border-radius: 8px; }
+    .lightbox .caption { color: white; font-size: 18px; margin-top: 15px; }
+    .lightbox .nav, .lightbox .close {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      background: rgba(255,255,255,0.2); color: white; font-size: 30px;
+      width: 50px; height: 50px; border-radius: 50%; display: flex;
+      justify-content: center; align-items: center; cursor: pointer;
     }
     .lightbox .prev { left: 20px; }
     .lightbox .next { right: 20px; }
-    .lightbox .close {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      font-size: 35px;
-      color: white;
-      cursor: pointer;
-    }
+    .lightbox .close { top: 20px; right: 20px; font-size: 35px; }
   </style>
 </head>
 <body>
-<div class="back-link">
-  <a id="backToTripLink" href="#">← Wróć do wyprawy</a>
-</div>
-
+  <div class="back-link"><a href="index.html">← Wróć do mapy</a></div>
   <main class="place-page">
-    <article id="place-content">
-      <p>Ładowanie miejsca...</p>
-    </article>
+    <article id="place-content"><p>Ładowanie...</p></article>
   </main>
 
   <div id="lightbox" class="lightbox">
     <span class="close" onclick="closeLightbox()">&times;</span>
     <div class="nav prev" onclick="prevImage()">&#10094;</div>
-    <img id="lightbox-img" src="" alt="Pełny rozmiar">
+    <img id="lightbox-img" src="" alt="Zdjęcie">
     <div class="caption" id="lightbox-caption"></div>
     <div class="nav next" onclick="nextImage()">&#10095;</div>
   </div>
 
   <script>
-    // 🔥 Adres Firebase – bez spacji!
-    const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
-
     const urlParams = new URLSearchParams(window.location.search);
-    const tripId = urlParams.get("tripId");
-    // 🔗 Ustaw dynamiczny link "Wróć do wyprawy"
-const backToTripLink = document.getElementById("backToTripLink");
-if (tripId) {
-  backToTripLink.href = `trip.html?id=${tripId}`;
-  backToTripLink.textContent = "← Wróć do wyprawy";
-} else {
-  backToTripLink.href = "index.html";
-  backToTripLink.textContent = "← Wróć do mapy";
-}
-    const placeId = urlParams.get("placeId");
+    const placeId = urlParams.get("id");
+    const baseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
+    const placeUrl = `${baseUrl}/places/${placeId}.json`;
 
-    if (!tripId || !placeId) {
-      document.getElementById("place-content").innerHTML = "<p>Brak ID wyprawy lub miejsca.</p>";
-      throw new Error("Brak ID.");
-    }
-
-    const placeUrl = `${firebaseBaseUrl}/trips/${tripId}/places/${placeId}.json`;
-
-    // ✅ Funkcja formatDate zdefiniowana przed użyciem
     function formatDate(dateStr) {
-      if (!dateStr) return "Brak daty";
+      if (!dateStr) return "";
       const date = new Date(dateStr);
-      return date.toLocaleDateString("pl-PL", { 
-        day: "numeric", 
-        month: "long", 
-        year: "numeric" 
-      });
+      return date.toLocaleDateString("pl-PL", { day: 'numeric', month: 'long' });
     }
 
     fetch(placeUrl)
-      .then(res => {
-        if (!res.ok) throw new Error(`Błąd serwera: ${res.status}`);
-        return res.json();
-      })
-      .then(place => {
-        if (!place) {
-          document.getElementById("place-content").innerHTML = "<p>Miejsce nie istnieje.</p>";
-          return;
+      .then(res => res.json())
+      .then(data => {
+        let dateText = "";
+        if (data.dateFrom) {
+          const from = formatDate(data.dateFrom);
+          const to = formatDate(data.dateTo);
+          dateText = data.dateTo 
+            ? `<p><strong>Data pobytu:</strong> ${from} – ${to}</p>`
+            : `<p><strong>Data pobytu:</strong> ${from}</p>`;
         }
 
+        const cleanImage = data.image.trim();
+
         let galleryHtml = "";
-        if (place.photos && Array.isArray(place.photos)) {
-          galleryHtml = `<div style="margin-top: 20px;"><h3>Galeria zdjęć</h3>`;
-          place.photos
-            .filter(p => p.url && p.url.trim() !== "")
-            .forEach((photo, index) => {
-              const url = photo.url.trim();
-              const caption = photo.caption || "";
-              galleryHtml += `
-                <div class="gallery-item" style="margin-bottom: 20px;">
-                  <img src="${url}" 
-                       alt="Zdjęcie" 
-                       style="width:100%; max-height:400px; object-fit:cover; border-radius:8px; cursor: pointer;"
-                       onclick="openLightbox(${index})"
-                       loading="lazy">
-                  <p style="margin:5px 0 0 0; font-size:14px; color:#555;"><em>${caption}</em></p>
-                </div>`;
-            });
+        if (data.photos && data.photos.length > 0) {
+          galleryHtml = `<div style="margin-top: 30px;"><h3>Galeria zdjęć</h3>`;
+          data.photos.forEach((photo, index) => {
+            galleryHtml += `
+              <div class="gallery-item" style="margin-bottom: 20px;">
+                <img src="${photo.url.trim()}" 
+                     alt="Zdjęcie" 
+                     style="width:100%; max-height:400px; object-fit:cover; border-radius:8px; cursor: pointer;"
+                     onclick="openLightbox(${index})"
+                     loading="lazy">
+                <p style="margin:5px 0 0 0; font-size:14px; color:#555;"><em>${photo.caption || ''}</em></p>
+              </div>`;
+          });
           galleryHtml += `</div>`;
         }
 
         document.getElementById("place-content").innerHTML = `
-          <h1>${place.name}</h1>
-          <p><strong>Kategoria:</strong> ${place.category}</p>
-          <p><strong>Data wizyty:</strong> ${formatDate(place.date)}</p>
-          <img src="${place.image.trim()}" alt="Zdjęcie" class="place-image">
-          <p>${place.description}</p>
+          <h1>${data.name}</h1>
+          <p><strong>Kategoria:</strong> ${data.category}</p>
+          ${dateText}
+          <img src="${cleanImage}" alt="Zdjęcie" class="place-image">
+          <p>${data.description}</p>
           ${galleryHtml}
         `;
 
-        window.photos = place.photos?.filter(p => p.url && p.url.trim() !== "") || [];
-      })
-      .catch(err => {
-        console.error("Błąd ładowania miejsca:", err);
-        document.getElementById("place-content").innerHTML = `<p><strong>Błąd:</strong> ${err.message}</p>`;
+        window.photos = data.photos?.filter(p => p.url.trim() !== "") || [];
       });
 
-    // === Lightbox ===
     let currentImageIndex = 0;
-
     function openLightbox(index) {
       currentImageIndex = index;
-      const img = document.getElementById("lightbox-img");
-      const caption = document.getElementById("lightbox-caption");
-      img.src = window.photos[currentImageIndex].url.trim();
-      caption.textContent = window.photos[currentImageIndex].caption || '';
+      document.getElementById("lightbox-img").src = window.photos[currentImageIndex].url.trim();
+      document.getElementById("lightbox-caption").textContent = window.photos[currentImageIndex].caption || '';
       document.getElementById("lightbox").style.display = "flex";
     }
-
-    function closeLightbox() {
-      document.getElementById("lightbox").style.display = "none";
-    }
-
-    function nextImage() {
-      currentImageIndex = (currentImageIndex + 1) % window.photos.length;
-      updateLightbox();
-    }
-
-    function prevImage() {
-      currentImageIndex = (currentImageIndex - 1 + window.photos.length) % window.photos.length;
-      updateLightbox();
-    }
-
+    function closeLightbox() { document.getElementById("lightbox").style.display = "none"; }
+    function nextImage() { currentImageIndex = (currentImageIndex + 1) % window.photos.length; updateLightbox(); }
+    function prevImage() { currentImageIndex = (currentImageIndex - 1 + window.photos.length) % window.photos.length; updateLightbox(); }
     function updateLightbox() {
       const img = document.getElementById("lightbox-img");
       const caption = document.getElementById("lightbox-caption");
       img.src = window.photos[currentImageIndex].url.trim();
       caption.textContent = window.photos[currentImageIndex].caption || '';
     }
-
-    document.addEventListener("keydown", function(e) {
-      const lightbox = document.getElementById("lightbox");
-      if (lightbox.style.display === "flex") {
+    document.addEventListener("keydown", e => {
+      if (document.getElementById("lightbox").style.display === "flex") {
         if (e.key === "ArrowRight") nextImage();
         if (e.key === "ArrowLeft") prevImage();
         if (e.key === "Escape") closeLightbox();
@@ -200,4 +124,3 @@ if (tripId) {
   </script>
 </body>
 </html>
-
