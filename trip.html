@@ -13,6 +13,64 @@
       border-radius: 8px;
       margin: 20px 0;
     }
+
+    /* Modal - formularz */
+    .modal {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .modal-content {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      width: 90%;
+      max-width: 500px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    }
+
+    .modal-content label {
+      display: block;
+      margin: 6px 0 4px;
+      font-size: 14px;
+      color: #555;
+    }
+
+    .modal-content input,
+    .modal-content textarea,
+    .modal-content select {
+      width: 100%;
+      padding: 6px 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+
+    .modal-content button {
+      margin-top: 10px;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .modal-content button[type="submit"] {
+      background: #4CAF50;
+      color: white;
+    }
+
+    .modal-content button[type="button"] {
+      background: #f44336;
+      color: white;
+    }
   </style>
 </head>
 <body>
@@ -27,6 +85,39 @@
     <div id="trip-map"></div>
   </main>
 
+  <!-- Modal - dodawanie/edycja miejsca w wyprawie -->
+  <div id="placeModal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <h2 id="placeModalTitle">Dodaj miejsce</h2>
+      <form id="placeForm">
+        <input type="hidden" id="placeId">
+        <input type="hidden" id="placeLat">
+        <input type="hidden" id="placeLng">
+
+        <label>Nazwa: <input type="text" id="placeName" required></label><br><br>
+
+        <label>Opis: <textarea id="placeDescription" rows="2"></textarea></label><br><br>
+
+        <label>Zdjęcie (URL): <input type="url" id="placeImage" placeholder="https://..." required></label><br><br>
+
+        <label>Kategoria:
+          <select id="placeCategory">
+            <option value="miasto">Miasto</option>
+            <option value="park">Park</option>
+            <option value="zabytek">Zabytek</option>
+            <option value="muzeum">Muzeum</option>
+            <option value="inny">Inny</option>
+          </select>
+        </label><br><br>
+
+        <label>Data wizyty: <input type="date" id="placeDate" required></label><br><br>
+
+        <button type="submit" id="savePlaceBtn">Zapisz</button>
+        <button type="button" onclick="closePlaceModal()">Anuluj</button>
+      </form>
+    </div>
+  </div>
+
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
     const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
@@ -40,44 +131,170 @@
 
     const tripUrl = `${firebaseBaseUrl}/trips/${tripId}.json`;
 
+    const map = L.map("trip-map").setView([54.5, -3.0], 8);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+
+    let tripData = null;
+
+    // --- Ładowanie wyprawy ---
     fetch(tripUrl)
-      .then(response => {
-        if (!response.ok) throw new Error("Nie znaleziono: " + response.status);
-        return response.json();
-      })
+      .then(res => res.json())
       .then(trip => {
+        tripData = trip;
         document.getElementById("trip-content").innerHTML = `
           <h1>${trip.name}</h1>
           <p><strong>Okres:</strong> ${formatDate(trip.dateFrom)} – ${formatDate(trip.dateTo)}</p>
-          <p>${trip.description}</p>
+          <p>${trip.description || ''}</p>
         `;
 
-        const map = L.map("trip-map").setView([trip.lat, trip.lng], 10);
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+        map.setView([trip.lat, trip.lng], 10);
 
+        // Pokaż miejsca
         if (trip.places) {
           Object.keys(trip.places).forEach(key => {
             const place = trip.places[key];
             const marker = L.marker([place.lat, place.lng]).addTo(map);
             marker.bindPopup(`
-              <strong><a href="place.html?tripId=${tripId}&placeId=${key}" style="color: inherit;">${place.name}</a></strong><br>
-              ${place.description}<br>
+              <strong><a href="place.html?tripId=${tripId}&placeId=${key}">${place.name}</a></strong><br>
+              ${place.description || ''}<br>
               <img src="${place.image}" width="100"><br>
-              <small>${place.category}</small>
+              <small>${place.category} • ${formatDate(place.date)}</small><br><br>
+              <button onclick="editPlace('${key}', ${place.lat}, ${place.lng})" style="background: #FFC107; border: none; padding: 6px 10px; border-radius: 4px; font-size: 14px;">✏️ Edytuj</button>
             `);
           });
         }
       })
-      .catch(error => {
-        console.error("Błąd ładowania wyprawy:", error);
-        document.getElementById("trip-content").innerHTML = `<p><strong>Błąd:</strong> ${error.message}</p>`;
+      .catch(err => {
+        console.error("Błąd ładowania wyprawy:", err);
+        document.getElementById("trip-content").innerHTML = "<p>Błąd ładowania wyprawy.</p>";
       });
 
+    // --- Kliknięcie na mapie → dodaj miejsce ---
+    map.on("click", function(e) {
+      const lat = e.latlng.lat;
+      const lng = e.latlng.lng;
+      openAddPlaceModal(lat, lng);
+    });
+
+    // --- Formularz miejsca ---
+    window.openAddPlaceModal = function(lat, lng) {
+      document.getElementById("placeForm").reset();
+      document.getElementById("placeLat").value = lat;
+      document.getElementById("placeLng").value = lng;
+      document.getElementById("placeModalTitle").textContent = "Dodaj miejsce";
+      document.getElementById("savePlaceBtn").textContent = "Zapisz";
+      document.getElementById("placeId").value = "";
+      document.getElementById("placeModal").style.display = "flex";
+    };
+
+    window.editPlace = function(id, lat, lng) {
+      const place = tripData.places[id];
+      if (!place) return;
+
+      document.getElementById("placeName").value = place.name;
+      document.getElementById("placeDescription").value = place.description || '';
+      document.getElementById("placeImage").value = place.image;
+      document.getElementById("placeCategory").value = place.category;
+      document.getElementById("placeDate").value = place.date || '';
+      document.getElementById("placeLat").value = lat;
+      document.getElementById("placeLng").value = lng;
+      document.getElementById("placeId").value = id;
+
+      document.getElementById("placeModalTitle").textContent = "Edytuj miejsce";
+      document.getElementById("savePlaceBtn").textContent = "Zaktualizuj";
+      document.getElementById("placeModal").style.display = "flex";
+    };
+
+    document.getElementById("placeForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+      const id = document.getElementById("placeId").value;
+      const isEdit = id !== "";
+
+      const placeData = {
+        name: document.getElementById("placeName").value,
+        description: document.getElementById("placeDescription").value,
+        image: document.getElementById("placeImage").value,
+        category: document.getElementById("placeCategory").value,
+        date: document.getElementById("placeDate").value,
+        lat: parseFloat(document.getElementById("placeLat").value),
+        lng: parseFloat(document.getElementById("placeLng").value)
+      };
+
+      const method = isEdit ? "PUT" : "POST";
+      const placeIdToSend = isEdit ? id : generateId();
+      const url = `${firebaseBaseUrl}/trips/${tripId}/places/${placeIdToSend}.json`;
+
+      fetch(url, {
+        method: method,
+        body: JSON.stringify(placeData),
+        headers: { "Content-Type": "application/json" }
+      })
+      .then(() => {
+        closePlaceModal();
+        showMessage("✅ Miejsce zapisane!");
+        loadPlacesOnMap(); // odśwież mapę
+      })
+      .catch(err => {
+        console.error("Błąd zapisu miejsca:", err);
+        showMessage("Nie udało się zapisać miejsca.");
+      });
+    });
+
+    window.closePlaceModal = function() {
+      document.getElementById("placeModal").style.display = "none";
+    };
+
+    // --- Odświeżanie miejsc na mapie ---
+    function loadPlacesOnMap() {
+      map.eachLayer(layer => {
+        if (layer instanceof L.Marker && !layer._isTripMarker) map.removeLayer(layer);
+      });
+
+      if (!tripData || !tripData.places) return;
+
+      Object.keys(tripData.places).forEach(key => {
+        const place = tripData.places[key];
+        const marker = L.marker([place.lat, place.lng]).addTo(map);
+        marker._isTripMarker = true;
+        marker.bindPopup(`
+          <strong><a href="place.html?tripId=${tripId}&placeId=${key}">${place.name}</a></strong><br>
+          ${place.description || ''}<br>
+          <img src="${place.image}" width="100"><br>
+          <small>${place.category} • ${formatDate(place.date)}</small><br><br>
+          <button onclick="editPlace('${key}', ${place.lat}, ${place.lng})" style="background: #FFC107; border: none; padding: 6px 10px; border-radius: 4px; font-size: 14px;">✏️ Edytuj</button>
+        `);
+      });
+    }
+
+    // --- Pomocnicze ---
     function formatDate(dateStr) {
-      if (!dateStr) return "";
+      if (!dateStr) return "Brak daty";
       const date = new Date(dateStr);
       return date.toLocaleDateString("pl-PL", { day: "numeric", month: "long", year: "numeric" });
     }
+
+    function generateId() {
+      return 'place_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    }
+
+    window.showMessage = function(text) {
+      const modal = document.getElementById("msgModal");
+      const msgText = document.getElementById("msgText");
+      msgText.textContent = text;
+      modal.style.display = "flex";
+    };
+
+    window.closeMsgModal = function() {
+      document.getElementById("msgModal").style.display = "none";
+    };
   </script>
+
+  <!-- Modal komunikatu -->
+  <div id="msgModal" class="msg-modal" style="display: none;">
+    <div class="msg-modal-content">
+      <p id="msgText"></p>
+      <button onclick="closeMsgModal()">OK</button>
+    </div>
+  </div>
 </body>
 </html>
