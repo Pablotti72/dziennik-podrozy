@@ -21,14 +21,15 @@
 
   <main class="place-page">
     <article id="trip-content">
-      <p>Ładowanie...</p>
+      <p>Ładowanie wyprawy...</p>
     </article>
     <div id="trip-map"></div>
   </main>
 
+  <!-- Modal - miejsce -->
   <div id="placeModal" class="modal" style="display: none;">
-    <div class="modal-content">
-      <h2>Dodaj miejsce</h2>
+    <div class="modal-content scrollable-modal">
+      <h2 id="placeModalTitle">Dodaj miejsce</h2>
       <form id="placeForm">
         <input type="hidden" id="placeId">
         <input type="hidden" id="placeLat">
@@ -36,7 +37,7 @@
 
         <label>Nazwa: <input type="text" id="placeName" required></label><br><br>
         <label>Opis: <textarea id="placeDescription" rows="2"></textarea></label><br><br>
-        <label>Zdjęcie: <input type="url" id="placeImage" required></label><br><br>
+        <label>Zdjęcie (URL): <input type="url" id="placeImage" required></label><br><br>
         <label>Kategoria:
           <select id="placeCategory">
             <option value="miasto">Miasto</option>
@@ -46,7 +47,16 @@
             <option value="inny">Inny</option>
           </select>
         </label><br><br>
-        <label>Data: <input type="date" id="placeDate" required></label><br><br>
+        <label>Data wizyty: <input type="date" id="placeDate" required></label><br><br>
+
+        <h3>Galeria zdjęć</h3>
+        <div id="photos-container">
+          <div class="photo-item">
+            <label>Zdjęcie URL: <input type="url" class="photo-url" placeholder="https://..."></label><br>
+            <label>Komentarz: <input type="text" class="photo-caption" placeholder="Opis zdjęcia"></label><br><br>
+          </div>
+        </div>
+        <button type="button" onclick="addPhotoField()">➕ Dodaj zdjęcie</button><br><br>
 
         <button type="submit">Zapisz</button>
         <button type="button" onclick="closePlaceModal()">Anuluj</button>
@@ -67,14 +77,14 @@
     let isEditing = false;
 
     function askForPassword() {
-      const pass = prompt("Hasło:");
+      const pass = prompt("Wprowadź hasło:");
       if (pass === correctPassword) {
         isEditing = true;
         document.getElementById("editModeBtn").textContent = "➕ Dodaj miejsce";
         document.getElementById("editModeBtn").onclick = () => openAddPlaceModal();
         showMessage("✅ Tryb edycji włączony");
       } else if (pass !== null) {
-        alert("❌ Błędne hasło");
+        alert("❌ Błędne hasło!");
       }
     }
 
@@ -83,14 +93,17 @@
     const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
     const tripUrl = `${firebaseBaseUrl}/trips/${tripId}.json`;
 
-    document.getElementById("trip-content").innerHTML = "<p>Ładowanie...</p>";
+    document.getElementById("trip-content").innerHTML = "<p>Ładowanie wyprawy...</p>";
 
     const map = L.map("trip-map");
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
+    let tripData = null;
+
     fetch(tripUrl)
       .then(res => res.json())
       .then(trip => {
+        tripData = trip;
         document.getElementById("trip-content").innerHTML = `
           <h1>${trip.name}</h1>
           <p><strong>Okres:</strong> ${formatDate(trip.dateFrom)} – ${formatDate(trip.dateTo)}</p>
@@ -106,8 +119,8 @@
               <strong><a href="place.html?tripId=${tripId}&placeId=${key}">${p.name}</a></strong><br>
               ${p.description || ''}<br>
               <img src="${p.image}" width="100"><br>
-              <small>${p.category} • ${formatDate(p.date)}</small>
-              ${isEditing ? `<br><br><button onclick="editPlace('${key}', ${p.lat}, ${p.lng})">✏️ Edytuj</button>` : ''}
+              <small>${p.category} • ${formatDate(p.date)}</small><br><br>
+              ${isEditing ? `<button onclick="editPlace('${key}', ${p.lat}, ${p.lng})">✏️ Edytuj</button> <button onclick="deletePlace('${key}')">🗑️ Usuń</button>` : ''}
             `);
           });
         }
@@ -119,14 +132,68 @@
 
     window.openAddPlaceModal = function(lat, lng) {
       document.getElementById("placeForm").reset();
+      document.getElementById("photos-container").innerHTML = `
+        <div class="photo-item">
+          <label>Zdjęcie URL: <input type="url" class="photo-url" placeholder="https://..."></label><br>
+          <label>Komentarz: <input type="text" class="photo-caption" placeholder="Opis zdjęcia"></label><br><br>
+        </div>
+      `;
       document.getElementById("placeLat").value = lat;
       document.getElementById("placeLng").value = lng;
+      document.getElementById("placeModalTitle").textContent = "Dodaj miejsce";
+      document.getElementById("placeModal").style.display = "flex";
+    };
+
+    window.editPlace = function(id, lat, lng) {
+      const p = tripData.places[id];
+      document.getElementById("placeName").value = p.name;
+      document.getElementById("placeDescription").value = p.description || '';
+      document.getElementById("placeImage").value = p.image;
+      document.getElementById("placeCategory").value = p.category;
+      document.getElementById("placeDate").value = p.date || '';
+      document.getElementById("placeLat").value = lat;
+      document.getElementById("placeLng").value = lng;
+      document.getElementById("placeId").value = id;
+
+      const container = document.getElementById("photos-container");
+      container.innerHTML = "";
+      if (p.photos && p.photos.length > 0) {
+        p.photos.forEach(photo => {
+          const item = document.createElement("div");
+          item.className = "photo-item";
+          item.innerHTML = `
+            <label>Zdjęcie URL: <input type="url" class="photo-url" value="${photo.url}" placeholder="https://..."></label><br>
+            <label>Komentarz: <input type="text" class="photo-caption" value="${photo.caption || ''}" placeholder="Opis zdjęcia"></label><br><br>
+          `;
+          container.appendChild(item);
+        });
+      } else {
+        container.innerHTML = `
+          <div class="photo-item">
+            <label>Zdjęcie URL: <input type="url" class="photo-url" placeholder="https://..."></label><br>
+            <label>Komentarz: <input type="text" class="photo-caption" placeholder="Opis zdjęcia"></label><br><br>
+          </div>
+        `;
+      }
+
+      document.getElementById("placeModalTitle").textContent = "Edytuj miejsce";
       document.getElementById("placeModal").style.display = "flex";
     };
 
     document.getElementById("placeForm").addEventListener("submit", function(e) {
       e.preventDefault();
-      const id = Date.now().toString();
+      const id = document.getElementById("placeId").value || Date.now().toString();
+
+      const photos = [];
+      document.querySelectorAll(".photo-url").forEach((input, i) => {
+        if (input.value.trim() !== "") {
+          photos.push({
+            url: input.value.trim(),
+            caption: document.querySelectorAll(".photo-caption")[i]?.value.trim() || ""
+          });
+        }
+      });
+
       const data = {
         name: document.getElementById("placeName").value,
         description: document.getElementById("placeDescription").value,
@@ -134,14 +201,17 @@
         category: document.getElementById("placeCategory").value,
         date: document.getElementById("placeDate").value,
         lat: parseFloat(document.getElementById("placeLat").value),
-        lng: parseFloat(document.getElementById("placeLng").value)
+        lng: parseFloat(document.getElementById("placeLng").value),
+        photos: photos
       };
+
       fetch(`${firebaseBaseUrl}/trips/${tripId}/places/${id}.json`, {
         method: "PUT",
         body: JSON.stringify(data),
         headers: { "Content-Type": "application/json" }
       }).then(() => {
         closePlaceModal();
+        showMessage("✅ Zapisano!");
         location.reload();
       });
     });
@@ -150,9 +220,37 @@
     window.closeMsgModal = function() { document.getElementById("msgModal").style.display = "none"; };
     window.showMessage = function(text) { document.getElementById("msgText").textContent = text; document.getElementById("msgModal").style.display = "flex"; };
 
+    window.addPhotoField = function() {
+      const container = document.getElementById("photos-container");
+      const item = document.createElement("div");
+      item.className = "photo-item";
+      item.innerHTML = `
+        <label>Zdjęcie URL: <input type="url" class="photo-url" placeholder="https://..."></label><br>
+        <label>Komentarz: <input type="text" class="photo-caption" placeholder="Opis zdjęcia"></label><br><br>
+      `;
+      container.appendChild(item);
+    };
+
+    window.deletePlace = function(placeId) {
+      if (confirm("Usunąć miejsce?")) {
+        fetch(`${firebaseBaseUrl}/trips/${tripId}/places/${placeId}.json`, { method: "DELETE" })
+          .then(() => {
+            showMessage("✅ Usunięto!");
+            location.reload();
+          });
+      }
+    };
+
     function formatDate(dateStr) {
       return dateStr ? new Date(dateStr).toLocaleDateString("pl-PL", { day: "numeric", month: "long", year: "numeric" }) : "Brak daty";
     }
+
+    document.addEventListener("keydown", e => {
+      if (e.key === "Escape") {
+        closePlaceModal();
+        closeMsgModal();
+      }
+    });
   </script>
 </body>
 </html>
