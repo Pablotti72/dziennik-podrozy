@@ -11,6 +11,30 @@
   <div class="header-box">Nasze podróże</div>
   <div id="map"></div>
 
+  <!-- Modal - dodawanie/edycja wyprawy -->
+  <div id="tripModal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <h2 id="tripModalTitle">Dodaj nową wyprawę</h2>
+      <form id="tripForm">
+        <input type="hidden" id="tripId">
+        <input type="hidden" id="tripLat">
+        <input type="hidden" id="tripLng">
+
+        <label>Nazwa wyprawy: <input type="text" id="tripName" required></label><br><br>
+
+        <label>Opis: <textarea id="tripDescription" rows="2"></textarea></br><br>
+
+        <label>Zdjęcie (URL): <input type="url" id="tripImage" placeholder="https://..." required></label><br><br>
+
+        <label>Data od: <input type="date" id="tripDateFrom" required></label><br><br>
+        <label>Data do: <input type="date" id="tripDateTo"></label><br><br>
+
+        <button type="submit" id="saveTripBtn">Zapisz</button>
+        <button type="button" onclick="closeTripModal()">Anuluj</button>
+      </form>
+    </div>
+  </div>
+
   <!-- Modal komunikatu -->
   <div id="msgModal" class="msg-modal" style="display: none;">
     <div class="msg-modal-content">
