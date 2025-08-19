@@ -292,9 +292,7 @@
       return date.toLocaleDateString("pl-PL", { day: "numeric", month: "long", year: "numeric" });
     }
 
-    function generateId(name) {
-      return name.toLowerCase().replace(/\s+/g, '_') + '_' + Date.now();
-    }
+const placeIdToSend = isEdit ? id : `place_${Date.now()}`;
 
     window.showMessage = function(text) {
       const modal = document.getElementById("msgModal");
