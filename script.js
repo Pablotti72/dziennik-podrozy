@@ -18,10 +18,12 @@ document.addEventListener("DOMContentLoaded", function () {
         });
 
         if (!trips) return;
+
         Object.keys(trips).forEach(key => {
           const trip = trips[key];
-          const marker = L.marker([trip.lat, trip.lng], { title: trip.name }).addTo(map);
-          marker._isEditing = true;
+          if (!trip.lat || !trip.lng) return;
+
+          const marker = L.marker([trip.lat, trip.lng]).addTo(map);
           marker.bindPopup(`
             <strong><a href="trip.html?id=${key}">${trip.name}</a></strong><br>
             ${trip.description || ''}<br>
@@ -32,7 +34,10 @@ document.addEventListener("DOMContentLoaded", function () {
           `);
         });
       })
-      .catch(err => console.error("Błąd ładowania wypraw:", err));
+      .catch(err => {
+        console.error("Błąd ładowania wypraw:", err);
+        showMessage("Błąd ładowania wypraw.");
+      });
   }
 
   loadTrips();
