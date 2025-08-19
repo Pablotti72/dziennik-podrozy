@@ -55,9 +55,9 @@
   </style>
 </head>
 <body>
-  <div class="back-link">
-    <a href="trip.html?id=zakopane2025">← Wróć do wyprawy</a>
-  </div>
+<div class="back-link">
+  <a id="backToTripLink" href="#">← Wróć do wyprawy</a>
+</div>
 
   <main class="place-page">
     <article id="place-content">
@@ -79,6 +79,15 @@
 
     const urlParams = new URLSearchParams(window.location.search);
     const tripId = urlParams.get("tripId");
+    // 🔗 Ustaw dynamiczny link "Wróć do wyprawy"
+const backToTripLink = document.getElementById("backToTripLink");
+if (tripId) {
+  backToTripLink.href = `trip.html?id=${tripId}`;
+  backToTripLink.textContent = "← Wróć do wyprawy";
+} else {
+  backToTripLink.href = "index.html";
+  backToTripLink.textContent = "← Wróć do mapy";
+}
     const placeId = urlParams.get("placeId");
 
     if (!tripId || !placeId) {
@@ -191,3 +200,4 @@
   </script>
 </body>
 </html>
+
