@@ -214,7 +214,7 @@
         lng: parseFloat(document.getElementById("placeLng").value)
       };
 
-      const method = isEdit ? "PUT" : "POST";
+      const method = "PUT"; // Zawsze PUT, by nie generować nowego ID
       const placeIdToSend = isEdit ? id : generateId(placeData.name);
       const url = `${firebaseBaseUrl}/trips/${tripId}/places/${placeIdToSend}.json`;
 
