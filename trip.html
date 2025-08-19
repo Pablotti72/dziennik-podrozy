@@ -8,23 +8,27 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
+  <!-- Nagłówek z przyciskiem -->
   <div class="header-container right-top">
     <div class="header-box">Wyprawa</div>
     <button id="addPlaceBtn" class="add-btn">➕ Dodaj miejsce</button>
   </div>
 
+  <!-- Link "Wróć" -->
   <div class="back-link">
     <a href="index.html">← Wróć do mapy</a>
   </div>
 
+  <!-- Treść wyprawy -->
   <main class="place-page">
     <article id="trip-content">
       <p>Ładowanie wyprawy...</p>
     </article>
+    <!-- Mapa z miejscami -->
     <div id="trip-map"></div>
   </main>
 
-  <!-- Modal - dodawanie/edycja miejsca -->
+  <!-- Modal - formularz dodawania/edycji miejsca -->
   <div id="placeModal" class="modal" style="display: none;">
     <div class="modal-content scrollable-modal">
       <h2 id="placeModalTitle">Dodaj miejsce</h2>
@@ -75,9 +79,14 @@
     </div>
   </div>
 
+  <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
   <script>
+    // 🔥 Adres Firebase
     const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
+
+    // Pobierz ID wyprawy z URL
     const urlParams = new URLSearchParams(window.location.search);
     const tripId = urlParams.get("id");
 
@@ -108,10 +117,11 @@
           <p>${trip.description || ''}</p>
         `;
 
+        // Ustawienie widoku mapy
         const lat = trip.lat || 54.5;
         const lng = trip.lng || -3.0;
         map.setView([lat, lng], 10);
-        map.invalidateSize();
+        map.invalidateSize(); // Naprawia mapę po załadowaniu
 
         loadPlacesOnMap();
       })
@@ -137,6 +147,7 @@
       }
     });
 
+    // Kliknięcie na mapie → dodaj miejsce
     map.on("click", function (e) {
       if (isAddingPlace) {
         isAddingPlace = false;
@@ -254,7 +265,6 @@
       });
     });
 
-    // ✅ Zamknięcie formularza
     window.closePlaceModal = function() {
       document.getElementById("placeModal").style.display = "none";
     };
@@ -289,6 +299,7 @@
       }
     };
 
+    // --- Wyświetlanie miejsc na mapie ---
     function loadPlacesOnMap() {
       map.eachLayer(layer => {
         if (layer instanceof L.Marker && !layer._isTripMarker) map.removeLayer(layer);
@@ -313,6 +324,7 @@
       });
     }
 
+    // --- Pomocnicze ---
     function formatDate(dateStr) {
       if (!dateStr) return "Brak daty";
       const date = new Date(dateStr);
@@ -330,12 +342,11 @@
       modal.style.display = "flex";
     };
 
-    // ✅ Zamknięcie komunikatu
     window.closeMsgModal = function() {
       document.getElementById("msgModal").style.display = "none";
     };
 
-    // ✅ Obsługa ESC
+    // Obsługa ESC
     document.addEventListener("keydown", function(e) {
       if (e.key === "Escape") {
         if (document.getElementById("placeModal").style.display === "flex") {
