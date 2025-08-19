@@ -18,7 +18,6 @@ document.addEventListener("DOMContentLoaded", function () {
         });
 
         if (!trips) return;
-
         Object.keys(trips).forEach(key => {
           const trip = trips[key];
           if (!trip.lat || !trip.lng) return;
@@ -134,6 +133,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   });
 
+  // ✅ Zamknięcie formularza
   window.closeTripModal = function() {
     document.getElementById("tripModal").style.display = "none";
   };
@@ -159,6 +159,7 @@ document.addEventListener("DOMContentLoaded", function () {
     modal.style.display = "flex";
   };
 
+  // ✅ Zamknięcie komunikatu
   window.closeMsgModal = function() {
     document.getElementById("msgModal").style.display = "none";
   };
@@ -168,4 +169,20 @@ document.addEventListener("DOMContentLoaded", function () {
     const date = new Date(dateStr);
     return date.toLocaleDateString("pl-PL", { day: "numeric", month: "long", year: "numeric" });
   }
+
+  // ✅ Obsługa ESC
+  document.addEventListener("keydown", function(e) {
+    if (e.key === "Escape") {
+      if (document.getElementById("tripModal").style.display === "flex") {
+        closeTripModal();
+      }
+      if (document.getElementById("msgModal").style.display === "flex") {
+        closeMsgModal();
+      }
+      const addTripBtn = document.getElementById("addTripBtn");
+      if (addTripBtn && addTripBtn.textContent === "🛑 Anuluj") {
+        addTripBtn.click();
+      }
+    }
+  });
 });
