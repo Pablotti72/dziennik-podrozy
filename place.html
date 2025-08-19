@@ -3,56 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Miejsce w dzienniku</title>
+  <title>Miejsce</title>
   <link rel="stylesheet" href="style.css" />
-  <style>
-    .lightbox {
-      display: none;
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: rgba(0,0,0,0.9);
-      z-index: 3000;
-      justify-content: center;
-      align-items: center;
-      flex-direction: column;
-    }
-    .lightbox img {
-      max-width: 90%;
-      max-height: 80vh;
-      border-radius: 8px;
-    }
-    .lightbox .caption {
-      color: white;
-      font-size: 18px;
-      margin-top: 15px;
-    }
-    .lightbox .nav {
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      background: rgba(255,255,255,0.2);
-      color: white;
-      font-size: 30px;
-      width: 50px;
-      height: 50px;
-      border-radius: 50%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      cursor: pointer;
-    }
-    .lightbox .prev { left: 20px; }
-    .lightbox .next { right: 20px; }
-    .lightbox .close {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      font-size: 35px;
-      color: white;
-      cursor: pointer;
-    }
-  </style>
 </head>
 <body>
   <div class="back-link">
@@ -61,133 +13,36 @@
 
   <main class="place-page">
     <article id="place-content">
-      <p>Ładowanie miejsca...</p>
+      <p>Ładowanie...</p>
     </article>
   </main>
 
-  <div id="lightbox" class="lightbox">
-    <span class="close" onclick="closeLightbox()">&times;</span>
-    <div class="nav prev" onclick="prevImage()">&#10094;</div>
-    <img id="lightbox-img" src="" alt="Pełny rozmiar">
-    <div class="caption" id="lightbox-caption"></div>
-    <div class="nav next" onclick="nextImage()">&#10095;</div>
-  </div>
-
   <script>
-    const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
     const urlParams = new URLSearchParams(window.location.search);
     const tripId = urlParams.get("tripId");
     const placeId = urlParams.get("placeId");
 
-    // Ustaw dynamiczny link "Wróć"
     const backLink = document.getElementById("backLink");
-    if (tripId) {
-      backLink.href = `trip.html?id=${tripId}`;
-    } else {
-      backLink.href = "index.html";
-      backLink.textContent = "← Wróć do mapy";
-    }
+    backLink.href = tripId ? `trip.html?id=${tripId}` : "index.html";
 
-    if (!tripId || !placeId) {
-      document.getElementById("place-content").innerHTML = "<p>Brak ID wyprawy lub miejsca.</p>";
-      throw new Error("Brak ID.");
-    }
-
-    const placeUrl = `${firebaseBaseUrl}/trips/${tripId}/places/${placeId}.json`;
-
-    function formatDate(dateStr) {
-      if (!dateStr) return "Brak daty";
-      const date = new Date(dateStr);
-      return date.toLocaleDateString("pl-PL", { day: "numeric", month: "long", year: "numeric" });
-    }
+    const baseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
+    const placeUrl = `${baseUrl}/trips/${tripId}/places/${placeId}.json`;
 
     fetch(placeUrl)
-      .then(res => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}: miejsce nie istnieje`);
-        return res.json();
-      })
-      .then(place => {
-        if (!place) {
-          document.getElementById("place-content").innerHTML = "<p>Miejsce nie istnieje.</p>";
-          return;
-        }
-
-        let galleryHtml = "";
-        if (place.photos && Array.isArray(place.photos)) {
-          galleryHtml = `<div style="margin-top: 30px;"><h3>Galeria zdjęć</h3>`;
-          place.photos
-            .filter(p => p.url && p.url.trim() !== "")
-            .forEach((photo, index) => {
-              galleryHtml += `
-                <div class="gallery-item" style="margin-bottom: 20px;">
-                  <img src="${photo.url.trim()}" 
-                       alt="Zdjęcie" 
-                       style="width:100%; max-height:400px; object-fit:cover; border-radius:8px; cursor: pointer;"
-                       onclick="openLightbox(${index})"
-                       loading="lazy">
-                  <p style="margin:5px 0 0 0; font-size:14px; color:#555;"><em>${photo.caption || ''}</em></p>
-                </div>`;
-            });
-          galleryHtml += `</div>`;
-        }
-
+      .then(res => res.json())
+      .then(data => {
         document.getElementById("place-content").innerHTML = `
-          <h1>${place.name}</h1>
-          <p><strong>Kategoria:</strong> ${place.category}</p>
-          <p><strong>Data wizyty:</strong> ${formatDate(place.date)}</p>
-          <img src="${place.image.trim()}" alt="Zdjęcie" class="place-image">
-          <p>${place.description}</p>
-          ${galleryHtml}
+          <h1>${data.name}</h1>
+          <p><strong>Kategoria:</strong> ${data.category}</p>
+          <p><strong>Data wizyty:</strong> ${formatDate(data.date)}</p>
+          <img src="${data.image.trim()}" alt="Zdjęcie" style="width:100%; max-height:500px; object-fit:cover; border-radius:8px;">
+          <p>${data.description || ''}</p>
         `;
-
-        window.photos = place.photos?.filter(p => p.url && p.url.trim() !== "") || [];
-      })
-      .catch(err => {
-        console.error("Błąd ładowania miejsca:", err);
-        document.getElementById("place-content").innerHTML = `<p><strong>Błąd:</strong> ${err.message}</p>`;
       });
 
-    // === Lightbox ===
-    let currentImageIndex = 0;
-
-    function openLightbox(index) {
-      currentImageIndex = index;
-      const img = document.getElementById("lightbox-img");
-      const caption = document.getElementById("lightbox-caption");
-      img.src = window.photos[currentImageIndex].url.trim();
-      caption.textContent = window.photos[currentImageIndex].caption || '';
-      document.getElementById("lightbox").style.display = "flex";
+    function formatDate(dateStr) {
+      return dateStr ? new Date(dateStr).toLocaleDateString("pl-PL", { day: "numeric", month: "long", year: "numeric" }) : "Brak daty";
     }
-
-    function closeLightbox() {
-      document.getElementById("lightbox").style.display = "none";
-    }
-
-    function nextImage() {
-      currentImageIndex = (currentImageIndex + 1) % window.photos.length;
-      updateLightbox();
-    }
-
-    function prevImage() {
-      currentImageIndex = (currentImageIndex - 1 + window.photos.length) % window.photos.length;
-      updateLightbox();
-    }
-
-    function updateLightbox() {
-      const img = document.getElementById("lightbox-img");
-      const caption = document.getElementById("lightbox-caption");
-      img.src = window.photos[currentImageIndex].url.trim();
-      caption.textContent = window.photos[currentImageIndex].caption || '';
-    }
-
-    document.addEventListener("keydown", function(e) {
-      const lightbox = document.getElementById("lightbox");
-      if (lightbox.style.display === "flex") {
-        if (e.key === "ArrowRight") nextImage();
-        if (e.key === "ArrowLeft") prevImage();
-        if (e.key === "Escape") closeLightbox();
-      }
-    });
   </script>
 </body>
 </html>
