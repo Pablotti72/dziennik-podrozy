@@ -1,232 +1,49 @@
-/* Ogólne */
+/* --- OGÓLNE --- */
 body {
   margin: 0;
-  font-family: Arial, sans-serif;
-  background-color: #f0f8ff;
-  line-height: 1.6;
-}
-
-/* Nagłówek w prawym górnym rogu */
-.header-box {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  background: rgba(255, 255, 255, 0.85);
-  padding: 10px 15px;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  font-size: 22px;
-  font-weight: bold;
-  color: #333;
-  z-index: 1000;
-  backdrop-filter: blur(2px);
-}
-
-/* Mapa */
-#map {
-  width: 100%;
-  height: 100vh;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-/* Modal - tło */
-.modal {
-  position: fixed;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-/* Modal - formularz z ograniczoną wysokością i przewijaniem */
-.modal-content {
-  background: white;
-  padding: 20px;
-  border-radius: 10px;
-  width: 90%;
-  max-width: 500px;
-  max-height: 80vh;            /* Maksymalna wysokość: 80% ekranu */
-  overflow-y: auto;            /* Przewijanie tylko w formularzu */
-  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-}
-
-/* Styli dla pól formularza */
-.modal-content label {
-  display: block;
-  margin: 6px 0 4px;
-  font-size: 14px;
-  color: #555;
-}
-
-.modal-content input,
-.modal-content textarea,
-.modal-content select {
-  width: 100%;
-  padding: 6px 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  font-size: 14px;
-  box-sizing: border-box;
-}
-
-.modal-content textarea {
-  resize: vertical;
-  max-height: 80px;
-}
-
-.modal-content button {
-  margin-top: 10px;
-  padding: 8px 12px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.modal-content button[type="submit"] {
-  background: #4CAF50;
-  color: white;
-}
-
-.modal-content button[type="button"] {
-  background: #f44336;
-  color: white;
-}
-
-/* Podstrona miejsca */
-.back-link {
-  text-align: center;
-  padding: 15px;
-}
-
-.back-link a {
-  color: #4a6fa5;
-  text-decoration: none;
-  font-size: 18px;
-}
-
-.back-link a:hover {
-  text-decoration: underline;
-}
-
-.place-page {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 20px;
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 10px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-  margin-bottom: 20px;
-}
-
-.place-page h1 {
-  text-align: left;
-  background: none;
   padding: 0;
-  margin-bottom: 15px;
-  font-size: 24px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f5f5f5;
   color: #333;
 }
 
-.place-image {
-  width: 100%;
-  max-height: 500px;
-  object-fit: cover;
-  border-radius: 8px;
-  margin: 15px 0;
-}
-
-.details {
-  margin-top: 20px;
-  padding: 15px;
-  background: #f9f9f9;
-  border-radius: 6px;
-  font-size: 14px;
-  color: #555;
-}
-
-/* Galeria zdjęć */
-.photo-gallery {
-  margin-top: 20px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 15px;
-}
-
-.gallery-item {
-  flex: 1 1 300px;
-  max-width: 300px;
-}
-
-.gallery-item img {
-  width: 100%;
-  height: 200px;
-  object-fit: cover;
-  border-radius: 8px;
-}
-
-.gallery-item p {
-  margin: 5px 0 0 0;
-  font-size: 14px;
-  color: #555;
-  text-align: center;
-}
-
-/* Styl dla własnego komunikatu */
-.msg-modal {
-  position: fixed;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  background: rgba(0,0,0,0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 2000;
-}
-
-.msg-modal-content {
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  max-width: 300px;
-  text-align: center;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-}
-
-.msg-modal-content button {
-  margin-top: 10px;
-  padding: 6px 12px;
-  background: #4a6fa5;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.msg-modal-content p {
-  margin: 0 0 15px 0;
-  font-size: 16px;
-}
-
-.add-btn {
+/* --- KONTENER NAGŁÓWKA W PRAWYM GÓRNYM ROGU --- */
+.header-container {
   position: absolute;
   top: 10px;
   right: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  z-index: 1000;
+  background: white;
+  padding: 12px 16px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  font-family: 'Segoe UI', sans-serif;
+  max-width: 280px;
+  box-sizing: border-box;
+}
+
+.header-box {
+  font-size: 18px;
+  font-weight: bold;
+  color: #2c3e50;
+}
+
+/* --- PRZYCISK "DODAJ WYPRAWĘ" --- */
+.add-btn {
   background: #4CAF50;
   color: white;
   border: none;
-  padding: 10px 15px;
-  font-size: 16px;
+  padding: 8px 12px;
+  font-size: 14px;
   border-radius: 6px;
   cursor: pointer;
-  z-index: 1000;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-  transition: background 0.2s;
+  transition: background 0.2s, transform 0.1s;
+  width: 100%;
+  text-align: center;
 }
 
 .add-btn:hover {
@@ -237,31 +54,212 @@ body {
   transform: scale(0.98);
 }
 
-.header-container {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  z-index: 1000;
-  background: white;
-  padding: 8px 12px;
-  border-radius: 8px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+/* --- MAPA --- */
+#map {
+  width: 100%;
+  height: 100vh;
+  z-index: 1;
 }
 
-.add-btn {
+/* --- MODAL (FORMULARZ) --- */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 2000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-content {
+  background-color: white;
+  padding: 20px;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.modal-content h2 {
+  margin-top: 0;
+  color: #2c3e50;
+  font-size: 20px;
+}
+
+.modal-content label {
+  display: block;
+  margin: 8px 0 4px;
+  font-size: 14px;
+  color: #555;
+  font-weight: 500;
+}
+
+.modal-content input,
+.modal-content textarea,
+.modal-content select {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  box-sizing: border-box;
+  transition: border 0.2s;
+}
+
+.modal-content input:focus,
+.modal-content textarea:focus,
+.modal-content select:focus {
+  border-color: #4CAF50;
+  outline: none;
+}
+
+.modal-content textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+.modal-content button[type="submit"] {
   background: #4CAF50;
   color: white;
   border: none;
-  padding: 8px 12px;
-  font-size: 14px;
+  padding: 10px 16px;
   border-radius: 6px;
   cursor: pointer;
+  font-size: 14px;
+  margin-right: 8px;
+}
+
+.modal-content button[type="button"] {
+  background: #f44336;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+/* --- GALERIA ZDJĘĆ W FORMULARZU --- */
+.photo-item {
+  background: #f9f9f9;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #eee;
+  margin-bottom: 10px;
+}
+
+/* --- KOMUNIKATY --- */
+.msg-modal {
+  display: none;
+  position: fixed;
+  z-index: 3000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  justify-content: center;
+  align-items: center;
+}
+
+.msg-modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+  max-width: 300px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.msg-modal-content button {
+  margin-top: 10px;
+  padding: 8px 16px;
+  background: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* --- STRONA Z MIEJSCAMI (place.html) --- */
+.place-page {
+  max-width: 800px;
+  margin: 70px auto;
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.place-page h1 {
+  color: #2c3e50;
+  border-bottom: 2px solid #4CAF50;
+  padding-bottom: 8px;
+  margin-bottom: 16px;
+}
+
+.place-page img.place-image {
+  width: 100%;
+  max-height: 500px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin: 15px 0;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* --- LINK "WRÓĆ" --- */
+.back-link {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 1000;
+}
+
+.back-link a {
+  text-decoration: none;
+  color: #333;
+  font-size: 16px;
+  background: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
   transition: background 0.2s;
 }
 
-.add-btn:hover {
-  background: #45a049;
+.back-link a:hover {
+  background: #f0f0f0;
+}
+
+/* --- RESPONSYWNOŚĆ --- */
+@media (max-width: 600px) {
+  .header-container {
+    right: 8px;
+    top: 8px;
+    padding: 10px;
+    width: 250px;
+  }
+
+  .header-box {
+    font-size: 16px;
+  }
+
+  .add-btn {
+    font-size: 14px;
+    padding: 7px 10px;
+  }
+
+  .place-page {
+    margin: 60px 10px;
+    padding: 15px;
+  }
 }
