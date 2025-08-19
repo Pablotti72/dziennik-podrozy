@@ -29,19 +29,18 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    // 🔥 Upewnij się, że to Twój adres Firebase!
+    // ✅ Poprawny adres – bez spacji!
     const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
 
     const urlParams = new URLSearchParams(window.location.search);
     const tripId = urlParams.get("id");
 
     if (!tripId) {
-      document.getElementById("trip-content").innerHTML = "<p>❌ Brak ID wyprawy w URL. Użyj: <code>trip.html?id=zakopane2025</code></p>";
+      document.getElementById("trip-content").innerHTML = "<p>❌ Brak ID wyprawy w URL.</p>";
       throw new Error("Brak ID.");
     }
 
     const tripUrl = `${firebaseBaseUrl}/trips/${tripId}.json`;
-    console.log("Ładuję wyprawę z:", tripUrl);
 
     const map = L.map("trip-map");
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
@@ -55,26 +54,21 @@
       })
       .then(trip => {
         if (!trip) {
-          document.getElementById("trip-content").innerHTML = "<p>❌ Wyprawa nie istnieje lub dane są puste.</p>";
+          document.getElementById("trip-content").innerHTML = "<p>❌ Dane wyprawy są puste.</p>";
           return;
         }
 
-        console.log("Załadowano wyprawę:", trip);
-
-        // Wypełnij dane
         document.getElementById("trip-content").innerHTML = `
           <h1>${trip.name || 'Bez nazwy'}</h1>
           <p><strong>Okres:</strong> ${formatDate(trip.dateFrom)} – ${formatDate(trip.dateTo)}</p>
           <p>${trip.description || ''}</p>
         `;
 
-        // Ustaw widok mapy
         const lat = trip.lat || 54.5;
         const lng = trip.lng || -3.0;
         map.setView([lat, lng], 10);
         document.getElementById("trip-map").style.display = "block";
 
-        // Pokaż miejsca
         if (trip.places) {
           Object.keys(trip.places).forEach(key => {
             const place = trip.places[key];
@@ -88,22 +82,11 @@
               <small>${place.category || 'inny'} • ${formatDate(place.date)}</small>
             `);
           });
-        } else {
-          document.getElementById("trip-content").insertAdjacentHTML("beforeend", "<p><em>Brak miejsc w tej wyprawie.</em></p>");
         }
       })
       .catch(error => {
-        console.error("❌ Błąd ładowania wyprawy:", error);
-        document.getElementById("trip-content").innerHTML = `
-          <p><strong>Błąd ładowania wyprawy:</strong></p>
-          <p>${error.message}</p>
-          <p>Sprawdź konsolę (F12) i upewnij się, że:</p>
-          <ul>
-            <li>ID wyprawy istnieje w Firebase</li>
-            <li>Adres Firebase jest poprawny</li>
-            <li>Dane są w gałęzi <code>trips</code></li>
-          </ul>
-        `;
+        console.error("Błąd ładowania wyprawy:", error);
+        document.getElementById("trip-content").innerHTML = `<p><strong>Błąd:</strong> ${error.message}</p>`;
       });
 
     function formatDate(dateStr) {
