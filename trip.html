@@ -240,11 +240,11 @@
       const placeIdToSend = isEdit ? id : generateId(placeData.name);
       const url = `${firebaseBaseUrl}/trips/${tripId}/places/${placeIdToSend}.json`;
 
-      fetch(url, {
-        method: method,
-        body: JSON.stringify(placeData),
-        headers: { "Content-Type": "application/json" }
-      })
+fetch(url, {
+  method: method,
+  body: JSON.stringify(placeData),  // ✅
+  headers: { "Content-Type": "application/json" }
+})
       .then(() => {
         closePlaceModal();
         showMessage("✅ Miejsce zapisane!");
