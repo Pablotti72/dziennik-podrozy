@@ -31,12 +31,26 @@
     fetch(placeUrl)
       .then(res => res.json())
       .then(data => {
+        let galleryHtml = "";
+        if (data.photos && data.photos.length > 0) {
+          galleryHtml = `<div style="margin-top: 30px;"><h3>Galeria zdjęć</h3>`;
+          data.photos.forEach(photo => {
+            galleryHtml += `
+              <div style="margin-bottom: 20px;">
+                <img src="${photo.url.trim()}" style="width:100%; max-height:400px; object-fit:cover; border-radius:8px;" loading="lazy">
+                <p style="margin:5px 0 0 0; font-size:14px; color:#555;"><em>${photo.caption || ''}</em></p>
+              </div>`;
+          });
+          galleryHtml += `</div>`;
+        }
+
         document.getElementById("place-content").innerHTML = `
           <h1>${data.name}</h1>
           <p><strong>Kategoria:</strong> ${data.category}</p>
           <p><strong>Data wizyty:</strong> ${formatDate(data.date)}</p>
-          <img src="${data.image.trim()}" alt="Zdjęcie" style="width:100%; max-height:500px; object-fit:cover; border-radius:8px;">
+          <img src="${data.image.trim()}" alt="Zdjęcie" style="width:100%; max-height:500px; object-fit:cover; border-radius:8px; margin:15px 0;">
           <p>${data.description || ''}</p>
+          ${galleryHtml}
         `;
       });
 
