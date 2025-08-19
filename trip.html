@@ -119,33 +119,27 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    // 🔥 Adres Firebase – upewnij się, że jest poprawny!
     const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
-
     const urlParams = new URLSearchParams(window.location.search);
     const tripId = urlParams.get("id");
 
     if (!tripId) {
-      document.getElementById("trip-content").innerHTML = "<p>❌ Brak ID wyprawy w URL.</p>";
+      document.getElementById("trip-content").innerHTML = "<p>❌ Brak ID wyprawy.</p>";
       throw new Error("Brak ID.");
     }
 
     const tripUrl = `${firebaseBaseUrl}/trips/${tripId}.json`;
     const map = L.map("trip-map");
-
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
     let tripData = null;
 
     // --- Ładowanie wyprawy ---
     fetch(tripUrl)
-      .then(res => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}: Wyprawa nie istnieje`);
-        return res.json();
-      })
+      .then(res => res.json())
       .then(trip => {
         if (!trip) {
-          document.getElementById("trip-content").innerHTML = "<p>❌ Dane wyprawy są puste.</p>";
+          document.getElementById("trip-content").innerHTML = "<p>Wyprawa nie istnieje.</p>";
           return;
         }
 
@@ -156,34 +150,16 @@
           <p>${trip.description || ''}</p>
         `;
 
-        // Ustaw centrum mapy
         const lat = trip.lat || 54.5;
         const lng = trip.lng || -3.0;
         map.setView([lat, lng], 10);
-
-        // 🔁 KLUCZOWA LINIA: naprawia mapę, jeśli nie widzi rozmiaru
         setTimeout(() => map.invalidateSize(), 100);
 
-        // Pokaż miejsca
-        if (trip.places) {
-          Object.keys(trip.places).forEach(key => {
-            const place = trip.places[key];
-            if (!place.lat || !place.lng) return;
-
-            const marker = L.marker([place.lat, place.lng]).addTo(map);
-            marker.bindPopup(`
-              <strong><a href="place.html?tripId=${tripId}&placeId=${key}">${place.name}</a></strong><br>
-              ${place.description || ''}<br>
-              <img src="${place.image}" width="100"><br>
-              <small>${place.category || 'inny'} • ${formatDate(place.date)}</small><br><br>
-              <button onclick="editPlace('${key}', ${place.lat}, ${place.lng})" style="background: #FFC107; border: none; padding: 6px 10px; border-radius: 4px; font-size: 14px;">✏️ Edytuj</button>
-            `);
-          });
-        }
+        loadPlacesOnMap();
       })
       .catch(err => {
         console.error("Błąd ładowania wyprawy:", err);
-        document.getElementById("trip-content").innerHTML = `<p><strong>Błąd:</strong> ${err.message}</p>`;
+        document.getElementById("trip-content").innerHTML = "<p>Błąd ładowania wyprawy.</p>";
       });
 
     // --- Dodawanie miejsca ---
@@ -240,11 +216,11 @@
       const placeIdToSend = isEdit ? id : generateId(placeData.name);
       const url = `${firebaseBaseUrl}/trips/${tripId}/places/${placeIdToSend}.json`;
 
-fetch(url, {
-  method: method,
-  body: JSON.stringify(placeData),  // ✅
-  headers: { "Content-Type": "application/json" }
-})
+      fetch(url, {
+        method: method,
+        body: JSON.stringify(placeData),
+        headers: { "Content-Type": "application/json" }
+      })
       .then(() => {
         closePlaceModal();
         showMessage("✅ Miejsce zapisane!");
@@ -252,7 +228,7 @@ fetch(url, {
       })
       .then(trip => {
         tripData = trip;
-        reloadMapMarkers();
+        loadPlacesOnMap();
       })
       .catch(err => {
         console.error("Błąd zapisu miejsca:", err);
@@ -264,8 +240,28 @@ fetch(url, {
       document.getElementById("placeModal").style.display = "none";
     };
 
-    // --- Odświeżenie pinezek ---
-    function reloadMapMarkers() {
+    // --- Usuwanie miejsca ---
+    window.deletePlace = function(placeId) {
+      if (confirm("Czy na pewno chcesz usunąć to miejsce?")) {
+        const deleteUrl = `${firebaseBaseUrl}/trips/${tripId}/places/${placeId}.json`;
+        fetch(deleteUrl, { method: "DELETE" })
+          .then(() => {
+            showMessage("✅ Miejsce usunięte!");
+            return fetch(tripUrl).then(res => res.json());
+          })
+          .then(trip => {
+            tripData = trip;
+            loadPlacesOnMap();
+          })
+          .catch(err => {
+            console.error("Błąd usuwania miejsca:", err);
+            showMessage("Nie udało się usunąć miejsca.");
+          });
+      }
+    };
+
+    // --- Wyświetlanie miejsc ---
+    function loadPlacesOnMap() {
       map.eachLayer(layer => {
         if (layer instanceof L.Marker && !layer._isTripMarker) map.removeLayer(layer);
       });
@@ -284,11 +280,9 @@ fetch(url, {
           <img src="${place.image}" width="100"><br>
           <small>${place.category || 'inny'} • ${formatDate(place.date)}</small><br><br>
           <button onclick="editPlace('${key}', ${place.lat}, ${place.lng})" style="background: #FFC107; border: none; padding: 6px 10px; border-radius: 4px; font-size: 14px;">✏️ Edytuj</button>
+          <button onclick="deletePlace('${key}')" style="background: #F44336; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 14px; margin-left: 5px;">🗑️ Usuń</button>
         `);
       });
-
-      // Ponownie napraw rozmiar mapy
-      setTimeout(() => map.invalidateSize(), 100);
     }
 
     // --- Pomocnicze ---
