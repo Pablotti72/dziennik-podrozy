@@ -111,6 +111,16 @@
 
         <label>Data wizyty: <input type="date" id="placeDate" required></label><br><br>
 
+        <h3>Galeria zdjęć</h3>
+        <div id="photos-container">
+          <div class="photo-item">
+            <label>Zdjęcie URL: <input type="url" class="photo-url" placeholder="https://..."></label><br>
+            <label>Komentarz: <input type="text" class="photo-caption" placeholder="Opis zdjęcia"></label><br><br>
+          </div>
+        </div>
+
+        <button type="button" onclick="addPhotoField()">➕ Dodaj kolejne zdjęcie</button><br><br>
+
         <button type="submit" id="savePlaceBtn">Zapisz</button>
         <button type="button" onclick="closePlaceModal()">Anuluj</button>
       </form>
@@ -119,9 +129,7 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    // 🔥 Adres Firebase – upewnij się, że jest poprawny!
     const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
-
     const urlParams = new URLSearchParams(window.location.search);
     const tripId = urlParams.get("id");
 
@@ -173,6 +181,12 @@
 
     window.openAddPlaceModal = function(lat, lng) {
       document.getElementById("placeForm").reset();
+      document.getElementById("photos-container").innerHTML = `
+        <div class="photo-item">
+          <label>Zdjęcie URL: <input type="url" class="photo-url" placeholder="https://..."></label><br>
+          <label>Komentarz: <input type="text" class="photo-caption" placeholder="Opis zdjęcia"></label><br><br>
+        </div>
+      `;
       document.getElementById("placeLat").value = lat;
       document.getElementById("placeLng").value = lng;
       document.getElementById("placeModalTitle").textContent = "Dodaj miejsce";
@@ -194,6 +208,28 @@
       document.getElementById("placeLng").value = lng;
       document.getElementById("placeId").value = id;
 
+      // Wypełnij galerię
+      const container = document.getElementById("photos-container");
+      container.innerHTML = "";
+      if (place.photos && place.photos.length > 0) {
+        place.photos.forEach(photo => {
+          const item = document.createElement("div");
+          item.className = "photo-item";
+          item.innerHTML = `
+            <label>Zdjęcie URL: <input type="url" class="photo-url" value="${photo.url}" placeholder="https://..."></label><br>
+            <label>Komentarz: <input type="text" class="photo-caption" value="${photo.caption || ''}" placeholder="Opis zdjęcia"></label><br><br>
+          `;
+          container.appendChild(item);
+        });
+      } else {
+        container.innerHTML = `
+          <div class="photo-item">
+            <label>Zdjęcie URL: <input type="url" class="photo-url" placeholder="https://..."></label><br>
+            <label>Komentarz: <input type="text" class="photo-caption" placeholder="Opis zdjęcia"></label><br><br>
+          </div>
+        `;
+      }
+
       document.getElementById("placeModalTitle").textContent = "Edytuj miejsce";
       document.getElementById("savePlaceBtn").textContent = "Zaktualizuj";
       document.getElementById("placeModal").style.display = "flex";
@@ -204,6 +240,19 @@
       const id = document.getElementById("placeId").value;
       const isEdit = id !== "";
 
+      // Zbierz zdjęcia
+      const photos = [];
+      const photoUrls = document.querySelectorAll(".photo-url");
+      const photoCaptions = document.querySelectorAll(".photo-caption");
+      photoUrls.forEach((urlInput, i) => {
+        if (urlInput.value.trim() !== "") {
+          photos.push({
+            url: urlInput.value.trim(),
+            caption: photoCaptions[i]?.value.trim() || ""
+          });
+        }
+      });
+
       const placeData = {
         name: document.getElementById("placeName").value,
         description: document.getElementById("placeDescription").value,
@@ -211,14 +260,14 @@
         category: document.getElementById("placeCategory").value,
         date: document.getElementById("placeDate").value,
         lat: parseFloat(document.getElementById("placeLat").value),
-        lng: parseFloat(document.getElementById("placeLng").value)
+        lng: parseFloat(document.getElementById("placeLng").value),
+        photos: photos
       };
 
-      const method = "PUT"; // Zawsze PUT, by nie generować nowego ID
+      const method = "PUT";
       const placeIdToSend = isEdit ? id : generateId(placeData.name);
       const url = `${firebaseBaseUrl}/trips/${tripId}/places/${placeIdToSend}.json`;
 
-      // ✅ KLUCZOWE: dane zapisywane bezpośrednio, BEZ zagnieżdżenia!
       fetch(url, {
         method: method,
         body: JSON.stringify(placeData),
@@ -243,7 +292,17 @@
       document.getElementById("placeModal").style.display = "none";
     };
 
-    // --- Usuwanie miejsca ---
+    window.addPhotoField = function() {
+      const container = document.getElementById("photos-container");
+      const item = document.createElement("div");
+      item.className = "photo-item";
+      item.innerHTML = `
+        <label>Zdjęcie URL: <input type="url" class="photo-url" placeholder="https://..."></label><br>
+        <label>Komentarz: <input type="text" class="photo-caption" placeholder="Opis zdjęcia"></label><br><br>
+      `;
+      container.appendChild(item);
+    };
+
     window.deletePlace = function(placeId) {
       if (confirm("Czy na pewno chcesz usunąć to miejsce?")) {
         const deleteUrl = `${firebaseBaseUrl}/trips/${tripId}/places/${placeId}.json`;
@@ -263,7 +322,6 @@
       }
     };
 
-    // --- Wyświetlanie miejsc ---
     function loadPlacesOnMap() {
       map.eachLayer(layer => {
         if (layer instanceof L.Marker && !layer._isTripMarker) map.removeLayer(layer);
@@ -288,7 +346,6 @@
       });
     }
 
-    // --- Pomocnicze ---
     function formatDate(dateStr) {
       if (!dateStr) return "Brak daty";
       const date = new Date(dateStr);
