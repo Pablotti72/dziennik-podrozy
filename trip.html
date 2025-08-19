@@ -13,63 +13,6 @@
       border-radius: 8px;
       margin: 20px 0;
     }
-
-    .modal {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: rgba(0,0,0,0.5);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 1000;
-    }
-
-    .modal-content {
-      background: white;
-      padding: 20px;
-      border-radius: 10px;
-      width: 90%;
-      max-width: 500px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-    }
-
-    .modal-content label {
-      display: block;
-      margin: 6px 0 4px;
-      font-size: 14px;
-      color: #555;
-    }
-
-    .modal-content input,
-    .modal-content textarea,
-    .modal-content select {
-      width: 100%;
-      padding: 6px 8px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      font-size: 14px;
-      box-sizing: border-box;
-    }
-
-    .modal-content button {
-      margin-top: 10px;
-      padding: 8px 12px;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 14px;
-    }
-
-    .modal-content button[type="submit"] {
-      background: #4CAF50;
-      color: white;
-    }
-
-    .modal-content button[type="button"] {
-      background: #f44336;
-      color: white;
-    }
   </style>
 </head>
 <body>
@@ -81,111 +24,93 @@
     <article id="trip-content">
       <p>Ładowanie wyprawy...</p>
     </article>
-    <div id="trip-map"></div>
+    <div id="trip-map" style="display: none;"></div>
   </main>
-
-  <!-- Modal - dodawanie/edycja miejsca -->
-  <div id="placeModal" class="modal" style="display: none;">
-    <div class="modal-content">
-      <h2 id="placeModalTitle">Dodaj miejsce</h2>
-      <form id="placeForm">
-        <input type="hidden" id="placeId">
-        <input type="hidden" id="placeLat">
-        <input type="hidden" id="placeLng">
-
-        <label>Nazwa: <input type="text" id="placeName" required></label><br><br>
-
-        <label>Opis: <textarea id="placeDescription" rows="2"></textarea></label><br><br>
-
-        <label>Zdjęcie (URL): <input type="url" id="placeImage" placeholder="https://..." required></label><br><br>
-
-        <label>Kategoria:
-          <select id="placeCategory">
-            <option value="miasto">Miasto</option>
-            <option value="park">Park</option>
-            <option value="zabytek">Zabytek</option>
-            <option value="muzeum">Muzeum</option>
-            <option value="inny">Inny</option>
-          </select>
-        </label><br><br>
-
-        <label>Data wizyty: <input type="date" id="placeDate" required></label><br><br>
-
-        <button type="submit" id="savePlaceBtn">Zapisz</button>
-        <button type="button" onclick="closePlaceModal()">Anuluj</button>
-      </form>
-    </div>
-  </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
+    // 🔥 Upewnij się, że to Twój adres Firebase!
     const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
+
     const urlParams = new URLSearchParams(window.location.search);
     const tripId = urlParams.get("id");
 
     if (!tripId) {
-      document.getElementById("trip-content").innerHTML = "<p>Brak ID wyprawy.</p>";
+      document.getElementById("trip-content").innerHTML = "<p>❌ Brak ID wyprawy w URL. Użyj: <code>trip.html?id=zakopane2025</code></p>";
       throw new Error("Brak ID.");
     }
 
     const tripUrl = `${firebaseBaseUrl}/trips/${tripId}.json`;
-    const map = L.map("trip-map").setView([54.5, -3.0], 8);
+    console.log("Ładuję wyprawę z:", tripUrl);
+
+    const map = L.map("trip-map");
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
-    let tripData = null;
-
-    // --- Ładowanie wyprawy ---
     fetch(tripUrl)
-      .then(res => res.json())
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: Wyprawa nie istnieje`);
+        }
+        return response.json();
+      })
       .then(trip => {
         if (!trip) {
-          document.getElementById("trip-content").innerHTML = "<p>Wyprawa nie istnieje.</p>";
+          document.getElementById("trip-content").innerHTML = "<p>❌ Wyprawa nie istnieje lub dane są puste.</p>";
           return;
         }
 
-        tripData = trip;
+        console.log("Załadowano wyprawę:", trip);
+
+        // Wypełnij dane
         document.getElementById("trip-content").innerHTML = `
-          <h1>${trip.name}</h1>
+          <h1>${trip.name || 'Bez nazwy'}</h1>
           <p><strong>Okres:</strong> ${formatDate(trip.dateFrom)} – ${formatDate(trip.dateTo)}</p>
           <p>${trip.description || ''}</p>
         `;
 
-        const centerLat = trip.lat || 54.5;
-        const centerLng = trip.lng || -3.0;
-        map.setView([centerLat, centerLng], 10);
+        // Ustaw widok mapy
+        const lat = trip.lat || 54.5;
+        const lng = trip.lng || -3.0;
+        map.setView([lat, lng], 10);
+        document.getElementById("trip-map").style.display = "block";
 
-        loadPlacesOnMap();
+        // Pokaż miejsca
+        if (trip.places) {
+          Object.keys(trip.places).forEach(key => {
+            const place = trip.places[key];
+            if (!place.lat || !place.lng) return;
+
+            const marker = L.marker([place.lat, place.lng]).addTo(map);
+            marker.bindPopup(`
+              <strong><a href="place.html?tripId=${tripId}&placeId=${key}">${place.name}</a></strong><br>
+              ${place.description || ''}<br>
+              <img src="${place.image}" width="100"><br>
+              <small>${place.category || 'inny'} • ${formatDate(place.date)}</small>
+            `);
+          });
+        } else {
+          document.getElementById("trip-content").insertAdjacentHTML("beforeend", "<p><em>Brak miejsc w tej wyprawie.</em></p>");
+        }
       })
-      .catch(err => {
-        console.error("Błąd ładowania wyprawy:", err);
-        document.getElementById("trip-content").innerHTML = "<p>Błąd ładowania wyprawy.</p>";
+      .catch(error => {
+        console.error("❌ Błąd ładowania wyprawy:", error);
+        document.getElementById("trip-content").innerHTML = `
+          <p><strong>Błąd ładowania wyprawy:</strong></p>
+          <p>${error.message}</p>
+          <p>Sprawdź konsolę (F12) i upewnij się, że:</p>
+          <ul>
+            <li>ID wyprawy istnieje w Firebase</li>
+            <li>Adres Firebase jest poprawny</li>
+            <li>Dane są w gałęzi <code>trips</code></li>
+          </ul>
+        `;
       });
 
-    // --- Dodawanie miejsca ---
-    map.on("click", function(e) {
-      const lat = e.latlng.lat;
-      const lng = e.latlng.lng;
-      openAddPlaceModal(lat, lng);
-    });
-
-    window.openAddPlaceModal = function(lat, lng) {
-      document.getElementById("placeForm").reset();
-      document.getElementById("placeLat").value = lat;
-      document.getElementById("placeLng").value = lng;
-      document.getElementById("placeModalTitle").textContent = "Dodaj miejsce";
-      document.getElementById("savePlaceBtn").textContent = "Zapisz";
-      document.getElementById("placeId").value = "";
-      document.getElementById("placeModal").style.display = "flex";
-    };
-
-    window.editPlace = function(id, lat, lng) {
-      const place = tripData.places[id];
-      if (!place) return;
-
-      document.getElementById("placeName").value = place.name;
-      document.getElementById("placeDescription").value = place.description || '';
-      document.getElementById("placeImage").value = place.image;
-      document.getElementById("placeCategory").value = place.category;
-      document.getElementById("placeDate").value = place.date || '';
-      document.getElementById("placeLat").value = lat;
-     
+    function formatDate(dateStr) {
+      if (!dateStr) return "Brak daty";
+      const date = new Date(dateStr);
+      return date.toLocaleDateString("pl-PL", { day: "numeric", month: "long", year: "numeric" });
+    }
+  </script>
+</body>
+</html>
