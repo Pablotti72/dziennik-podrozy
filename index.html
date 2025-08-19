@@ -8,20 +8,16 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
-  <!-- Modal logowania -->
-  <div id="authModal" class="modal" style="display: flex;">
-    <div class="modal-content">
-      <h2>🔐 Wprowadź hasło, aby edytować</h2>
-      <input type="password" id="editPassword" placeholder="Hasło">
-      <button onclick="checkPassword()">Wejdź</button>
-    </div>
-  </div>
-
   <!-- Nagłówek z przyciskiem (pokaże się po haśle) -->
   <div class="header-container right-top" id="editControls" style="display: none;">
     <div class="header-box">Nasze podróże</div>
     <button id="addTripBtn" class="add-btn">➕ Dodaj wyprawę</button>
   </div>
+
+  <!-- Przycisk do włączenia edycji -->
+  <button id="editModeBtn" onclick="askForPassword()" style="position: fixed; top: 10px; right: 10px; z-index: 1000; background: #2196F3; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-size: 14px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
+    🔐 Edytuj stronę
+  </button>
 
   <!-- Mapa -->
   <div id="map"></div>
@@ -62,22 +58,21 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <script>
-    // 🔐 Ustaw swoje hasło tutaj
-    const correctPassword = "sekret2025"; // ← Zmień na swoje
+    // 🔐 Hasło do edycji – możesz zmienić
+    const correctPassword = "sekret2025";
 
-    function checkPassword() {
-      const password = document.getElementById("editPassword").value;
-      if (password === correctPassword) {
-        document.getElementById("authModal").style.display = "none";
+    function askForPassword() {
+      const pass = prompt("Wprowadź hasło, aby włączyć tryb edycji:");
+      if (pass === correctPassword) {
+        document.getElementById("editModeBtn").remove();
         document.getElementById("editControls").style.display = "flex";
         window.isEditing = true;
         showMessage("✅ Tryb edycji włączony");
-      } else {
+      } else if (pass !== null) {
         alert("❌ Błędne hasło!");
       }
     }
 
-    // Jeśli nie ma hasła, ukryj wszystko związane z edycją
     window.isEditing = false;
 
     document.addEventListener("DOMContentLoaded", function () {
@@ -110,7 +105,6 @@
                 <small>${formatDate(trip.dateFrom)} – ${formatDate(trip.dateTo)}</small><br><br>
               `;
 
-              // Pokaż przyciski tylko w trybie edycji
               if (window.isEditing) {
                 popupContent += `
                   <button onclick="editTrip('${key}', ${trip.lat}, ${trip.lng})" style="background: #FFC107; border: none; padding: 6px 10px; border-radius: 4px; font-size: 14px;">✏️ Edytuj</button>
