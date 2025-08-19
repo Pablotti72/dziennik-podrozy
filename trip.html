@@ -8,45 +8,35 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
-  <!-- Nagłówek z przyciskiem (pokaże się po haśle) -->
-  <div class="header-container right-top" id="editControls" style="display: none;">
+  <div class="header-container right-top">
     <div class="header-box">Wyprawa</div>
-    <button id="addPlaceBtn" class="add-btn">➕ Dodaj miejsce</button>
+    <button id="editModeBtn" onclick="askForPassword()" style="background: #2196F3; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer;">
+      🔐 Edytuj stronę
+    </button>
   </div>
 
-  <!-- Przycisk do włączenia edycji -->
-  <button id="editModeBtn" onclick="askForPassword()" style="position: fixed; top: 10px; right: 10px; z-index: 1000; background: #2196F3; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-size: 14px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
-    🔐 Edytuj stronę
-  </button>
-
-  <!-- Link "Wróć" -->
   <div class="back-link">
     <a href="index.html">← Wróć do mapy</a>
   </div>
 
-  <!-- Treść wyprawy -->
   <main class="place-page">
     <article id="trip-content">
-      <p>Ładowanie wyprawy...</p>
+      <p>Ładowanie...</p>
     </article>
     <div id="trip-map"></div>
   </main>
 
-  <!-- Modal - formularz dodawania/edycji miejsca -->
   <div id="placeModal" class="modal" style="display: none;">
-    <div class="modal-content scrollable-modal">
-      <h2 id="placeModalTitle">Dodaj miejsce</h2>
+    <div class="modal-content">
+      <h2>Dodaj miejsce</h2>
       <form id="placeForm">
         <input type="hidden" id="placeId">
         <input type="hidden" id="placeLat">
         <input type="hidden" id="placeLng">
 
         <label>Nazwa: <input type="text" id="placeName" required></label><br><br>
-
         <label>Opis: <textarea id="placeDescription" rows="2"></textarea></label><br><br>
-
-        <label>Zdjęcie (URL): <input type="url" id="placeImage" placeholder="https://..." required></label><br><br>
-
+        <label>Zdjęcie: <input type="url" id="placeImage" required></label><br><br>
         <label>Kategoria:
           <select id="placeCategory">
             <option value="miasto">Miasto</option>
@@ -56,26 +46,14 @@
             <option value="inny">Inny</option>
           </select>
         </label><br><br>
+        <label>Data: <input type="date" id="placeDate" required></label><br><br>
 
-        <label>Data wizyty: <input type="date" id="placeDate" required></label><br><br>
-
-        <h3>Galeria zdjęć</h3>
-        <div id="photos-container">
-          <div class="photo-item">
-            <label>Zdjęcie URL: <input type="url" class="photo-url" placeholder="https://..."></label><br>
-            <label>Komentarz: <input type="text" class="photo-caption" placeholder="Opis zdjęcia"></label><br><br>
-          </div>
-        </div>
-
-        <button type="button" onclick="addPhotoField()">➕ Dodaj zdjęcie</button><br><br>
-
-        <button type="submit" id="savePlaceBtn">Zapisz</button>
+        <button type="submit">Zapisz</button>
         <button type="button" onclick="closePlaceModal()">Anuluj</button>
       </form>
     </div>
   </div>
 
-  <!-- Modal komunikatu -->
   <div id="msgModal" class="msg-modal" style="display: none;">
     <div class="msg-modal-content">
       <p id="msgText"></p>
@@ -83,302 +61,98 @@
     </div>
   </div>
 
-  <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
   <script>
-    // 🔐 Hasło do edycji – możesz zmienić
     const correctPassword = "sekret2025";
+    let isEditing = false;
 
     function askForPassword() {
-      const pass = prompt("Wprowadź hasło, aby włączyć tryb edycji:");
+      const pass = prompt("Hasło:");
       if (pass === correctPassword) {
-        document.getElementById("editModeBtn").remove();
-        document.getElementById("editControls").style.display = "flex";
-        window.isEditing = true;
+        isEditing = true;
+        document.getElementById("editModeBtn").textContent = "➕ Dodaj miejsce";
+        document.getElementById("editModeBtn").onclick = () => openAddPlaceModal();
         showMessage("✅ Tryb edycji włączony");
       } else if (pass !== null) {
-        alert("❌ Błędne hasło!");
+        alert("❌ Błędne hasło");
       }
     }
 
-    window.isEditing = false;
-
-    const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
     const urlParams = new URLSearchParams(window.location.search);
     const tripId = urlParams.get("id");
-
-    if (!tripId) {
-      document.getElementById("trip-content").innerHTML = "<p>❌ Brak ID wyprawy.</p>";
-      throw new Error("Brak ID wyprawy w URL.");
-    }
-
+    const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
     const tripUrl = `${firebaseBaseUrl}/trips/${tripId}.json`;
+
+    document.getElementById("trip-content").innerHTML = "<p>Ładowanie...</p>";
+
     const map = L.map("trip-map");
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
-
-    let tripData = null;
 
     fetch(tripUrl)
       .then(res => res.json())
       .then(trip => {
-        if (!trip) {
-          document.getElementById("trip-content").innerHTML = "<p>❌ Wyprawa nie istnieje.</p>";
-          return;
-        }
-
-        tripData = trip;
         document.getElementById("trip-content").innerHTML = `
           <h1>${trip.name}</h1>
           <p><strong>Okres:</strong> ${formatDate(trip.dateFrom)} – ${formatDate(trip.dateTo)}</p>
           <p>${trip.description || ''}</p>
         `;
+        map.setView([trip.lat, trip.lng], 10);
 
-        const lat = trip.lat || 54.5;
-        const lng = trip.lng || -3.0;
-        map.setView([lat, lng], 10);
-        map.invalidateSize();
-
-        loadPlacesOnMap();
-      })
-      .catch(err => {
-        console.error("Błąd ładowania wyprawy:", err);
-        document.getElementById("trip-content").innerHTML = "<p>❌ Błąd ładowania wyprawy.</p>";
+        if (trip.places) {
+          Object.keys(trip.places).forEach(key => {
+            const p = trip.places[key];
+            const m = L.marker([p.lat, p.lng]).addTo(map);
+            m.bindPopup(`
+              <strong><a href="place.html?tripId=${tripId}&placeId=${key}">${p.name}</a></strong><br>
+              ${p.description || ''}<br>
+              <img src="${p.image}" width="100"><br>
+              <small>${p.category} • ${formatDate(p.date)}</small>
+              ${isEditing ? `<br><br><button onclick="editPlace('${key}', ${p.lat}, ${p.lng})">✏️ Edytuj</button>` : ''}
+            `);
+          });
+        }
       });
 
-    let isAddingPlace = false;
-
-    document.getElementById("addPlaceBtn").addEventListener("click", function () {
-      if (isAddingPlace) {
-        isAddingPlace = false;
-        this.textContent = "➕ Dodaj miejsce";
-        this.style.background = "#4CAF50";
-        showMessage("Tryb dodawania wyłączony");
-      } else {
-        isAddingPlace = true;
-        this.textContent = "🛑 Anuluj";
-        this.style.background = "#f44336";
-        showMessage("Kliknij na mapie, gdzie dodać miejsce");
-      }
-    });
-
-    map.on("click", function (e) {
-      if (isAddingPlace) {
-        isAddingPlace = false;
-        document.getElementById("addPlaceBtn").textContent = "➕ Dodaj miejsce";
-        document.getElementById("addPlaceBtn").style.background = "#4CAF50";
-        openAddPlaceModal(e.latlng.lat, e.latlng.lng);
-      }
+    map.on("click", function(e) {
+      if (isEditing) openAddPlaceModal(e.latlng.lat, e.latlng.lng);
     });
 
     window.openAddPlaceModal = function(lat, lng) {
       document.getElementById("placeForm").reset();
-      document.getElementById("photos-container").innerHTML = `
-        <div class="photo-item">
-          <label>Zdjęcie URL: <input type="url" class="photo-url" placeholder="https://..."></label><br>
-          <label>Komentarz: <input type="text" class="photo-caption" placeholder="Opis zdjęcia"></label><br><br>
-        </div>
-      `;
       document.getElementById("placeLat").value = lat;
       document.getElementById("placeLng").value = lng;
-      document.getElementById("placeModalTitle").textContent = "Dodaj miejsce";
-      document.getElementById("savePlaceBtn").textContent = "Zapisz";
-      document.getElementById("placeId").value = "";
-      document.getElementById("placeModal").style.display = "flex";
-    };
-
-    window.editPlace = function(id, lat, lng) {
-      const place = tripData.places[id];
-      if (!place) return;
-
-      document.getElementById("placeName").value = place.name;
-      document.getElementById("placeDescription").value = place.description || '';
-      document.getElementById("placeImage").value = place.image;
-      document.getElementById("placeCategory").value = place.category;
-      document.getElementById("placeDate").value = place.date || '';
-      document.getElementById("placeLat").value = lat;
-      document.getElementById("placeLng").value = lng;
-      document.getElementById("placeId").value = id;
-
-      const container = document.getElementById("photos-container");
-      container.innerHTML = "";
-      if (place.photos && place.photos.length > 0) {
-        place.photos.forEach(photo => {
-          const item = document.createElement("div");
-          item.className = "photo-item";
-          item.innerHTML = `
-            <label>Zdjęcie URL: <input type="url" class="photo-url" value="${photo.url}" placeholder="https://..."></label><br>
-            <label>Komentarz: <input type="text" class="photo-caption" value="${photo.caption || ''}" placeholder="Opis zdjęcia"></label><br><br>
-          `;
-          container.appendChild(item);
-        });
-      } else {
-        container.innerHTML = `
-          <div class="photo-item">
-            <label>Zdjęcie URL: <input type="url" class="photo-url" placeholder="https://..."></label><br>
-            <label>Komentarz: <input type="text" class="photo-caption" placeholder="Opis zdjęcia"></label><br><br>
-          </div>
-        `;
-      }
-
-      document.getElementById("placeModalTitle").textContent = "Edytuj miejsce";
-      document.getElementById("savePlaceBtn").textContent = "Zaktualizuj";
       document.getElementById("placeModal").style.display = "flex";
     };
 
     document.getElementById("placeForm").addEventListener("submit", function(e) {
       e.preventDefault();
-      const id = document.getElementById("placeId").value;
-      const isEdit = id !== "";
-
-      const photos = [];
-      const photoUrls = document.querySelectorAll(".photo-url");
-      const photoCaptions = document.querySelectorAll(".photo-caption");
-      photoUrls.forEach((urlInput, i) => {
-        if (urlInput.value.trim() !== "") {
-          photos.push({
-            url: urlInput.value.trim(),
-            caption: photoCaptions[i]?.value.trim() || ""
-          });
-        }
-      });
-
-      const placeData = {
+      const id = Date.now().toString();
+      const data = {
         name: document.getElementById("placeName").value,
         description: document.getElementById("placeDescription").value,
         image: document.getElementById("placeImage").value,
         category: document.getElementById("placeCategory").value,
         date: document.getElementById("placeDate").value,
         lat: parseFloat(document.getElementById("placeLat").value),
-        lng: parseFloat(document.getElementById("placeLng").value),
-        photos: photos
+        lng: parseFloat(document.getElementById("placeLng").value)
       };
-
-      const method = "PUT";
-      const placeIdToSend = isEdit ? id : generateId(placeData.name);
-      const url = `${firebaseBaseUrl}/trips/${tripId}/places/${placeIdToSend}.json`;
-
-      fetch(url, {
-        method: method,
-        body: JSON.stringify(placeData),
+      fetch(`${firebaseBaseUrl}/trips/${tripId}/places/${id}.json`, {
+        method: "PUT",
+        body: JSON.stringify(data),
         headers: { "Content-Type": "application/json" }
-      })
-      .then(() => {
+      }).then(() => {
         closePlaceModal();
-        showMessage("✅ Miejsce zapisane!");
-        return fetch(tripUrl).then(res => res.json());
-      })
-      .then(trip => {
-        tripData = trip;
-        loadPlacesOnMap();
-      })
-      .catch(err => {
-        console.error("Błąd zapisu miejsca:", err);
-        showMessage("Nie udało się zapisać miejsca.");
+        location.reload();
       });
     });
 
-    window.closePlaceModal = function() {
-      document.getElementById("placeModal").style.display = "none";
-    };
-
-    window.addPhotoField = function() {
-      const container = document.getElementById("photos-container");
-      const item = document.createElement("div");
-      item.className = "photo-item";
-      item.innerHTML = `
-        <label>Zdjęcie URL: <input type="url" class="photo-url" placeholder="https://..."></label><br>
-        <label>Komentarz: <input type="text" class="photo-caption" placeholder="Opis zdjęcia"></label><br><br>
-      `;
-      container.appendChild(item);
-    };
-
-    window.deletePlace = function(placeId) {
-      if (confirm("Czy na pewno chcesz usunąć to miejsce?")) {
-        const deleteUrl = `${firebaseBaseUrl}/trips/${tripId}/places/${placeId}.json`;
-        fetch(deleteUrl, { method: "DELETE" })
-          .then(() => {
-            showMessage("✅ Miejsce usunięte!");
-            return fetch(tripUrl).then(res => res.json());
-          })
-          .then(trip => {
-            tripData = trip;
-            loadPlacesOnMap();
-          })
-          .catch(err => {
-            console.error("Błąd usuwania miejsca:", err);
-            showMessage("Nie udało się usunąć miejsca.");
-          });
-      }
-    };
-
-    function loadPlacesOnMap() {
-      map.eachLayer(layer => {
-        if (layer instanceof L.Marker && !layer._isTripMarker) map.removeLayer(layer);
-      });
-
-      if (!tripData || !tripData.places) return;
-
-      Object.keys(tripData.places).forEach(key => {
-        const place = tripData.places[key];
-        if (!place.lat || !place.lng) return;
-
-        const marker = L.marker([place.lat, place.lng]).addTo(map);
-        marker._isTripMarker = true;
-
-        let popupContent = `
-          <strong><a href="place.html?tripId=${tripId}&placeId=${key}">${place.name}</a></strong><br>
-          ${place.description || ''}<br>
-          <img src="${place.image}" width="100"><br>
-          <small>${place.category || 'inny'} • ${formatDate(place.date)}</small><br><br>
-        `;
-
-        if (window.isEditing) {
-          popupContent += `
-            <button onclick="editPlace('${key}', ${place.lat}, ${place.lng})" style="background: #FFC107; border: none; padding: 6px 10px; border-radius: 4px; font-size: 14px;">✏️ Edytuj</button>
-            <button onclick="deletePlace('${key}')" style="background: #F44336; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 14px; margin-left: 5px;">🗑️ Usuń</button>
-          `;
-        }
-
-        marker.bindPopup(popupContent);
-      });
-    }
+    window.closePlaceModal = function() { document.getElementById("placeModal").style.display = "none"; };
+    window.closeMsgModal = function() { document.getElementById("msgModal").style.display = "none"; };
+    window.showMessage = function(text) { document.getElementById("msgText").textContent = text; document.getElementById("msgModal").style.display = "flex"; };
 
     function formatDate(dateStr) {
-      if (!dateStr) return "Brak daty";
-      const date = new Date(dateStr);
-      return date.toLocaleDateString("pl-PL", { day: "numeric", month: "long", year: "numeric" });
+      return dateStr ? new Date(dateStr).toLocaleDateString("pl-PL", { day: "numeric", month: "long", year: "numeric" }) : "Brak daty";
     }
-
-    function generateId(name) {
-      return name.toLowerCase().replace(/\s+/g, '_') + '_' + Date.now();
-    }
-
-    window.showMessage = function(text) {
-      const modal = document.getElementById("msgModal");
-      const msgText = document.getElementById("msgText");
-      msgText.textContent = text;
-      modal.style.display = "flex";
-    };
-
-    window.closeMsgModal = function() {
-      document.getElementById("msgModal").style.display = "none";
-    };
-
-    document.addEventListener("keydown", function(e) {
-      if (e.key === "Escape") {
-        if (document.getElementById("placeModal").style.display === "flex") {
-          closePlaceModal();
-        }
-        if (document.getElementById("msgModal").style.display === "flex") {
-          closeMsgModal();
-        }
-        const addPlaceBtn = document.getElementById("addPlaceBtn");
-        if (addPlaceBtn && addPlaceBtn.textContent === "🛑 Anuluj") {
-          addPlaceBtn.click();
-        }
-      }
-    });
   </script>
 </body>
 </html>
