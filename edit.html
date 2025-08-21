@@ -12,46 +12,47 @@
   <div id="authModal" class="modal" style="display: flex;">
     <div class="modal-content">
       <h2>🔐 Dostęp do edycji</h2>
-      <p>Wprowadź hasło, aby edytować wyprawy.</p>
+      <p>Wprowadź hasło, aby edytować.</p>
       <input type="password" id="editPassword" placeholder="Hasło">
       <button onclick="checkPassword()">Wejdź</button>
     </div>
   </div>
 
-  <!-- Reszta strony – taka sama jak index.html, ale z edycją -->
-  <div class="header-container right-top">
-    <div class="header-box">Edycja wypraw</div>
-    <button id="addTripBtn" class="add-btn">➕ Dodaj wyprawę</button>
-  </div>
-
-  <div id="map"></div>
-
-  <!-- Modal - dodawanie/edycja wyprawy -->
-  <div id="tripModal" class="modal" style="display: none;">
-    <div class="modal-content scrollable-modal">
-      <h2 id="tripModalTitle">Dodaj wyprawę</h2>
-      <form id="tripForm">
-        <input type="hidden" id="tripId">
-        <input type="hidden" id="tripLat">
-        <input type="hidden" id="tripLng">
-
-        <label>Nazwa: <input type="text" id="tripName" required></label><br><br>
-        <label>Opis: <textarea id="tripDescription" rows="2"></textarea></label><br><br>
-        <label>Zdjęcie (URL): <input type="url" id="tripImage" required></label><br><br>
-        <label>Data od: <input type="date" id="tripDateFrom" required></label><br><br>
-        <label>Data do: <input type="date" id="tripDateTo"></label><br><br>
-
-        <button type="submit">Zapisz</button>
-        <button type="button" onclick="closeTripModal()">Anuluj</button>
-      </form>
+  <!-- Treść edycji (ukryta do momentu logowania) -->
+  <div id="editContent" style="display: none;">
+    <div class="header-container right-top">
+      <div class="header-box">Edycja wypraw</div>
+      <button id="addTripBtn" class="add-btn">➕ Dodaj wyprawę</button>
     </div>
-  </div>
 
-  <!-- Modal komunikatu -->
-  <div id="msgModal" class="msg-modal" style="display: none;">
-    <div class="msg-modal-content">
-      <p id="msgText"></p>
-      <button onclick="closeMsgModal()">OK</button>
+    <div id="map"></div>
+
+    <!-- Modal - dodawanie/edycja wyprawy -->
+    <div id="tripModal" class="modal" style="display: none;">
+      <div class="modal-content">
+        <h2 id="tripModalTitle">Dodaj wyprawę</h2>
+        <form id="tripForm">
+          <input type="hidden" id="tripId">
+          <input type="hidden" id="tripLat">
+          <input type="hidden" id="tripLng">
+
+          <label>Nazwa: <input type="text" id="tripName" required></label><br><br>
+          <label>Opis: <textarea id="tripDescription" rows="2"></textarea></label><br><br>
+          <label>Zdjęcie (URL): <input type="url" id="tripImage" required></label><br><br>
+          <label>Data od: <input type="date" id="tripDateFrom" required></label><br><br>
+          <label>Data do: <input type="date" id="tripDateTo"></label><br><br>
+
+          <button type="submit">Zapisz</button>
+          <button type="button" onclick="closeTripModal()">Anuluj</button>
+        </form>
+      </div>
+    </div>
+
+    <div id="msgModal" class="msg-modal" style="display: none;">
+      <div class="msg-modal-content">
+        <p id="msgText"></p>
+        <button onclick="closeMsgModal()">OK</button>
+      </div>
     </div>
   </div>
 
@@ -64,13 +65,14 @@
       const password = document.getElementById("editPassword").value;
       if (password === correctPassword) {
         document.getElementById("authModal").style.display = "none";
-        initApp(); // uruchom aplikację edycji
+        document.getElementById("editContent").style.display = "block";
+        initEditApp();
       } else {
         alert("❌ Błędne hasło!");
       }
     }
 
-    function initApp() {
+    function initEditApp() {
       const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
       const tripsUrl = `${firebaseBaseUrl}/trips.json`;
 
@@ -89,7 +91,7 @@
               const t = trips[key];
               const m = L.marker([t.lat, t.lng]).addTo(map);
               m.bindPopup(`
-                <strong>${t.name}</strong><br>
+                <strong><a href="trip.html?id=${key}">${t.name}</a></strong><br>
                 ${t.description || ''}<br>
                 <img src="${t.image}" width="100"><br>
                 <small>${formatDate(t.dateFrom)} – ${formatDate(t.dateTo)}</small><br><br>
