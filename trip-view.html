@@ -1,1 +1,93 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Wyprawa</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+</head>
+<body>
+  <!-- Nagłówek -->
+  <div class="header-container right-top">
+    <div class="header-box">Wyprawa</div>
+  </div>
 
+  <!-- Link "Wróć" -->
+  <div class="back-link">
+    <a href="index.html">← Wróć do mapy</a>
+  </div>
+
+  <!-- Treść wyprawy -->
+  <main class="place-page">
+    <article id="trip-content">
+      <p>Ładowanie wyprawy...</p>
+    </article>
+    <div id="trip-map"></div>
+  </main>
+
+  <!-- Modal komunikatu -->
+  <div id="msgModal" class="msg-modal" style="display: none;">
+    <div class="msg-modal-content">
+      <p id="msgText"></p>
+      <button onclick="closeMsgModal()">OK</button>
+    </div>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
+    const urlParams = new URLSearchParams(window.location.search);
+    const tripId = urlParams.get("id");
+    const tripUrl = `${firebaseBaseUrl}/trips/${tripId}.json`;
+
+    document.getElementById("trip-content").innerHTML = "<p>Ładowanie wyprawy...</p>";
+
+    const map = L.map("trip-map");
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+
+    fetch(tripUrl)
+      .then(res => res.json())
+      .then(trip => {
+        document.getElementById("trip-content").innerHTML = `
+          <h1>${trip.name}</h1>
+          <p><strong>Okres:</strong> ${formatDate(trip.dateFrom)} – ${formatDate(trip.dateTo)}</p>
+          <p>${trip.description || ''}</p>
+        `;
+        map.setView([trip.lat, trip.lng], 10);
+
+        if (trip.places) {
+          Object.keys(trip.places).forEach(key => {
+            const p = trip.places[key];
+            const m = L.marker([p.lat, p.lng]).addTo(map);
+            m.bindPopup(`
+              <strong><a href="place.html?tripId=${tripId}&placeId=${key}">${p.name}</a></strong><br>
+              ${p.description || ''}<br>
+              <img src="${p.image}" width="100"><br>
+              <small>${p.category} • ${formatDate(p.date)}</small><br><br>
+              <em>Kliknij, aby zobaczyć szczegóły</em>
+            `);
+          });
+        }
+      })
+      .catch(err => {
+        document.getElementById("trip-content").innerHTML = "<p>❌ Błąd ładowania wyprawy.</p>";
+        console.error("Błąd:", err);
+      });
+
+    function formatDate(dateStr) {
+      return dateStr ? new Date(dateStr).toLocaleDateString("pl-PL", { day: "numeric", month: "long", year: "numeric" }) : "Brak daty";
+    }
+
+    window.showMessage = function(text) {
+      document.getElementById("msgText").textContent = text;
+      document.getElementById("msgModal").style.display = "flex";
+    };
+
+    window.closeMsgModal = function() {
+      document.getElementById("msgModal").style.display = "none";
+    };
+  </script>
+</body>
+</html>
