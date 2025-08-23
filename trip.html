@@ -13,9 +13,26 @@
     <button id="addPlaceBtn" class="add-btn">➕ Dodaj miejsce</button>
   </div>
 
-  <div class="back-link">
-    <a href="index.html">← Wróć do mapy</a>
-  </div>
+<div class="back-link">
+  <a id="backLink" href="#">← Wróć do mapy</a>
+</div>
+
+<script>
+  // Automatycznie ustawia, dokąd wrócić
+  window.addEventListener("load", function () {
+    const referrer = document.referrer;
+    const backLink = document.getElementById("backLink");
+
+    // Jeśli przyszedł z edit.html → wróć do edit.html
+    if (referrer.includes("edit.html")) {
+      backLink.href = "edit.html";
+    } 
+    // W przeciwnym razie → wróć do index.html
+    else {
+      backLink.href = "index.html";
+    }
+  });
+</script>
 
   <main class="place-page">
     <article id="trip-content">
