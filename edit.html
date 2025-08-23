@@ -96,8 +96,8 @@
               const t = trips[key];
               if (!t.lat || !t.lng) return;
               const m = L.marker([t.lat, t.lng]).addTo(map);
-             m.bindPopup(`
-  <strong><a href="trip.html?id=${key}" style="text-decoration: none; color: inherit;">${t.name}</a></strong><br>
+          m.bindPopup(`
+  <strong><a href="trip.html?id=${key}" target="_blank">${t.name}</a></strong><br>
   ${t.description || ''}<br>
   <img src="${t.image}" width="100"><br>
   <small>${formatDate(t.dateFrom)} – ${formatDate(t.dateTo)}</small><br><br>
