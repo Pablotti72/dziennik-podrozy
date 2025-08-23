@@ -13,26 +13,9 @@
     <button id="addPlaceBtn" class="add-btn">➕ Dodaj miejsce</button>
   </div>
 
-<div class="back-link">
-  <a id="backLink" href="#">← Wróć do mapy</a>
-</div>
-
-<script>
-  // Automatycznie ustawia, dokąd wrócić
-  window.addEventListener("load", function () {
-    const referrer = document.referrer;
-    const backLink = document.getElementById("backLink");
-
-    // Jeśli przyszedł z edit.html → wróć do edit.html
-    if (referrer.includes("edit.html")) {
-      backLink.href = "edit.html";
-    } 
-    // W przeciwnym razie → wróć do index.html
-    else {
-      backLink.href = "index.html";
-    }
-  });
-</script>
+  <div class="back-link">
+    <a id="backLink" href="#">← Wróć do mapy</a>
+  </div>
 
   <main class="place-page">
     <article id="trip-content">
@@ -52,24 +35,19 @@
         <label>Nazwa: <input type="text" id="placeName" required></label><br><br>
         <label>Opis: <textarea id="placeDescription" rows="2"></textarea></label><br><br>
         <label>Zdjęcie (URL): <input type="url" id="placeImage" required></label><br><br>
-       <label>Kategoria:
-  <select id="placeCategory">
-    <!-- Oryginalne kategorie -->
-    <option value="miasto">🏙️ Miasto</option>
-    <option value="park">🌳 Park</option>
-    <option value="zabytek">🏛️ Zabytek</option>
-    <option value="muzeum">🖼️ Muzeum</option>
-    
-    <!-- Nowe kategorie -->
-    <option value="hotel">🏨 Hotel</option>
-    <option value="szczyt">⛰️ Szczyt</option>
-    <option value="restauracja">🍽️ Restauracja</option>
-    <option value="miejsce_widokowe">🌄 Miejsce widokowe</option>
-    <option value="atrakcja_turystyczna">🎯 Atrakcja turystyczna</option>
-    
-    <!-- Opcja ogólna -->
-    <option value="inny">🔧 Inny</option>
-  </select>
+        <label>Kategoria:
+          <select id="placeCategory">
+            <option value="miasto">🏙️ Miasto</option>
+            <option value="park">🌳 Park</option>
+            <option value="zabytek">🏛️ Zabytek</option>
+            <option value="muzeum">🖼️ Muzeum</option>
+            <option value="hotel">🏨 Hotel</option>
+            <option value="szczyt">⛰️ Szczyt</option>
+            <option value="restauracja">🍽️ Restauracja</option>
+            <option value="miejsce_widokowe">🌄 Miejsce widokowe</option>
+            <option value="atrakcja_turystyczna">🎯 Atrakcja turystyczna</option>
+            <option value="inny">🔧 Inny</option>
+          </select>
         </label><br><br>
         <label>Data wizyty: <input type="date" id="placeDate" required></label><br><br>
 
@@ -271,10 +249,19 @@
       return dateStr ? new Date(dateStr).toLocaleDateString("pl-PL", { day: "numeric", month: "long", year: "numeric" }) : "Brak daty";
     }
 
-    document.addEventListener("keydown", e => {
-      if (e.key === "Escape") {
-        closePlaceModal();
-        closeMsgModal();
+    // Inteligentny przycisk „Wróć”
+    window.addEventListener("load", function () {
+      const referrer = document.referrer;
+      const backLink = document.getElementById("backLink");
+
+      if (referrer.includes("edit.html")) {
+        backLink.href = "edit.html";
+        backLink.onclick = function(e) {
+          e.preventDefault();
+          window.history.back();
+        };
+      } else {
+        backLink.href = "index.html";
       }
     });
   </script>
