@@ -264,6 +264,18 @@
         backLink.href = "index.html";
       }
     });
+
+    // ✅ Obsługa klawisza ESC
+    document.addEventListener("keydown", function(e) {
+      if (e.key === "Escape") {
+        document.getElementById("placeModal").style.display = "none";
+        document.getElementById("msgModal").style.display = "none";
+        const addBtn = document.getElementById("addPlaceBtn");
+        if (addBtn && addBtn.textContent === "🛑 Anuluj") {
+          addBtn.click();
+        }
+      }
+    });
   </script>
 </body>
 </html>
