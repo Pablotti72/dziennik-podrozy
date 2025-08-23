@@ -96,14 +96,14 @@
               const t = trips[key];
               if (!t.lat || !t.lng) return;
               const m = L.marker([t.lat, t.lng]).addTo(map);
-              m.bindPopup(`
-                <strong>${t.name}</strong><br>
-                ${t.description || ''}<br>
-                <img src="${t.image}" width="100"><br>
-                <small>${formatDate(t.dateFrom)} – ${formatDate(t.dateTo)}</small><br><br>
-                <button onclick="editTrip('${key}', ${t.lat}, ${t.lng})">✏️ Edytuj</button>
-                <button onclick="deleteTrip('${key}')">🗑️ Usuń</button>
-              `);
+             m.bindPopup(`
+  <strong><a href="trip.html?id=${key}" style="text-decoration: none; color: inherit;">${t.name}</a></strong><br>
+  ${t.description || ''}<br>
+  <img src="${t.image}" width="100"><br>
+  <small>${formatDate(t.dateFrom)} – ${formatDate(t.dateTo)}</small><br><br>
+  <button onclick="editTrip('${key}', ${t.lat}, ${t.lng})">✏️ Edytuj</button>
+  <button onclick="deleteTrip('${key}')">🗑️ Usuń</button>
+`);
             });
           })
           .catch(err => {
