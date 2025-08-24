@@ -187,7 +187,22 @@
 
     document.getElementById("placeForm").addEventListener("submit", function(e) {
       e.preventDefault();
-      const id = document.getElementById("placeId").value || Date.now().toString();
+
+      // ✅ Generowanie ID z nazwy
+      function generateId(name) {
+        return name
+          .toLowerCase()
+          .trim()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9]/g, "_")
+          .replace(/_+/g, "_")
+          .replace(/^_+|_+$/g, "");
+      }
+
+      const placeName = document.getElementById("placeName").value.trim();
+      const manualId = document.getElementById("placeId").value;
+      const id = manualId || (placeName ? generateId(placeName) : Date.now().toString());
 
       const photos = [];
       document.querySelectorAll(".photo-url").forEach((input, i) => {
@@ -265,7 +280,7 @@
       }
     });
 
-    // ✅ Obsługa klawisza ESC
+    // Obsługa ESC
     document.addEventListener("keydown", function(e) {
       if (e.key === "Escape") {
         document.getElementById("placeModal").style.display = "none";
