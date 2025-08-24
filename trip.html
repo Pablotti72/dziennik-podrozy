@@ -13,9 +13,32 @@
     <button id="addPlaceBtn" class="add-btn">➕ Dodaj miejsce</button>
   </div>
 
-  <div class="back-link">
-    <a id="backLink" href="#">← Wróć do mapy</a>
-  </div>
+<div class="back-link">
+  <a id="backLink" href="#">← Wróć do mapy</a>
+</div>
+
+<script>
+  // Zapisz kontekst przy wejściu
+  if (document.referrer.includes("edit.html")) {
+    sessionStorage.setItem("returnToEdit", "true");
+  }
+
+  // Obsługa przycisku „Wróć”
+  window.addEventListener("load", function () {
+    const backLink = document.getElementById("backLink");
+    const returnToEdit = sessionStorage.getItem("returnToEdit");
+
+    if (returnToEdit === "true") {
+      backLink.href = "edit.html";
+      backLink.onclick = function(e) {
+        e.preventDefault();
+        window.history.back(); // lub: window.location.href = "edit.html";
+      };
+    } else {
+      backLink.href = "index.html";
+    }
+  });
+</script>
 
   <main class="place-page">
     <article id="trip-content">
