@@ -185,16 +185,30 @@
         const manualId = document.getElementById("tripId").value;
         const id = manualId || (tripName ? generateId(tripName) : Date.now().toString());
 
-        const tripData = {
-          name: document.getElementById("tripName").value,
-          description: document.getElementById("tripDescription").value,
-          image: document.getElementById("tripImage").value,
-          dateFrom: document.getElementById("tripDateFrom").value,
-          dateTo: document.getElementById("tripDateTo").value,
-          lat: parseFloat(document.getElementById("tripLat").value),
-          lng: parseFloat(document.getElementById("tripLng").value),
-          places: {}
-        };
+// Pobierz istniejące miejsca (jeśli to edycja)
+let existingPlaces = {};
+
+if (document.getElementById("tripId").value) {
+  // Jeśli edytujemy istniejącą wyprawę, załaduj jej miejsca
+  try {
+    const response = await fetch(`${firebaseBaseUrl}/trips/${id}/places.json`);
+    const places = await response.json();
+    existingPlaces = places || {};
+  } catch (err) {
+    console.error("Błąd ładowania miejsc:", err);
+  }
+}
+
+const tripData = {
+  name: document.getElementById("tripName").value,
+  description: document.getElementById("tripDescription").value,
+  image: document.getElementById("tripImage").value,
+  dateFrom: document.getElementById("tripDateFrom").value,
+  dateTo: document.getElementById("tripDateTo").value,
+  lat: parseFloat(document.getElementById("tripLat").value),
+  lng: parseFloat(document.getElementById("tripLng").value),
+  places: existingPlaces  // ✅ Zachowane miejsca!
+};
 
         const method = "PUT";
         const url = `${firebaseBaseUrl}/trips/${id}.json`;
