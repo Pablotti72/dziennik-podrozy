@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Wyprawa</title>
   <link rel="stylesheet" href="style.css" />
-  <!-- ✅ Usunięte spacje w URL -->
+  <!-- ✅ Usunięte spacje -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
@@ -14,7 +14,6 @@
     <button id="addPlaceBtn" class="add-btn">➕ Dodaj miejsce</button>
   </div>
 
-  <!-- ✅ Inteligentny przycisk „Wróć” -->
   <div class="back-link">
     <a id="backLink" href="#">← Wróć do mapy</a>
   </div>
@@ -23,11 +22,9 @@
     <article id="trip-content">
       <p>Ładowanie wyprawy...</p>
     </article>
-    <!-- ✅ Mapa z id i stylem -->
     <div id="trip-map"></div>
   </main>
 
-  <!-- Modal dodawania/edycji miejsca -->
   <div id="placeModal" class="modal" style="display: none;">
     <div class="modal-content scrollable-modal">
       <h2>Dodaj miejsce</h2>
@@ -70,7 +67,6 @@
     </div>
   </div>
 
-  <!-- Modal komunikatu -->
   <div id="msgModal" class="msg-modal" style="display: none;">
     <div class="msg-modal-content">
       <p id="msgText"></p>
@@ -78,16 +74,15 @@
     </div>
   </div>
 
-  <!-- ✅ Usunięte spacje w URL -->
+  <!-- ✅ Usunięte spacje -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    // ✅ Usunięte spacje w URL
+    // ✅ Usunięte spacje
     const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
     const urlParams = new URLSearchParams(window.location.search);
     const tripId = urlParams.get("id");
     const tripUrl = `${firebaseBaseUrl}/trips/${tripId}.json`;
 
-    // ✅ Inicjalizacja mapy
     const map = L.map("trip-map").setView([54.5, -3.0], 8);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
@@ -104,12 +99,10 @@
           <p><strong>Okres:</strong> ${formatDate(trip.dateFrom)} – ${formatDate(trip.dateTo)}</p>
           <p>${trip.description || ''}</p>
         `;
-        // ✅ Ustawienie widoku mapy na wyprawę
         if (trip.lat && trip.lng) {
           map.setView([trip.lat, trip.lng], 10);
         }
 
-        // ✅ Dodanie miejsc na mapę
         if (trip.places) {
           Object.keys(trip.places).forEach(key => {
             const p = trip.places[key];
@@ -205,7 +198,6 @@
     document.getElementById("placeForm").addEventListener("submit", async function(e) {
       e.preventDefault();
 
-      // ✅ Generowanie ID z nazwy
       function generateId(name) {
         return name
           .toLowerCase()
@@ -242,17 +234,27 @@
         photos: photos
       };
 
-      // ✅ 🔥 KLUCZOWE: Załaduj WSZYSTKIE wyprawy, by nie kasować innych
+      // ✅ Załaduj wszystkie wyprawy
       let allTrips = {};
       try {
         const response = await fetch(`${firebaseBaseUrl}/trips.json`);
         allTrips = (await response.json()) || {};
       } catch (err) {
         console.warn("Błąd ładowania wszystkich wypraw:", err);
+        allTrips = {};
       }
 
-      // ✅ Zapisz do właściwej wyprawy
-      if (!allTrips[tripId]) allTrips[tripId] = { places: {} };
+      // ✅ Zabezpieczenie struktury
+      if (!allTrips[tripId]) {
+        allTrips[tripId] = {
+          name: tripData.name,
+          description: tripData.description,
+          image: tripData.image,
+          lat: tripData.lat,
+          lng: tripData.lng,
+          places: {}
+        };
+      }
       allTrips[tripId].places[id] = data;
 
       // ✅ Zapisz całość
@@ -288,7 +290,6 @@
 
     window.deletePlace = function(placeId) {
       if (confirm("Usunąć?")) {
-        // ✅ Usuwanie z zachowaniem innych wypraw
         fetch(`${firebaseBaseUrl}/trips/${tripId}/places/${placeId}.json`, { method: "DELETE" })
           .then(() => {
             showMessage("✅ Usunięto!");
