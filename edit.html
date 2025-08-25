@@ -63,7 +63,7 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
     // 🔐 Ustaw swoje hasło
-    const correctPassword = "sekret2025"; // ← Możesz zmienić na swoje
+    const correctPassword = "sekret2025";
 
     function checkPassword() {
       const password = document.getElementById("editPassword").value;
@@ -77,7 +77,6 @@
       }
     }
 
-    // Sprawdź sesję przy ponownym otwarciu
     if (sessionStorage.getItem("isEditing") === "true") {
       document.getElementById("authModal").style.display = "none";
       document.getElementById("editContent").style.display = "block";
@@ -166,6 +165,10 @@
 
             document.getElementById("tripModalTitle").textContent = "Edytuj wyprawę";
             document.getElementById("tripModal").style.display = "flex";
+          })
+          .catch(err => {
+            console.error("Błąd ładowania wyprawy:", err);
+            showMessage("Nie udało się załadować wyprawy.");
           });
       };
 
@@ -183,7 +186,7 @@
             allTrips = (await response.json()) || {};
           } catch (err) {
             console.warn("Nie udało się załadować istniejących wypraw:", err);
-            allTrips = {}; // bezpieczne domyślne
+            allTrips = {};
           }
         }
 
