@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Edytuj wyprawy</title>
   <link rel="stylesheet" href="style.css" />
-  <!-- ✅ Usunięte spacje -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
@@ -59,7 +58,6 @@
   </div>
 
   <!-- Leaflet JS -->
-  <!-- ✅ Usunięte spacje -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
     // 🔐 Ustaw swoje hasło
@@ -77,6 +75,7 @@
       }
     }
 
+    // Sprawdź sesję przy ponownym otwarciu
     if (sessionStorage.getItem("isEditing") === "true") {
       document.getElementById("authModal").style.display = "none";
       document.getElementById("editContent").style.display = "block";
@@ -84,7 +83,6 @@
     }
 
     function initEditApp() {
-      // ✅ Usunięte spacje
       const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
       const tripsUrl = `${firebaseBaseUrl}/trips.json`;
 
@@ -190,14 +188,16 @@
           }
         }
 
-        // ✅ Załaduj miejsca tylko przy edycji
+        // ✅ Załaduj CAŁĄ wyprawę, by pobrać places
         let existingPlaces = {};
         if (isEdit) {
           try {
-            const response = await fetch(`${firebaseBaseUrl}/trips/${id}/places.json`);
-            existingPlaces = (await response.json()) || {};
+            const response = await fetch(`${firebaseBaseUrl}/trips/${id}.json`);
+            const trip = await response.json();
+            existingPlaces = trip?.places || {};
           } catch (err) {
-            console.warn("Nie udało się załadować miejsc:", err);
+            console.warn("Nie udało się załadować wyprawy i miejsc:", err);
+            existingPlaces = {};
           }
         }
 
