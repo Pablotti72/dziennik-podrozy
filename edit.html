@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Edytuj wyprawy</title>
   <link rel="stylesheet" href="style.css" />
-  <!-- ✅ Usunięte spacje w URL -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
@@ -84,11 +83,10 @@
     }
 
     function initEditApp() {
-      // ✅ Usunięte spacje w URL
+      // 🔥 Usunięte zbędne spacje w URL
       const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
       const tripsUrl = `${firebaseBaseUrl}/trips.json`;
 
-      // ✅ Inicjalizacja mapy
       const map = L.map("map").setView([54.5, -3.0], 6);
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
@@ -169,8 +167,133 @@
           });
       };
 
-      // ✅ POPRAWIONY ZAPIS – NIE KASUJE INNYCH WYPRÓW
+      // ✅ POPRAWIONY fragment: zapis wyprawy bez kasowania innych
       document.getElementById("tripForm").addEventListener("submit", async function(e) {
         e.preventDefault();
 
-        const id = document.getElementById("tripId").
+        const id = document.getElementById("tripId").value;
+        const isEdit = id !== "";
+
+        // ✅ Załaduj WSZYSTKIE wyprawy, jeśli dodajesz nową
+        let allTrips = {};
+        if (!isEdit) {
+          try {
+            const response = await fetch(tripsUrl);
+            allTrips = (await response.json()) || {};
+          } catch (err) {
+            console.warn("Nie udało się załadować istniejących wypraw:", err);
+          }
+        }
+
+        // ✅ Załaduj miejsca tylko przy edycji
+        let existingPlaces = {};
+        if (isEdit) {
+          try {
+            const response = await fetch(`${firebaseBaseUrl}/trips/${id}/places.json`);
+            existingPlaces = (await response.json()) || {};
+          } catch (err) {
+            console.warn("Nie udało się załadować miejsc:", err);
+          }
+        }
+
+        // ✅ Generowanie ID z nazwy
+        function generateId(name) {
+          return name
+            .toLowerCase()
+            .trim()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[^a-z0-9]/g, "_")
+            .replace(/_+/g, "_")
+            .replace(/^_+|_+$/g, "");
+        }
+
+        const tripName = document.getElementById("tripName").value.trim();
+        const finalId = isEdit ? id : (tripName ? generateId(tripName) : Date.now().toString());
+
+        // ✅ Dane wyprawy
+        const tripData = {
+          name: document.getElementById("tripName").value,
+          description: document.getElementById("tripDescription").value,
+          image: document.getElementById("tripImage").value,
+          dateFrom: document.getElementById("tripDateFrom").value,
+          dateTo: document.getElementById("tripDateTo").value,
+          lat: parseFloat(document.getElementById("tripLat").value),
+          lng: parseFloat(document.getElementById("tripLng").value),
+          places: existingPlaces
+        };
+
+        // ✅ Dodaj do listy
+        allTrips[finalId] = tripData;
+
+        // ✅ Zapisz całość
+        fetch(tripsUrl, {
+          method: "PUT",
+          body: JSON.stringify(allTrips),
+          headers: { "Content-Type": "application/json" }
+        })
+        .then(() => {
+          closeTripModal();
+          showMessage("✅ Wyprawa zapisana!");
+          loadTrips();
+        })
+        .catch(err => {
+          console.error("Błąd zapisu:", err);
+          showMessage("Nie udało się zapisać wyprawy.");
+        });
+      });
+
+      window.closeTripModal = function() {
+        document.getElementById("tripModal").style.display = "none";
+      };
+
+      window.deleteTrip = function(tripId) {
+        if (confirm("Czy na pewno chcesz usunąć tę wyprawę?")) {
+          fetch(`${firebaseBaseUrl}/trips/${tripId}.json`, { method: "DELETE" })
+            .then(() => {
+              showMessage("✅ Wyprawa usunięta!");
+              loadTrips();
+            })
+            .catch(err => {
+              console.error("Błąd usuwania:", err);
+              showMessage("Nie udało się usunąć wyprawy.");
+            });
+        }
+      };
+
+      window.showMessage = function(text) {
+        const modal = document.getElementById("msgModal");
+        const msgText = document.getElementById("msgText");
+        msgText.textContent = text;
+        modal.style.display = "flex";
+      };
+
+      window.closeMsgModal = function() {
+        document.getElementById("msgModal").style.display = "none";
+      };
+
+      function formatDate(dateStr) {
+        if (!dateStr) return "";
+        const date = new Date(dateStr);
+        return date.toLocaleDateString("pl-PL", { day: "numeric", month: "long", year: "numeric" });
+      }
+
+      // Obsługa ESC
+      document.addEventListener("keydown", function(e) {
+        if (e.key === "Escape") {
+          if (document.getElementById("tripModal").style.display === "flex") {
+            closeTripModal();
+          }
+          if (document.getElementById("msgModal").style.display === "flex") {
+            closeMsgModal();
+          }
+          const addTripBtn = document.getElementById("addTripBtn");
+          if (addTripBtn && addTripBtn.textContent === "🛑 Anuluj") {
+            addTripBtn.click();
+          }
+        }
+      });
+    }
+  </script>
+</body>
+</html>
