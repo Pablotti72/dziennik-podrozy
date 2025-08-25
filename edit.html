@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Edytuj wyprawy</title>
   <link rel="stylesheet" href="style.css" />
+  <!-- ✅ Usunięte spacje -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
@@ -58,6 +59,7 @@
   </div>
 
   <!-- Leaflet JS -->
+  <!-- ✅ Usunięte spacje -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
     // 🔐 Ustaw swoje hasło
@@ -83,7 +85,7 @@
     }
 
     function initEditApp() {
-      // 🔥 Usunięte zbędne spacje w URL
+      // ✅ Usunięte spacje
       const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
       const tripsUrl = `${firebaseBaseUrl}/trips.json`;
 
@@ -167,14 +169,13 @@
           });
       };
 
-      // ✅ POPRAWIONY fragment: zapis wyprawy bez kasowania innych
       document.getElementById("tripForm").addEventListener("submit", async function(e) {
         e.preventDefault();
 
         const id = document.getElementById("tripId").value;
         const isEdit = id !== "";
 
-        // ✅ Załaduj WSZYSTKIE wyprawy, jeśli dodajesz nową
+        // ✅ Załaduj WSZYSTKIE wyprawy
         let allTrips = {};
         if (!isEdit) {
           try {
@@ -182,6 +183,7 @@
             allTrips = (await response.json()) || {};
           } catch (err) {
             console.warn("Nie udało się załadować istniejących wypraw:", err);
+            allTrips = {}; // bezpieczne domyślne
           }
         }
 
@@ -211,7 +213,6 @@
         const tripName = document.getElementById("tripName").value.trim();
         const finalId = isEdit ? id : (tripName ? generateId(tripName) : Date.now().toString());
 
-        // ✅ Dane wyprawy
         const tripData = {
           name: document.getElementById("tripName").value,
           description: document.getElementById("tripDescription").value,
