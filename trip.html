@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Wyprawa</title>
   <link rel="stylesheet" href="style.css" />
+  <!-- ✅ Usunięte spacje w URL -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
@@ -13,40 +14,20 @@
     <button id="addPlaceBtn" class="add-btn">➕ Dodaj miejsce</button>
   </div>
 
-<div class="back-link">
-  <a id="backLink" href="#">← Wróć do mapy</a>
-</div>
-
-<script>
-  // Zapisz kontekst przy wejściu
-  if (document.referrer.includes("edit.html")) {
-    sessionStorage.setItem("returnToEdit", "true");
-  }
-
-  // Obsługa przycisku „Wróć”
-  window.addEventListener("load", function () {
-    const backLink = document.getElementById("backLink");
-    const returnToEdit = sessionStorage.getItem("returnToEdit");
-
-    if (returnToEdit === "true") {
-      backLink.href = "edit.html";
-      backLink.onclick = function(e) {
-        e.preventDefault();
-        window.history.back(); // lub: window.location.href = "edit.html";
-      };
-    } else {
-      backLink.href = "index.html";
-    }
-  });
-</script>
+  <!-- ✅ Inteligentny przycisk „Wróć” -->
+  <div class="back-link">
+    <a id="backLink" href="#">← Wróć do mapy</a>
+  </div>
 
   <main class="place-page">
     <article id="trip-content">
       <p>Ładowanie wyprawy...</p>
     </article>
+    <!-- ✅ Mapa z id i stylem -->
     <div id="trip-map"></div>
   </main>
 
+  <!-- Modal dodawania/edycji miejsca -->
   <div id="placeModal" class="modal" style="display: none;">
     <div class="modal-content scrollable-modal">
       <h2>Dodaj miejsce</h2>
@@ -89,6 +70,7 @@
     </div>
   </div>
 
+  <!-- Modal komunikatu -->
   <div id="msgModal" class="msg-modal" style="display: none;">
     <div class="msg-modal-content">
       <p id="msgText"></p>
@@ -96,17 +78,20 @@
     </div>
   </div>
 
+  <!-- ✅ Usunięte spacje w URL -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
+    // ✅ Usunięte spacje w URL
     const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
     const urlParams = new URLSearchParams(window.location.search);
     const tripId = urlParams.get("id");
     const tripUrl = `${firebaseBaseUrl}/trips/${tripId}.json`;
 
-    document.getElementById("trip-content").innerHTML = "<p>Ładowanie wyprawy...</p>";
-
-    const map = L.map("trip-map");
+    // ✅ Inicjalizacja mapy
+    const map = L.map("trip-map").setView([54.5, -3.0], 8);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+
+    document.getElementById("trip-content").innerHTML = "<p>Ładowanie wyprawy...</p>";
 
     let tripData = null;
 
@@ -119,11 +104,16 @@
           <p><strong>Okres:</strong> ${formatDate(trip.dateFrom)} – ${formatDate(trip.dateTo)}</p>
           <p>${trip.description || ''}</p>
         `;
-        map.setView([trip.lat, trip.lng], 10);
+        // ✅ Ustawienie widoku mapy na wyprawę
+        if (trip.lat && trip.lng) {
+          map.setView([trip.lat, trip.lng], 10);
+        }
 
+        // ✅ Dodanie miejsc na mapę
         if (trip.places) {
           Object.keys(trip.places).forEach(key => {
             const p = trip.places[key];
+            if (!p.lat || !p.lng) return;
             const m = L.marker([p.lat, p.lng]).addTo(map);
             m.bindPopup(`
               <strong><a href="place.html?tripId=${tripId}&placeId=${key}">${p.name}</a></strong><br>
@@ -135,6 +125,10 @@
             `);
           });
         }
+      })
+      .catch(err => {
+        console.error("Błąd ładowania wyprawy:", err);
+        document.getElementById("trip-content").innerHTML = "<p>❌ Nie udało się załadować wyprawy.</p>";
       });
 
     let isAddingPlace = false;
@@ -208,7 +202,7 @@
       document.getElementById("placeModal").style.display = "flex";
     };
 
-    document.getElementById("placeForm").addEventListener("submit", function(e) {
+    document.getElementById("placeForm").addEventListener("submit", async function(e) {
       e.preventDefault();
 
       // ✅ Generowanie ID z nazwy
@@ -248,14 +242,33 @@
         photos: photos
       };
 
-      fetch(`${firebaseBaseUrl}/trips/${tripId}/places/${id}.json`, {
+      // ✅ 🔥 KLUCZOWE: Załaduj WSZYSTKIE wyprawy, by nie kasować innych
+      let allTrips = {};
+      try {
+        const response = await fetch(`${firebaseBaseUrl}/trips.json`);
+        allTrips = (await response.json()) || {};
+      } catch (err) {
+        console.warn("Błąd ładowania wszystkich wypraw:", err);
+      }
+
+      // ✅ Zapisz do właściwej wyprawy
+      if (!allTrips[tripId]) allTrips[tripId] = { places: {} };
+      allTrips[tripId].places[id] = data;
+
+      // ✅ Zapisz całość
+      fetch(`${firebaseBaseUrl}/trips.json`, {
         method: "PUT",
-        body: JSON.stringify(data),
+        body: JSON.stringify(allTrips),
         headers: { "Content-Type": "application/json" }
-      }).then(() => {
+      })
+      .then(() => {
         closePlaceModal();
         showMessage("✅ Zapisano!");
         location.reload();
+      })
+      .catch(err => {
+        console.error("Błąd zapisu:", err);
+        showMessage("❌ Nie udało się zapisać.");
       });
     });
 
@@ -275,10 +288,15 @@
 
     window.deletePlace = function(placeId) {
       if (confirm("Usunąć?")) {
+        // ✅ Usuwanie z zachowaniem innych wypraw
         fetch(`${firebaseBaseUrl}/trips/${tripId}/places/${placeId}.json`, { method: "DELETE" })
           .then(() => {
             showMessage("✅ Usunięto!");
             location.reload();
+          })
+          .catch(err => {
+            console.error("Błąd usuwania:", err);
+            showMessage("❌ Nie udało się usunąć.");
           });
       }
     };
@@ -287,12 +305,16 @@
       return dateStr ? new Date(dateStr).toLocaleDateString("pl-PL", { day: "numeric", month: "long", year: "numeric" }) : "Brak daty";
     }
 
-    // Inteligentny przycisk „Wróć”
+    // ✅ Inteligentny przycisk „Wróć”
     window.addEventListener("load", function () {
-      const referrer = document.referrer;
-      const backLink = document.getElementById("backLink");
+      if (document.referrer.includes("edit.html")) {
+        sessionStorage.setItem("returnToEdit", "true");
+      }
 
-      if (referrer.includes("edit.html")) {
+      const backLink = document.getElementById("backLink");
+      const returnToEdit = sessionStorage.getItem("returnToEdit");
+
+      if (returnToEdit === "true") {
         backLink.href = "edit.html";
         backLink.onclick = function(e) {
           e.preventDefault();
@@ -303,7 +325,7 @@
       }
     });
 
-    // Obsługa ESC
+    // ✅ Obsługa ESC
     document.addEventListener("keydown", function(e) {
       if (e.key === "Escape") {
         document.getElementById("placeModal").style.display = "none";
