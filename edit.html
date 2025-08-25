@@ -170,44 +170,7 @@
         const id = document.getElementById("tripId").value;
         const isEdit = id !== "";
 
-        // ✅ POPRAWKA: Zawsze ładuj WSZYSTKIE wyprawy przed zapisem
-        let allTrips = {};
-        try {
-          const response = await fetch(tripsUrl);
-          allTrips = (await response.json()) || {};
-        } catch (err) {
-          console.warn("Nie udało się załadować istniejących wypraw:", err);
-          allTrips = {};
-        }
-
-        // ✅ Załaduj CAŁĄ wyprawę, by pobrać places
-        let existingPlaces = {};
-        if (isEdit) {
-          try {
-            const response = await fetch(`${firebaseBaseUrl}/trips/${id}.json`);
-            const trip = await response.json();
-            existingPlaces = trip?.places || {};
-          } catch (err) {
-            console.warn("Nie udało się załadować wyprawy i miejsc:", err);
-            existingPlaces = {};
-          }
-        }
-
-        // ✅ Generowanie ID z nazwy
-        function generateId(name) {
-          return name
-            .toLowerCase()
-            .trim()
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "")
-            .replace(/[^a-z0-9]/g, "_")
-            .replace(/_+/g, "_")
-            .replace(/^_+|_+$/g, "");
-        }
-
-        const tripName = document.getElementById("tripName").value.trim();
-        const finalId = isEdit ? id : (tripName ? generateId(tripName) : Date.now().toString());
-
+        // Pobierz dane z formularza
         const tripData = {
           name: document.getElementById("tripName").value,
           description: document.getElementById("tripDescription").value,
@@ -215,17 +178,28 @@
           dateFrom: document.getElementById("tripDateFrom").value,
           dateTo: document.getElementById("tripDateTo").value,
           lat: parseFloat(document.getElementById("tripLat").value),
-          lng: parseFloat(document.getElementById("tripLng").value),
-          places: existingPlaces
+          lng: parseFloat(document.getElementById("tripLng").value)
         };
 
-        // ✅ Dodaj do listy
-        allTrips[finalId] = tripData;
+        // Ustal docelowy URL i metodę
+        let fetchUrl;
+        let fetchMethod;
 
-        // ✅ Zapisz całość
-        fetch(tripsUrl, {
-          method: "PUT",
-          body: JSON.stringify(allTrips),
+        // Logika zapisu
+        if (isEdit) {
+          // Edycja istniejącej wyprawy
+          fetchUrl = `${firebaseBaseUrl}/trips/${id}.json`;
+          fetchMethod = "PATCH";
+        } else {
+          // Dodanie nowej wyprawy
+          fetchUrl = `${firebaseBaseUrl}/trips.json`;
+          fetchMethod = "POST";
+        }
+
+        // Wysyłanie danych
+        fetch(fetchUrl, {
+          method: fetchMethod,
+          body: JSON.stringify(tripData),
           headers: { "Content-Type": "application/json" }
         })
         .then(() => {
