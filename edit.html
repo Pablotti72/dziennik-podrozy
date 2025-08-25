@@ -211,17 +211,53 @@
         const tripName = document.getElementById("tripName").value.trim();
         const finalId = isEdit ? id : (tripName ? generateId(tripName) : Date.now().toString());
 
-        // ✅ Dane wyprawy
-        const tripData = {
-          name: document.getElementById("tripName").value,
-          description: document.getElementById("tripDescription").value,
-          image: document.getElementById("tripImage").value,
-          dateFrom: document.getElementById("tripDateFrom").value,
-          dateTo: document.getElementById("tripDateTo").value,
-          lat: parseFloat(document.getElementById("tripLat").value),
-          lng: parseFloat(document.getElementById("tripLng").value),
-          places: existingPlaces
-        };
+document.getElementById("tripForm").addEventListener("submit", async function(e) {
+  e.preventDefault();
+
+  const id = document.getElementById("tripId").value;
+  const isEdit = id !== "";
+
+  // ✅ Załaduj istniejące miejsca, jeśli edytujemy
+  let existingPlaces = {};
+  if (isEdit) {
+    try {
+      const response = await fetch(`${firebaseBaseUrl}/trips/${id}/places.json`);
+      const places = await response.json();
+      existingPlaces = places || {};
+    } catch (err) {
+      console.warn("Nie udało się załadować miejsc:", err);
+    }
+  }
+
+  const tripData = {
+    name: document.getElementById("tripName").value,
+    description: document.getElementById("tripDescription").value,
+    image: document.getElementById("tripImage").value,
+    dateFrom: document.getElementById("tripDateFrom").value,
+    dateTo: document.getElementById("tripDateTo").value,
+    lat: parseFloat(document.getElementById("tripLat").value),
+    lng: parseFloat(document.getElementById("tripLng").value),
+    places: existingPlaces  // ✅ Teraz są zachowane!
+  };
+
+  const method = "PUT";
+  const url = `${firebaseBaseUrl}/trips/${id}.json`;
+
+  fetch(url, {
+    method: method,
+    body: JSON.stringify(tripData),
+    headers: { "Content-Type": "application/json" }
+  })
+  .then(() => {
+    closeTripModal();
+    showMessage("✅ Wyprawa zapisana!");
+    loadTrips();
+  })
+  .catch(err => {
+    console.error("Błąd zapisu:", err);
+    showMessage("Nie udało się zapisać wyprawy.");
+  });
+});
 
         // ✅ Dodaj do listy
         allTrips[finalId] = tripData;
