@@ -61,7 +61,7 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
     // 🔐 Ustaw swoje hasło
-    const correctPassword = "sekret2025"; // ← Zmień na swoje
+    const correctPassword = "sekret2025"; // ← Możesz zmienić na swoje
 
     function checkPassword() {
       const password = document.getElementById("editPassword").value;
@@ -83,6 +83,7 @@
     }
 
     function initEditApp() {
+      // 🔥 Usunięte zbędne spacje w URL
       const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
       const tripsUrl = `${firebaseBaseUrl}/trips.json`;
 
@@ -166,24 +167,51 @@
           });
       };
 
+      // ✅ POPRAWIONY fragment: zapis wyprawy bez kasowania innych
       document.getElementById("tripForm").addEventListener("submit", async function(e) {
         e.preventDefault();
 
         const id = document.getElementById("tripId").value;
         const isEdit = id !== "";
 
-        // ✅ Załaduj istniejące miejsca, jeśli edytujemy
+        // ✅ Załaduj WSZYSTKIE wyprawy, jeśli dodajesz nową
+        let allTrips = {};
+        if (!isEdit) {
+          try {
+            const response = await fetch(tripsUrl);
+            allTrips = (await response.json()) || {};
+          } catch (err) {
+            console.warn("Nie udało się załadować istniejących wypraw:", err);
+          }
+        }
+
+        // ✅ Załaduj miejsca tylko przy edycji
         let existingPlaces = {};
         if (isEdit) {
           try {
             const response = await fetch(`${firebaseBaseUrl}/trips/${id}/places.json`);
-            const places = await response.json();
-            existingPlaces = places || {};
+            existingPlaces = (await response.json()) || {};
           } catch (err) {
             console.warn("Nie udało się załadować miejsc:", err);
           }
         }
 
+        // ✅ Generowanie ID z nazwy
+        function generateId(name) {
+          return name
+            .toLowerCase()
+            .trim()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[^a-z0-9]/g, "_")
+            .replace(/_+/g, "_")
+            .replace(/^_+|_+$/g, "");
+        }
+
+        const tripName = document.getElementById("tripName").value.trim();
+        const finalId = isEdit ? id : (tripName ? generateId(tripName) : Date.now().toString());
+
+        // ✅ Dane wyprawy
         const tripData = {
           name: document.getElementById("tripName").value,
           description: document.getElementById("tripDescription").value,
@@ -192,15 +220,16 @@
           dateTo: document.getElementById("tripDateTo").value,
           lat: parseFloat(document.getElementById("tripLat").value),
           lng: parseFloat(document.getElementById("tripLng").value),
-          places: existingPlaces  // ✅ Kluczowe: miejsca są zachowane!
+          places: existingPlaces
         };
 
-        const method = "PUT";
-        const url = `${firebaseBaseUrl}/trips/${id}.json`;
+        // ✅ Dodaj do listy
+        allTrips[finalId] = tripData;
 
-        fetch(url, {
-          method: method,
-          body: JSON.stringify(tripData),
+        // ✅ Zapisz całość
+        fetch(tripsUrl, {
+          method: "PUT",
+          body: JSON.stringify(allTrips),
           headers: { "Content-Type": "application/json" }
         })
         .then(() => {
