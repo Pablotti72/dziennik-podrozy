@@ -161,6 +161,10 @@
     };
 
     window.editPlace = function(id, lat, lng) {
+      if (!tripData || !tripData.places || !tripData.places[id]) {
+        showMessage("❌ Nie udało się załadować miejsca.");
+        return;
+      }
       const p = tripData.places[id];
       document.getElementById("placeName").value = p.name;
       document.getElementById("placeDescription").value = p.description || '';
@@ -247,11 +251,11 @@
       // ✅ Zabezpieczenie struktury
       if (!allTrips[tripId]) {
         allTrips[tripId] = {
-          name: tripData.name,
-          description: tripData.description,
-          image: tripData.image,
-          lat: tripData.lat,
-          lng: tripData.lng,
+          name: tripData?.name || "Bez nazwy",
+          description: tripData?.description || '',
+          image: tripData?.image || '',
+          lat: tripData?.lat || 54.5,
+          lng: tripData?.lng || -3.0,
           places: {}
         };
       }
