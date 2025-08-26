@@ -219,7 +219,8 @@ body {
 /* --- STRONA Z MIEJSCAMI (place.html) --- */
 .place-page {
   max-width: 800px;
-  margin: 70px auto;
+  /* Zmniejszono górny margines z 70px do 30px */
+  margin: 30px auto; 
   padding: 20px;
   background: white;
   border-radius: 12px;
@@ -230,7 +231,13 @@ body {
   color: #2c3e50;
   border-bottom: 2px solid #4CAF50;
   padding-bottom: 8px;
-  margin-bottom: 16px;
+  /* Zmniejszono margines pod tytułem z 16px do 8px */
+  margin-bottom: 8px;
+}
+
+/* Dodano nową regułę, by zmniejszyć marginesy w paragrafach */
+.place-page p {
+  margin: 4px 0;
 }
 
 .place-page img.place-image {
@@ -284,7 +291,7 @@ body {
   }
 
   .place-page {
-    margin: 60px 10px;
+    margin: 30px 10px;
     padding: 15px;
   }
 }
