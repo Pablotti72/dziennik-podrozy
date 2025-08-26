@@ -32,8 +32,7 @@
           <input type="hidden" id="tripId">
           <input type="hidden" id="tripLat">
           <input type="hidden" id="tripLng">
-
-          <label>Nazwa: <input type="text" id="tripName" required></label><br><br>
+          <input type="hidden" id="originalTripId"> <label>Nazwa: <input type="text" id="tripName" required></label><br><br>
           <label>Opis: <textarea id="tripDescription" rows="2"></textarea></label><br><br>
           <label>Zdjęcie (URL): <input type="url" id="tripImage" required></label><br><br>
           <label>Data od: <input type="date" id="tripDateFrom" required></label><br><br>
@@ -153,6 +152,7 @@
             document.getElementById("tripLat").value = lat;
             document.getElementById("tripLng").value = lng;
             document.getElementById("tripId").value = id;
+            document.getElementById("originalTripId").value = id; // Zapisz oryginalne ID
 
             document.getElementById("tripModalTitle").textContent = "Edytuj wyprawę";
             document.getElementById("tripModal").style.display = "flex";
@@ -180,21 +180,53 @@
         };
 
         if (isEdit) {
-          const fetchUrl = `${firebaseBaseUrl}/trips/${id}.json`;
-          fetch(fetchUrl, {
-            method: "PATCH",
-            body: JSON.stringify(tripData),
-            headers: { "Content-Type": "application/json" }
-          })
-          .then(() => {
-            closeTripModal();
-            showMessage("✅ Wyprawa zapisana!");
-            loadTrips();
-          })
-          .catch(err => {
-            console.error("Błąd zapisu:", err);
-            showMessage("Nie udało się zapisać wyprawy.");
-          });
+          const originalId = document.getElementById("originalTripId").value;
+          const newId = generateId(tripData.name);
+
+          // Sprawdź, czy nazwa została zmieniona
+          if (originalId !== newId) {
+            // Skopiuj dane do nowego klucza i usuń stary
+            const originalDataUrl = `${firebaseBaseUrl}/trips/${originalId}.json`;
+            const newDataUrl = `${firebaseBaseUrl}/trips/${newId}.json`;
+
+            try {
+              const res = await fetch(originalDataUrl);
+              const oldTrip = await res.json();
+              if (oldTrip) {
+                // Dodaj nowe dane i usuń stare
+                await fetch(newDataUrl, {
+                  method: "PUT",
+                  body: JSON.stringify({...oldTrip, ...tripData}),
+                  headers: { "Content-Type": "application/json" }
+                });
+                await fetch(originalDataUrl, { method: "DELETE" });
+                
+                closeTripModal();
+                showMessage("✅ Zmieniono nazwę i zapisano wyprawę!");
+                loadTrips();
+              }
+            } catch (err) {
+              console.error("Błąd zmiany nazwy wyprawy:", err);
+              showMessage("Nie udało się zmienić nazwy wyprawy.");
+            }
+          } else {
+            // Jeśli nazwa się nie zmieniła, zaktualizuj tylko dane
+            const fetchUrl = `${firebaseBaseUrl}/trips/${id}.json`;
+            fetch(fetchUrl, {
+              method: "PATCH",
+              body: JSON.stringify(tripData),
+              headers: { "Content-Type": "application/json" }
+            })
+            .then(() => {
+              closeTripModal();
+              showMessage("✅ Wyprawa zapisana!");
+              loadTrips();
+            })
+            .catch(err => {
+              console.error("Błąd zapisu:", err);
+              showMessage("Nie udało się zapisać wyprawy.");
+            });
+          }
         } else {
           const newTripId = generateId(tripData.name);
           const fetchUrl = `${firebaseBaseUrl}/trips/${newTripId}.json`;
