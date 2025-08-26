@@ -111,7 +111,7 @@
               if (!p.lat || !p.lng) return;
               const m = L.marker([p.lat, p.lng]).addTo(map);
               m.bindPopup(`
-                <strong><a href="place.html?tripId=${tripId}&placeId=${key}">
+                <strong><a href="place.html?tripId=${tripId}&placeId=${key}&from=edit">
                 ${p.name}
                 </a></strong><br>
                 ${p.description || ''}<br>
@@ -355,17 +355,15 @@
     });
     
     // Logika powrotu do strony edycji, jeśli przyszliśmy z edit.html
-    document.addEventListener("DOMContentLoaded", function() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const fromPage = urlParams.get("from");
-        const backLink = document.getElementById("backLink");
-        
-        if (fromPage === "edit") {
-            backLink.href = "edit.html";
-        } else {
-            backLink.href = "index.html";
-        }
-    });
+    const urlParamsForBack = new URLSearchParams(window.location.search);
+    const fromPage = urlParamsForBack.get("from");
+    const backLink = document.getElementById("backLink");
+    
+    if (fromPage === "edit") {
+        backLink.href = "edit.html";
+    } else {
+        backLink.href = "index.html";
+    }
   </script>
 </body>
 </html>
