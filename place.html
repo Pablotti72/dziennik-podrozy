@@ -9,7 +9,7 @@
 </head>
 <body>
   <div class="back-link">
-    <a id="backLink" href="#">← Wróć do mapy</a>
+    <a id="backLink" href="#">← Wróć do wyprawy</a>
   </div>
 
   <main class="place-page">
@@ -25,16 +25,10 @@
     const urlParams = new URLSearchParams(window.location.search);
     const tripId = urlParams.get("tripId");
     const placeId = urlParams.get("placeId");
-    const fromPage = urlParams.get("from");
 
     const backLink = document.getElementById("backLink");
-    if (fromPage === "edit") {
-        backLink.href = `edit.html?editTripId=${tripId}`;
-        backLink.textContent = "← Wróć do edycji";
-    } else {
-        backLink.href = `trip.html?id=${tripId}`;
-        backLink.textContent = "← Wróć do mapy";
-    }
+    // Ten link zawsze kieruje do mapy konkretnej wyprawy
+    backLink.href = `trip.html?id=${tripId}`;
 
     const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
     const placeUrl = `${firebaseBaseUrl}/trips/${tripId}/places/${placeId}.json`;
