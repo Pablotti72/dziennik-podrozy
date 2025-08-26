@@ -109,7 +109,7 @@
               if (!p.lat || !p.lng) return;
               const m = L.marker([p.lat, p.lng]).addTo(map);
               m.bindPopup(`
-                <strong><a href="place.html?tripId=${tripId}&placeId=${key}">${p.name}</a></strong><br>
+                <strong><a href="place.html?tripId=${tripId}&placeId=${key}&from=edit">${p.name}</a></strong><br>
                 ${p.description || ''}<br>
                 <img src="${p.image}" width="100"><br>
                 <small>${p.category} • ${formatDate(p.date)}</small><br><br>
