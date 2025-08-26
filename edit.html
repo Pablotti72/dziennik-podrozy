@@ -49,6 +49,7 @@
       <div class="msg-modal-content">
         <p id="msgText"></p>
         <button onclick="closeMsgModal()">OK</button>
+        <a href="index.html" class="button">Wróć do strony głównej</a>
       </div>
     </div>
   </div>
@@ -136,6 +137,7 @@
 
       window.openAddTripModal = function(lat, lng) {
         document.getElementById("tripForm").reset();
+        document.getElementById("tripId").value = "";
         document.getElementById("tripLat").value = lat;
         document.getElementById("tripLng").value = lng;
         document.getElementById("tripModalTitle").textContent = "Dodaj nową wyprawę";
@@ -170,44 +172,6 @@
         const id = document.getElementById("tripId").value;
         const isEdit = id !== "";
 
-        // ✅ POPRAWKA: Zawsze ładuj WSZYSTKIE wyprawy przed zapisem
-        let allTrips = {};
-        try {
-          const response = await fetch(tripsUrl);
-          allTrips = (await response.json()) || {};
-        } catch (err) {
-          console.warn("Nie udało się załadować istniejących wypraw:", err);
-          allTrips = {};
-        }
-
-        // ✅ Załaduj CAŁĄ wyprawę, by pobrać places
-        let existingPlaces = {};
-        if (isEdit) {
-          try {
-            const response = await fetch(`${firebaseBaseUrl}/trips/${id}.json`);
-            const trip = await response.json();
-            existingPlaces = trip?.places || {};
-          } catch (err) {
-            console.warn("Nie udało się załadować wyprawy i miejsc:", err);
-            existingPlaces = {};
-          }
-        }
-
-        // ✅ Generowanie ID z nazwy
-        function generateId(name) {
-          return name
-            .toLowerCase()
-            .trim()
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "")
-            .replace(/[^a-z0-9]/g, "_")
-            .replace(/_+/g, "_")
-            .replace(/^_+|_+$/g, "");
-        }
-
-        const tripName = document.getElementById("tripName").value.trim();
-        const finalId = isEdit ? id : (tripName ? generateId(tripName) : Date.now().toString());
-
         const tripData = {
           name: document.getElementById("tripName").value,
           description: document.getElementById("tripDescription").value,
@@ -215,17 +179,25 @@
           dateFrom: document.getElementById("tripDateFrom").value,
           dateTo: document.getElementById("tripDateTo").value,
           lat: parseFloat(document.getElementById("tripLat").value),
-          lng: parseFloat(document.getElementById("tripLng").value),
-          places: existingPlaces
+          lng: parseFloat(document.getElementById("tripLng").value)
         };
 
-        // ✅ Dodaj do listy
-        allTrips[finalId] = tripData;
+        let fetchUrl;
+        let fetchMethod;
 
-        // ✅ Zapisz całość
-        fetch(tripsUrl, {
-          method: "PUT",
-          body: JSON.stringify(allTrips),
+        if (isEdit) {
+          // Edycja: uzyjemy metody PATCH
+          fetchUrl = `${firebaseBaseUrl}/trips/${id}.json`;
+          fetchMethod = "PATCH";
+        } else {
+          // Dodawanie: uzyjemy metody POST
+          fetchUrl = tripsUrl;
+          fetchMethod = "POST";
+        }
+
+        fetch(fetchUrl, {
+          method: fetchMethod,
+          body: JSON.stringify(tripData),
           headers: { "Content-Type": "application/json" }
         })
         .then(() => {
