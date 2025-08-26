@@ -20,20 +20,31 @@
     <div id="place-photos" class="photo-gallery"></div>
   </main>
 
+  <div id="msgModal" class="msg-modal" style="display: none;">
+    <div class="msg-modal-content">
+      <p id="msgText"></p>
+      <button onclick="closeMsgModal()">OK</button>
+    </div>
+  </div>
+
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
+    const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
     const urlParams = new URLSearchParams(window.location.search);
     const tripId = urlParams.get("tripId");
     const placeId = urlParams.get("placeId");
     const fromPage = urlParams.get("from");
+    const isEditing = sessionStorage.getItem("isEditing") === "true";
 
     const backLink = document.getElementById("backLink");
-    backLink.href = `trip.html?id=${tripId}&from=${fromPage}`;
-
-    const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
+    if (isEditing) {
+        backLink.href = `trip.html?id=${tripId}&from=edit`;
+    } else {
+        backLink.href = `trip.html?id=${tripId}`;
+    }
+    
     const placeUrl = `${firebaseBaseUrl}/trips/${tripId}/places/${placeId}.json`;
-
-    const map = L.map("place-map").setView([54.5, -3.0], 8);
+    const map = L.map("place-map");
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
     fetch(placeUrl)
@@ -44,11 +55,17 @@
           return;
         }
 
+        let editButton = '';
+        if (isEditing) {
+            editButton = `<button onclick="editPlace('${placeId}')">✏️ Edytuj to miejsce</button>`;
+        }
+
         document.getElementById("place-content").innerHTML = `
           <h1>${place.name}</h1>
           <p><strong>Kategoria:</strong> ${getCategoryLabel(place.category)}</p>
           <p><strong>Data:</strong> ${formatDate(place.date)}</p>
           <p>${place.description || ''}</p>
+          ${editButton}
         `;
         
         if (place.image) {
@@ -81,6 +98,7 @@
         document.getElementById("place-content").innerHTML = "<p>❌ Nie udało się załadować miejsca.</p>";
       });
 
+    // --- Funkcje pomocnicze ---
     function formatDate(dateStr) {
       if (!dateStr) return "Brak daty";
       const date = new Date(dateStr);
@@ -96,6 +114,20 @@
       };
       return categories[category] || category;
     }
+
+    window.showMessage = function(text) {
+      document.getElementById("msgText").textContent = text;
+      document.getElementById("msgModal").style.display = "flex";
+    };
+
+    window.closeMsgModal = function() {
+      document.getElementById("msgModal").style.display = "none";
+    };
+
+    // To be implemented as part of trip.html logic, not this page.
+    window.editPlace = function(id) {
+        window.location.href = `trip.html?id=${tripId}&editPlaceId=${id}&from=edit`;
+    };
   </script>
 </body>
 </html>
