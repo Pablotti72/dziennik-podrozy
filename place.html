@@ -1,62 +1,105 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Miejsce</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Miejsce</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
-  <div class="back-link">
-    <a id="backLink" href="#">← Wróć do wyprawy</a>
-  </div>
+  <div class="back-link">
+    <a id="backLink" href="#">← Wróć do mapy</a>
+  </div>
 
-  <main class="place-page">
-    <article id="place-content">
-      <p>Ładowanie...</p>
-    </article>
-  </main>
+  <main class="place-page">
+    <article id="place-content">
+      <p>Ładowanie miejsca...</p>
+    </article>
+    <div id="place-map"></div>
+    <div id="place-photos" class="photo-gallery"></div>
+  </main>
 
-  <script>
-    const urlParams = new URLSearchParams(window.location.search);
-    const tripId = urlParams.get("tripId");
-    const placeId = urlParams.get("placeId");
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const tripId = urlParams.get("tripId");
+    const placeId = urlParams.get("placeId");
+    const fromPage = urlParams.get("from"); // Odczytujemy nowy parametr
 
-    const backLink = document.getElementById("backLink");
-    backLink.href = tripId ? `trip.html?id=${tripId}` : "index.html";
+    const backLink = document.getElementById("backLink");
+    if (fromPage === "edit") {
+      backLink.href = "edit.html";
+      backLink.textContent = "← Wróć do edycji";
+    } else {
+      backLink.href = `trip.html?id=${tripId}`;
+      backLink.textContent = "← Wróć do mapy";
+    }
 
-    const baseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
-    const placeUrl = `${baseUrl}/trips/${tripId}/places/${placeId}.json`;
+    const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
+    const placeUrl = `${firebaseBaseUrl}/trips/${tripId}/places/${placeId}.json`;
 
-    fetch(placeUrl)
-      .then(res => res.json())
-      .then(data => {
-        let galleryHtml = "";
-        if (data.photos && data.photos.length > 0) {
-          galleryHtml = `<div style="margin-top: 30px;"><h3>Galeria zdjęć</h3>`;
-          data.photos.forEach(photo => {
-            galleryHtml += `
-              <div style="margin-bottom: 20px;">
-                <img src="${photo.url.trim()}" style="width:100%; max-height:400px; object-fit:cover; border-radius:8px;" loading="lazy">
-                <p style="margin:5px 0 0 0; font-size:14px; color:#555;"><em>${photo.caption || ''}</em></p>
-              </div>`;
-          });
-          galleryHtml += `</div>`;
-        }
+    const map = L.map("place-map").setView([54.5, -3.0], 8);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
-        document.getElementById("place-content").innerHTML = `
-          <h1>${data.name}</h1>
-          <p><strong>Kategoria:</strong> ${data.category}</p>
-          <p><strong>Data wizyty:</strong> ${formatDate(data.date)}</p>
-          <img src="${data.image.trim()}" alt="Zdjęcie" style="width:100%; max-height:500px; object-fit:cover; border-radius:8px; margin:15px 0;">
-          <p>${data.description || ''}</p>
-          ${galleryHtml}
-        `;
-      });
+    fetch(placeUrl)
+      .then(res => res.json())
+      .then(place => {
+        if (!place) {
+          document.getElementById("place-content").innerHTML = "<p>❌ Miejsce nie istnieje.</p>";
+          return;
+        }
 
-    function formatDate(dateStr) {
-      return dateStr ? new Date(dateStr).toLocaleDateString("pl-PL", { day: "numeric", month: "long", year: "numeric" }) : "Brak daty";
-    }
-  </script>
+        document.getElementById("place-content").innerHTML = `
+          <h1>${place.name}</h1>
+          <p><strong>Kategoria:</strong> ${getCategoryLabel(place.category)}</p>
+          <p><strong>Data wizyty:</strong> ${formatDate(place.date)}</p>
+          <p>${place.description || ''}</p>
+        `;
+        
+        if (place.image) {
+          const img = document.createElement("img");
+          img.src = place.image;
+          img.className = "place-image";
+          document.getElementById("place-content").appendChild(img);
+        }
+
+        if (place.lat && place.lng) {
+          map.setView([place.lat, place.lng], 12);
+          L.marker([place.lat, place.lng]).addTo(map).bindPopup(`<strong>${place.name}</strong>`).openPopup();
+        }
+
+        if (place.photos && place.photos.length > 0) {
+          const gallery = document.getElementById("place-photos");
+          place.photos.forEach(photo => {
+            const item = document.createElement("div");
+            item.className = "photo-item";
+            item.innerHTML = `
+              <img src="${photo.url}" alt="${photo.caption || ''}">
+              <p>${photo.caption || ''}</p>
+            `;
+            gallery.appendChild(item);
+          });
+        }
+      })
+      .catch(err => {
+        console.error("Błąd ładowania miejsca:", err);
+        document.getElementById("place-content").innerHTML = "<p>❌ Nie udało się załadować miejsca.</p>";
+      });
+
+    function formatDate(dateStr) {
+      return dateStr ? new Date(dateStr).toLocaleDateString("pl-PL", { day: "numeric", month: "long", year: "numeric" }) : "Brak daty";
+    }
+
+    function getCategoryLabel(category) {
+      const categories = {
+        "miasto": "🏙️ Miasto", "park": "🌳 Park", "zabytek": "🏛️ Zabytek",
+        "muzeum": "🖼️ Muzeum", "hotel": "🏨 Hotel", "szczyt": "⛰️ Szczyt",
+        "restauracja": "🍽️ Restauracja", "miejsce_widokowe": "🌄 Miejsce widokowe",
+        "atrakcja_turystyczna": "🎯 Atrakcja turystyczna", "inny": "🔧 Inny"
+      };
+      return categories[category] || category;
+    }
+  </script>
 </body>
 </html>
