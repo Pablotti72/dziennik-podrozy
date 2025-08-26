@@ -25,10 +25,10 @@
     const urlParams = new URLSearchParams(window.location.search);
     const tripId = urlParams.get("tripId");
     const placeId = urlParams.get("placeId");
+    const fromPage = urlParams.get("from");
 
     const backLink = document.getElementById("backLink");
-    // Ten link zawsze kieruje do mapy konkretnej wyprawy
-    backLink.href = `trip.html?id=${tripId}`;
+    backLink.href = `trip.html?id=${tripId}&from=${fromPage}`;
 
     const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
     const placeUrl = `${firebaseBaseUrl}/trips/${tripId}/places/${placeId}.json`;
