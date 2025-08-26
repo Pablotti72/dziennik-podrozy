@@ -301,9 +301,8 @@
         }
       });
       
-      // Nowa logika obsługująca powrót ze strony miejsca
-      const urlParams = new URLSearchParams(window.location.search);
-      const editTripId = urlParams.get("editTripId");
+      const urlParamsForBack = new URLSearchParams(window.location.search);
+      const editTripId = urlParamsForBack.get("editTripId");
       if (editTripId) {
         const checkInterval = setInterval(() => {
             if (window.editTrip) {
