@@ -10,7 +10,7 @@
 <body>
   <div class="header-container right-top">
     <div class="header-box">Wyprawa</div>
-    <button id="addPlaceBtn" class="add-btn">➕ Dodaj miejsce</button>
+    <button id="addPlaceBtn" class="add-btn" style="display: none;">➕ Dodaj miejsce</button>
   </div>
 
   <div class="back-link">
@@ -79,16 +79,35 @@
     const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
     const urlParams = new URLSearchParams(window.location.search);
     const tripId = urlParams.get("id");
-    // Przechwytujemy parametr 'from'
     const fromPage = urlParams.get("from");
+    const isEditing = sessionStorage.getItem("isEditing") === "true";
 
-    const map = L.map("trip-map").setView([54.5, -3.0], 8);
+    const map = L.map("trip-map");
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
     let tripData = null;
+    let isAddingPlace = false;
 
+    // --- Ustawienie dynamicznego linku powrotnego ---
+    const backLink = document.getElementById("backLink");
+    if (fromPage === "edit") {
+        backLink.href = "index.html?from=edit";
+    } else {
+        backLink.href = "index.html";
+    }
+
+    // --- Ładowanie i wyświetlanie danych ---
     function loadTripAndPlaces() {
       document.getElementById("trip-content").innerHTML = "<p>Ładowanie wyprawy...</p>";
+      
+      // Wyświetlanie przycisku dodawania tylko w trybie edycji
+      const addPlaceBtn = document.getElementById("addPlaceBtn");
+      if (isEditing) {
+        addPlaceBtn.style.display = "block";
+      } else {
+        addPlaceBtn.style.display = "none";
+      }
+
       fetch(`${firebaseBaseUrl}/trips/${tripId}.json`)
         .then(res => res.json())
         .then(trip => {
@@ -112,18 +131,27 @@
               const p = trip.places[key];
               if (!p.lat || !p.lng) return;
               const m = L.marker([p.lat, p.lng]).addTo(map);
-              m.bindPopup(`
-                <strong>
-                  <a href="place.html?tripId=${tripId}&placeId=${key}&from=${fromPage || 'index'}">
-                    ${p.name}
-                  </a>
-                </strong><br>
-                ${p.description || ''}<br>
-                <img src="${p.image}" width="100"><br>
-                <small>${p.category} • ${formatDate(p.date)}</small><br><br>
-                <button onclick="editPlace('${key}')">✏️ Edytuj</button>
-                <button onclick="deletePlace('${key}')">🗑️ Usuń</button>
-              `);
+
+              let popupContent;
+              if (isEditing) {
+                  popupContent = `
+                      <strong><a href="place.html?tripId=${tripId}&placeId=${key}&from=edit">${p.name}</a></strong><br>
+                      ${p.description || ''}<br>
+                      <img src="${p.image}" width="100"><br>
+                      <small>${p.category} • ${formatDate(p.date)}</small><br><br>
+                      <button onclick="editPlace('${key}')">✏️ Edytuj</button>
+                      <button onclick="deletePlace('${key}')">🗑️ Usuń</button>
+                  `;
+              } else {
+                  popupContent = `
+                      <strong><a href="place.html?tripId=${tripId}&placeId=${key}">${p.name}</a></strong><br>
+                      ${p.description || ''}<br>
+                      <img src="${p.image}" width="100"><br>
+                      <small>${p.category} • ${formatDate(p.date)}</small><br><br>
+                      <em>Kliknij, aby zobaczyć szczegóły</em>
+                  `;
+              }
+              m.bindPopup(popupContent);
             });
           }
         })
@@ -135,27 +163,29 @@
 
     loadTripAndPlaces();
 
-    let isAddingPlace = false;
-    document.getElementById("addPlaceBtn").addEventListener("click", function () {
-      if (isAddingPlace) {
-        isAddingPlace = false;
-        this.textContent = "➕ Dodaj miejsce";
-        this.style.background = "#4CAF50";
-      } else {
-        isAddingPlace = true;
-        this.textContent = "🛑 Anuluj";
-        this.style.background = "#f44336";
-      }
-    });
+    // --- Logika edycji ---
+    if (isEditing) {
+      document.getElementById("addPlaceBtn").addEventListener("click", function () {
+        if (isAddingPlace) {
+          isAddingPlace = false;
+          this.textContent = "➕ Dodaj miejsce";
+          this.style.background = "#4CAF50";
+        } else {
+          isAddingPlace = true;
+          this.textContent = "🛑 Anuluj";
+          this.style.background = "#f44336";
+        }
+      });
 
-    map.on("click", function (e) {
-      if (isAddingPlace) {
-        isAddingPlace = false;
-        document.getElementById("addPlaceBtn").textContent = "➕ Dodaj miejsce";
-        document.getElementById("addPlaceBtn").style.background = "#4CAF50";
-        openAddPlaceModal(e.latlng.lat, e.latlng.lng);
-      }
-    });
+      map.on("click", function (e) {
+        if (isAddingPlace) {
+          isAddingPlace = false;
+          document.getElementById("addPlaceBtn").textContent = "➕ Dodaj miejsce";
+          document.getElementById("addPlaceBtn").style.background = "#4CAF50";
+          openAddPlaceModal(e.latlng.lat, e.latlng.lng);
+        }
+      });
+    }
 
     window.openAddPlaceModal = function(lat, lng) {
       document.getElementById("placeForm").reset();
@@ -247,43 +277,38 @@
         if (originalId !== newId) {
           const originalDataUrl = `${firebaseBaseUrl}/trips/${tripId}/places/${originalId}.json`;
           const newDataUrl = `${firebaseBaseUrl}/trips/${tripId}/places/${newId}.json`;
-
           try {
             const res = await fetch(originalDataUrl);
             const oldPlace = await res.json();
             if (oldPlace) {
-              await fetch(newDataUrl, {
-                method: "PUT",
-                body: JSON.stringify({...oldPlace, ...placeData}),
-                headers: { "Content-Type": "application/json" }
-              });
+              await fetch(newDataUrl, { method: "PUT", body: JSON.stringify({...oldPlace, ...placeData}) });
               await fetch(originalDataUrl, { method: "DELETE" });
-              
               closePlaceModal();
               showMessage("✅ Zmieniono nazwę i zapisano miejsce!");
               loadTripAndPlaces();
+              return;
             }
           } catch (err) {
             console.error("Błąd zmiany nazwy miejsca:", err);
             showMessage("Nie udało się zmienić nazwy miejsca.");
+            return;
           }
-        } else {
-          const fetchUrl = `${firebaseBaseUrl}/trips/${tripId}/places/${id}.json`;
-          fetch(fetchUrl, {
-            method: "PATCH",
-            body: JSON.stringify(placeData),
-            headers: { "Content-Type": "application/json" }
-          })
-          .then(() => {
-            closePlaceModal();
-            showMessage("✅ Zapisano!");
-            loadTripAndPlaces();
-          })
-          .catch(err => {
-            console.error("Błąd zapisu:", err);
-            showMessage("❌ Nie udało się zapisać.");
-          });
         }
+        const fetchUrl = `${firebaseBaseUrl}/trips/${tripId}/places/${id}.json`;
+        fetch(fetchUrl, {
+          method: "PATCH",
+          body: JSON.stringify(placeData),
+          headers: { "Content-Type": "application/json" }
+        })
+        .then(() => {
+          closePlaceModal();
+          showMessage("✅ Zapisano!");
+          loadTripAndPlaces();
+        })
+        .catch(err => {
+          console.error("Błąd zapisu:", err);
+          showMessage("❌ Nie udało się zapisać.");
+        });
       } else {
         const newPlaceId = generateId(placeData.name);
         const fetchUrl = `${firebaseBaseUrl}/trips/${tripId}/places/${newPlaceId}.json`;
@@ -304,31 +329,6 @@
       }
     });
 
-    function generateId(name) {
-      return name
-        .toLowerCase()
-        .trim()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/[^a-z0-9]/g, "_")
-        .replace(/_+/g, "_")
-        .replace(/^_+|_+$/g, "");
-    }
-
-    window.closePlaceModal = function() { document.getElementById("placeModal").style.display = "none"; };
-    window.closeMsgModal = function() { document.getElementById("msgModal").style.display = "none"; };
-    window.showMessage = function(text) { document.getElementById("msgText").textContent = text; document.getElementById("msgModal").style.display = "flex"; };
-    window.addPhotoField = function() {
-      const container = document.getElementById("photos-container");
-      const item = document.createElement("div");
-      item.className = "photo-item";
-      item.innerHTML = `
-        <label>Zdjęcie URL: <input type="url" class="photo-url" placeholder="https://..."></label><br>
-        <label>Komentarz: <input type="text" class="photo-caption" placeholder="Opis zdjęcia"></label><br><br>
-      `;
-      container.appendChild(item);
-    };
-
     window.deletePlace = function(placeId) {
       if (confirm("Usunąć?")) {
         fetch(`${firebaseBaseUrl}/trips/${tripId}/places/${placeId}.json`, { method: "DELETE" })
@@ -343,10 +343,33 @@
       }
     };
 
+    // --- Funkcje pomocnicze ---
+    function generateId(name) {
+      return name
+        .toLowerCase()
+        .trim()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]/g, "_")
+        .replace(/_+/g, "_")
+        .replace(/^_+|_+$/g, "");
+    }
     function formatDate(dateStr) {
       return dateStr ? new Date(dateStr).toLocaleDateString("pl-PL", { day: "numeric", month: "long", year: "numeric" }) : "Brak daty";
     }
-
+    window.addPhotoField = function() {
+      const container = document.getElementById("photos-container");
+      const item = document.createElement("div");
+      item.className = "photo-item";
+      item.innerHTML = `
+        <label>Zdjęcie URL: <input type="url" class="photo-url" placeholder="https://..."></label><br>
+        <label>Komentarz: <input type="text" class="photo-caption" placeholder="Opis zdjęcia"></label><br><br>
+      `;
+      container.appendChild(item);
+    };
+    window.closePlaceModal = function() { document.getElementById("placeModal").style.display = "none"; };
+    window.closeMsgModal = function() { document.getElementById("msgModal").style.display = "none"; };
+    window.showMessage = function(text) { document.getElementById("msgText").textContent = text; document.getElementById("msgModal").style.display = "flex"; };
     document.addEventListener("keydown", function(e) {
       if (e.key === "Escape") {
         document.getElementById("placeModal").style.display = "none";
@@ -357,14 +380,6 @@
         }
       }
     });
-    
-    // Zaktualizowana logika powrotu
-    const backLink = document.getElementById("backLink");
-    if (fromPage === "edit") {
-        backLink.href = "edit.html";
-    } else {
-        backLink.href = "index.html";
-    }
   </script>
 </body>
 </html>
