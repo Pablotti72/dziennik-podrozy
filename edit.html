@@ -1,62 +1,8 @@
-<!DOCTYPE html>
-<html lang="pl">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Edytuj wyprawy</title>
-  <link rel="stylesheet" href="style.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-</head>
-<body>
-    <div id="authModal" class="modal" style="display: flex;">
-    <div class="modal-content">
-      <h2>🔐 Dostęp do edycji</h2>
-      <p>Wprowadź hasło, aby edytować.</p>
-      <input type="password" id="editPassword" placeholder="Hasło">
-      <button onclick="checkPassword()">Wejdź</button>
-    </div>
-  </div>
-
-    <div id="editContent" style="display: none;">
-    <div class="header-container right-top">
-      <div class="header-box">Edycja wypraw</div>
-      <button id="addTripBtn" class="add-btn">➕ Dodaj wyprawę</button>
-    </div>
-
-    <div id="map"></div>
-
-        <div id="tripModal" class="modal" style="display: none;">
-      <div class="modal-content scrollable-modal">
-        <h2 id="tripModalTitle">Dodaj wyprawę</h2>
-        <form id="tripForm">
-          <input type="hidden" id="tripId">
-          <input type="hidden" id="tripLat">
-          <input type="hidden" id="tripLng">
-
-          <label>Nazwa: <input type="text" id="tripName" required></label><br><br>
-          <label>Opis: <textarea id="tripDescription" rows="2"></textarea></label><br><br>
-          <label>Zdjęcie (URL): <input type="url" id="tripImage" required></label><br><br>
-          <label>Data od: <input type="date" id="tripDateFrom" required></label><br><br>
-          <label>Data do: <input type="date" id="tripDateTo"></label><br><br>
-
-          <button type="submit">Zapisz</button>
-          <button type="button" onclick="closeTripModal()">Anuluj</button>
-        </form>
-      </div>
-    </div>
-
-        <div id="msgModal" class="msg-modal" style="display: none;">
-      <div class="msg-modal-content">
-        <p id="msgText"></p>
-        <button onclick="closeMsgModal()">OK</button>
-        <a href="index.html" class="button">Wróć do strony głównej</a>
-      </div>
-    </div>
-  </div>
-
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script>
+<script>
     const correctPassword = "sekret2025";
+    const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
+    const tripsUrl = `${firebaseBaseUrl}/trips.json`;
+    let isAddingTrip = false;
 
     function checkPassword() {
       const password = document.getElementById("editPassword").value;
@@ -77,13 +23,8 @@
     }
 
     function initEditApp() {
-      const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
-      const tripsUrl = `${firebaseBaseUrl}/trips.json`;
-
       const map = L.map("map").setView([54.5, -3.0], 6);
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
-
-      let isAddingTrip = false;
 
       function loadTrips() {
         fetch(tripsUrl)
@@ -198,9 +139,10 @@
             showMessage("Nie udało się zapisać wyprawy.");
           });
         } else {
-          const fetchUrl = `${firebaseBaseUrl}/trips.json`;
+          const newTripId = generateId(tripData.name);
+          const fetchUrl = `${firebaseBaseUrl}/trips/${newTripId}.json`;
           fetch(fetchUrl, {
-            method: "POST",
+            method: "PUT", // Zmieniono na PUT, aby użyć nazwy jako ID
             body: JSON.stringify(tripData),
             headers: { "Content-Type": "application/json" }
           })
@@ -272,6 +214,4 @@
         }
       });
     }
-  </script>
-</body>
-</html>
+</script>
