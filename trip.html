@@ -78,18 +78,15 @@
     const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
     const urlParams = new URLSearchParams(window.location.search);
     const tripId = urlParams.get("id");
-    const tripUrl = `${firebaseBaseUrl}/trips/${tripId}.json`;
-    const placesUrl = `${firebaseBaseUrl}/trips/${tripId}/places.json`;
 
     const map = L.map("trip-map").setView([54.5, -3.0], 8);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
-    document.getElementById("trip-content").innerHTML = "<p>Ładowanie wyprawy...</p>";
-
     let tripData = null;
 
     function loadTripAndPlaces() {
-      fetch(tripUrl)
+      document.getElementById("trip-content").innerHTML = "<p>Ładowanie wyprawy...</p>";
+      fetch(`${firebaseBaseUrl}/trips/${tripId}.json`)
         .then(res => res.json())
         .then(trip => {
           if (!trip) {
@@ -156,6 +153,12 @@
     window.openAddPlaceModal = function(lat, lng) {
       document.getElementById("placeForm").reset();
       document.getElementById("placeId").value = "";
+      document.getElementById("photos-container").innerHTML = `
+        <div class="photo-item">
+          <label>Zdjęcie URL: <input type="url" class="photo-url" placeholder="https://..."></label><br>
+          <label>Komentarz: <input type="text" class="photo-caption" placeholder="Opis zdjęcia"></label><br><br>
+        </div>
+      `;
       document.getElementById("placeLat").value = lat;
       document.getElementById("placeLng").value = lng;
       document.getElementById("placeModalTitle").textContent = "Dodaj nowe miejsce";
@@ -225,11 +228,10 @@
         date: document.getElementById("placeDate").value,
         lat: parseFloat(document.getElementById("placeLat").value),
         lng: parseFloat(document.getElementById("placeLng").value),
-        photos: photos
+        photos: photos,
       };
 
       if (isEdit) {
-        // Edycja: używamy metody PATCH
         const fetchUrl = `${firebaseBaseUrl}/trips/${tripId}/places/${id}.json`;
         fetch(fetchUrl, {
           method: "PATCH",
@@ -246,23 +248,11 @@
           showMessage("❌ Nie udało się zapisać.");
         });
       } else {
-        // Dodawanie: dwuetapowy proces
-        // 1. Używamy POST, aby uzyskać bezpieczny, unikalny klucz
-        fetch(placesUrl, {
+        const fetchUrl = `${firebaseBaseUrl}/trips/${tripId}/places.json`;
+        fetch(fetchUrl, {
           method: "POST",
           body: JSON.stringify(placeData),
           headers: { "Content-Type": "application/json" }
-        })
-        .then(response => response.json())
-        .then(data => {
-          const generatedKey = data.name;
-          // 2. Aktualizujemy ten wpis, dodając pole 'id'
-          const generatedId = generateId(placeData.name);
-          return fetch(`${firebaseBaseUrl}/trips/${tripId}/places/${generatedKey}.json`, {
-            method: "PATCH",
-            body: JSON.stringify({ id: generatedId }),
-            headers: { "Content-Type": "application/json" }
-          });
         })
         .then(() => {
           closePlaceModal();
@@ -275,17 +265,6 @@
         });
       }
     });
-
-    function generateId(name) {
-      return name
-        .toLowerCase()
-        .trim()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/[^a-z0-9]/g, "_")
-        .replace(/_+/g, "_")
-        .replace(/^_+|_+$/g, "");
-    }
 
     window.closePlaceModal = function() { document.getElementById("placeModal").style.display = "none"; };
     window.closeMsgModal = function() { document.getElementById("msgModal").style.display = "none"; };
