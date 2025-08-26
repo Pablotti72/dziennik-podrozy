@@ -182,34 +182,64 @@
           lng: parseFloat(document.getElementById("tripLng").value)
         };
 
-        let fetchUrl;
-        let fetchMethod;
-
         if (isEdit) {
-          // Edycja: uzyjemy metody PATCH
-          fetchUrl = `${firebaseBaseUrl}/trips/${id}.json`;
-          fetchMethod = "PATCH";
+          // Edycja: używamy metody PATCH
+          const fetchUrl = `${firebaseBaseUrl}/trips/${id}.json`;
+          fetch(fetchUrl, {
+            method: "PATCH",
+            body: JSON.stringify(tripData),
+            headers: { "Content-Type": "application/json" }
+          })
+          .then(() => {
+            closeTripModal();
+            showMessage("✅ Wyprawa zapisana!");
+            loadTrips();
+          })
+          .catch(err => {
+            console.error("Błąd zapisu:", err);
+            showMessage("Nie udało się zapisać wyprawy.");
+          });
         } else {
-          // Dodawanie: uzyjemy metody POST
-          fetchUrl = tripsUrl;
-          fetchMethod = "POST";
+          // Dodawanie: dwuetapowy proces
+          // 1. Używamy POST, aby uzyskać bezpieczny, unikalny klucz
+          fetch(tripsUrl, {
+            method: "POST",
+            body: JSON.stringify(tripData),
+            headers: { "Content-Type": "application/json" }
+          })
+          .then(response => response.json())
+          .then(data => {
+            const generatedKey = data.name;
+            // 2. Aktualizujemy ten wpis, dodając pole 'id'
+            const generatedId = generateId(tripData.name);
+            return fetch(`${firebaseBaseUrl}/trips/${generatedKey}.json`, {
+              method: "PATCH",
+              body: JSON.stringify({ id: generatedId }),
+              headers: { "Content-Type": "application/json" }
+            });
+          })
+          .then(() => {
+            closeTripModal();
+            showMessage("✅ Wyprawa zapisana!");
+            loadTrips();
+          })
+          .catch(err => {
+            console.error("Błąd zapisu:", err);
+            showMessage("Nie udało się zapisać wyprawy.");
+          });
         }
-
-        fetch(fetchUrl, {
-          method: fetchMethod,
-          body: JSON.stringify(tripData),
-          headers: { "Content-Type": "application/json" }
-        })
-        .then(() => {
-          closeTripModal();
-          showMessage("✅ Wyprawa zapisana!");
-          loadTrips();
-        })
-        .catch(err => {
-          console.error("Błąd zapisu:", err);
-          showMessage("Nie udało się zapisać wyprawy.");
-        });
       });
+
+      function generateId(name) {
+        return name
+          .toLowerCase()
+          .trim()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9]/g, "_")
+          .replace(/_+/g, "_")
+          .replace(/^_+|_+$/g, "");
+      }
 
       window.closeTripModal = function() {
         document.getElementById("tripModal").style.display = "none";
