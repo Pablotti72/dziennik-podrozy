@@ -56,7 +56,6 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    // 🔐 Ustaw swoje hasło
     const correctPassword = "sekret2025";
 
     function checkPassword() {
@@ -183,7 +182,6 @@
         };
 
         if (isEdit) {
-          // Edycja: używamy metody PATCH
           const fetchUrl = `${firebaseBaseUrl}/trips/${id}.json`;
           fetch(fetchUrl, {
             method: "PATCH",
@@ -200,23 +198,11 @@
             showMessage("Nie udało się zapisać wyprawy.");
           });
         } else {
-          // Dodawanie: dwuetapowy proces
-          // 1. Używamy POST, aby uzyskać bezpieczny, unikalny klucz
-          fetch(tripsUrl, {
+          const fetchUrl = `${firebaseBaseUrl}/trips.json`;
+          fetch(fetchUrl, {
             method: "POST",
             body: JSON.stringify(tripData),
             headers: { "Content-Type": "application/json" }
-          })
-          .then(response => response.json())
-          .then(data => {
-            const generatedKey = data.name;
-            // 2. Aktualizujemy ten wpis, dodając pole 'id'
-            const generatedId = generateId(tripData.name);
-            return fetch(`${firebaseBaseUrl}/trips/${generatedKey}.json`, {
-              method: "PATCH",
-              body: JSON.stringify({ id: generatedId }),
-              headers: { "Content-Type": "application/json" }
-            });
           })
           .then(() => {
             closeTripModal();
@@ -241,10 +227,7 @@
           .replace(/^_+|_+$/g, "");
       }
 
-      window.closeTripModal = function() {
-        document.getElementById("tripModal").style.display = "none";
-      };
-
+      window.closeTripModal = function() { document.getElementById("tripModal").style.display = "none"; };
       window.deleteTrip = function(tripId) {
         if (confirm("Czy na pewno chcesz usunąć tę wyprawę?")) {
           fetch(`${firebaseBaseUrl}/trips/${tripId}.json`, { method: "DELETE" })
@@ -266,9 +249,7 @@
         modal.style.display = "flex";
       };
 
-      window.closeMsgModal = function() {
-        document.getElementById("msgModal").style.display = "none";
-      };
+      window.closeMsgModal = function() { document.getElementById("msgModal").style.display = "none"; };
 
       function formatDate(dateStr) {
         if (!dateStr) return "";
@@ -276,7 +257,6 @@
         return date.toLocaleDateString("pl-PL", { day: "numeric", month: "long", year: "numeric" });
       }
 
-      // Obsługa ESC
       document.addEventListener("keydown", function(e) {
         if (e.key === "Escape") {
           if (document.getElementById("tripModal").style.display === "flex") {
