@@ -49,6 +49,23 @@ body {
   background: #45a049;
 }
 
+.edit-btn {
+    background: #FFC107;
+    color: #333;
+    border: none;
+    padding: 8px 12px;
+    font-size: 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s;
+    width: 100%;
+    text-align: center;
+}
+
+.edit-btn:hover {
+    background: #ffb300;
+}
+
 /* --- MAPA GŁÓWNA --- */
 #map {
   width: 100%;
@@ -111,83 +128,59 @@ body {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 .modal-content h2 {
-  margin-top: 0;
   color: #2c3e50;
-  font-size: 20px;
+  border-bottom: 2px solid #ddd;
+  padding-bottom: 8px;
+  margin-bottom: 15px;
 }
 
 .modal-content label {
-  display: block;
-  margin: 8px 0 4px;
-  font-size: 14px;
+  font-weight: bold;
   color: #555;
-  font-weight: 500;
 }
 
-.modal-content input,
+.modal-content input[type="text"],
+.modal-content input[type="url"],
+.modal-content input[type="date"],
+.modal-content select,
 .modal-content textarea,
-.modal-content select {
+.modal-content input[type="password"] {
   width: 100%;
-  padding: 8px;
+  padding: 10px;
+  margin-top: 5px;
   border: 1px solid #ddd;
   border-radius: 6px;
-  font-size: 14px;
   box-sizing: border-box;
-  transition: border 0.2s;
 }
 
-.modal-content input:focus,
-.modal-content textarea:focus,
-.modal-content select:focus {
-  border-color: #4CAF50;
-  outline: none;
-}
-
-.modal-content textarea {
-  resize: vertical;
-  min-height: 60px;
+.modal-content button {
+  padding: 10px 15px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-top: 15px;
 }
 
 .modal-content button[type="submit"] {
   background: #4CAF50;
   color: white;
-  border: none;
-  padding: 10px 16px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  margin-right: 8px;
 }
 
 .modal-content button[type="button"] {
-  background: #f44336;
-  color: white;
-  border: none;
-  padding: 10px 16px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
+  background: #ccc;
+  color: #333;
 }
 
-/* --- GALERIA ZDJĘĆ W FORMULARZU --- */
-.photo-item {
-  background: #f9f9f9;
-  padding: 10px;
-  border-radius: 8px;
-  border: 1px solid #eee;
-  margin-bottom: 10px;
-}
-
-/* --- KOMUNIKATY --- */
+/* --- MODAL KOMUNIKATU --- */
 .msg-modal {
   display: none;
   position: fixed;
-  z-index: 3000;
+  z-index: 2000;
   left: 0;
   top: 0;
   width: 100%;
@@ -198,100 +191,237 @@ body {
 }
 
 .msg-modal-content {
-  background: white;
-  padding: 20px;
-  border-radius: 10px;
+  background-color: white;
+  padding: 25px;
+  border-radius: 12px;
   text-align: center;
-  max-width: 300px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  animation: fadeIn 0.3s ease;
 }
 
 .msg-modal-content button {
-  margin-top: 10px;
-  padding: 8px 16px;
-  background: #4CAF50;
-  color: white;
+  padding: 10px 20px;
   border: none;
   border-radius: 6px;
+  background: #4CAF50;
+  color: white;
   cursor: pointer;
+  margin-top: 15px;
 }
 
-/* --- STRONA Z MIEJSCAMI (place.html) --- */
-.place-page {
+.no-content-message {
+    text-align: center;
+    color: #888;
+    font-style: italic;
+    margin: 20px 0;
+}
+
+/* --- KONTROLKI MAPY --- */
+.leaflet-container {
+    border-radius: 12px;
+}
+.leaflet-popup-content-wrapper {
+    border-radius: 12px;
+}
+.leaflet-popup-content-wrapper a {
+    color: #4CAF50;
+}
+
+.leaflet-popup-content button {
+    background: #4CAF50;
+    color: white;
+    border: none;
+    padding: 6px 10px;
+    font-size: 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-right: 5px;
+    transition: background 0.2s;
+}
+
+.leaflet-popup-content button:hover {
+    background: #45a049;
+}
+
+.leaflet-popup-content button:nth-child(2) {
+    background: #F44336;
+}
+
+.leaflet-popup-content button:nth-child(2):hover {
+    background: #d32f2f;
+}
+
+/* --- WIDOKI WYPRAW I MIEJSC --- */
+.back-link {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 1000;
+    font-size: 16px;
+    font-weight: bold;
+    text-decoration: none;
+    background: white;
+    padding: 8px 12px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: background 0.2s;
+}
+
+.back-link:hover {
+    background: #f0f0f0;
+}
+
+.back-link a {
+    text-decoration: none;
+    color: #2c3e50;
+}
+
+.trip-content, .place-content {
   max-width: 800px;
-  /* Zmniejszono górny margines z 70px do 30px */
-  margin: 30px auto; 
+  margin: 20px auto;
   padding: 20px;
   background: white;
   border-radius: 12px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
 
-.place-page h1 {
+.trip-content h1, .place-content h1 {
   color: #2c3e50;
   border-bottom: 2px solid #4CAF50;
   padding-bottom: 8px;
-  /* Zmniejszono margines pod tytułem z 16px do 8px */
-  margin-bottom: 8px;
+  margin-bottom: 16px;
 }
 
-/* Dodano nową regułę, by zmniejszyć marginesy w paragrafach */
-.place-page p {
-  margin: 4px 0;
+.trip-content p, .place-content p {
+    margin: 4px 0;
 }
 
-.place-page img.place-image {
-  width: 100%;
-  max-height: 500px;
-  object-fit: cover;
-  border-radius: 8px;
-  margin: 15px 0;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
-
-/* --- LINK "WRÓĆ" --- */
-.back-link {
-  position: fixed;
-  top: 10px;
-  left: 10px;
-  z-index: 1000;
-}
-
-.back-link a {
-  text-decoration: none;
-  color: #333;
-  font-size: 16px;
+.photo-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 15px;
+  padding: 15px;
   background: white;
-  padding: 8px 12px;
-  border-radius: 6px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-  transition: background 0.2s;
+  border-radius: 12px;
+  margin-top: 20px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
 
-.back-link a:hover {
-  background: #f0f0f0;
+.photo-item {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
 }
 
-/* --- RESPONSYWNOŚĆ --- */
-@media (max-width: 600px) {
-  .header-container {
-    right: 8px;
-    top: 8px;
-    padding: 10px;
-    width: 250px;
-  }
+.photo-item img.place-image {
+  width: 100%;
+  height: 150px; /* Stała wysokość */
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
 
-  .header-box {
-    font-size: 16px;
-  }
+.photo-item:hover img.place-image {
+  transform: scale(1.05);
+}
 
-  .add-btn {
-    font-size: 14px;
-    padding: 7px 10px;
-  }
+.photo-item .photo-caption {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  padding: 8px;
+  font-size: 12px;
+  box-sizing: border-box;
+  text-align: center;
+}
 
-  .place-page {
-    margin: 30px 10px;
-    padding: 15px;
-  }
+/* Nowe style dla galerii zdjęć */
+.gallery-modal {
+  display: none;
+  position: fixed;
+  z-index: 3000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.9);
+  justify-content: center;
+  align-items: center;
+}
+
+.gallery-content {
+  position: relative;
+  width: 90%;
+  max-width: 1000px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.gallery-image-container {
+    position: relative;
+    width: 100%;
+    text-align: center;
+}
+
+.gallery-image-container img {
+  max-width: 100%;
+  max-height: 90vh;
+  display: block;
+  margin: auto;
+  border-radius: 12px;
+}
+
+.gallery-image-container p {
+    color: white;
+    margin-top: 10px;
+    font-size: 1.2em;
+}
+
+.gallery-close-btn {
+  position: absolute;
+  top: 20px;
+  right: 35px;
+  color: #f1f1f1;
+  font-size: 40px;
+  font-weight: bold;
+  transition: 0.3s;
+  cursor: pointer;
+}
+
+.gallery-close-btn:hover,
+.gallery-close-btn:focus {
+  color: #bbb;
+  text-decoration: none;
+}
+
+.gallery-nav-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 30px;
+  color: white;
+  background: rgba(0, 0, 0, 0.5);
+  border: none;
+  border-radius: 50%;
+  padding: 10px 15px;
+  cursor: pointer;
+  transition: background 0.3s;
+  z-index: 100;
+}
+
+.gallery-nav-btn:hover {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+.gallery-prev {
+  left: 10px;
+}
+
+.gallery-next {
+  right: 10px;
 }
