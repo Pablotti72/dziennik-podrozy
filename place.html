@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Miejsce</title>
   <link rel="stylesheet" href="style.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
   <div class="back-link">
@@ -16,7 +15,6 @@
     <article id="place-content">
       <p>Ładowanie miejsca...</p>
     </article>
-    <div id="place-map"></div>
     <div id="place-photos" class="photo-gallery"></div>
   </main>
 
@@ -35,7 +33,6 @@
     </div>
   </div>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
     const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
     const urlParams = new URLSearchParams(window.location.search);
@@ -47,22 +44,15 @@
     let currentPhotoIndex = 0;
 
     const backLink = document.getElementById("backLink");
-    if (isEditing) {
-      backLink.href = `trip.html?id=${tripId}&mode=edit`;
-    } else {
-      backLink.href = `trip.html?id=${tripId}`;
-    }
-
-    const map = L.map("place-map");
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
-
+    backLink.href = `trip.html?id=${tripId}`;
+    
     const placeUrl = `${firebaseBaseUrl}/trips/${tripId}/places/${placeId}.json`;
 
     fetch(placeUrl)
       .then(res => res.json())
       .then(place => {
         if (!place) {
-          document.getElementById("place-content").innerHTML = "<h1>❌ Miejsce nie istnieje.</h1>";
+          document.getElementById("place-content").innerHTML = "<p>❌ Miejsce nie istnieje.</p>";
           return;
         }
 
@@ -73,9 +63,11 @@
           <p>${place.description || ''}</p>
         `;
         
-        if (place.lat && place.lng) {
-          map.setView([place.lat, place.lng], 12);
-          L.marker([place.lat, place.lng]).addTo(map).bindPopup(`<strong>${place.name}</strong>`).openPopup();
+        if (place.image) {
+          const mainImg = document.createElement("img");
+          mainImg.src = place.image;
+          mainImg.className = "place-image";
+          document.getElementById("place-content").appendChild(mainImg);
         }
 
         if (place.photos && place.photos.length > 0) {
@@ -95,7 +87,7 @@
       })
       .catch(err => {
         console.error("Błąd ładowania miejsca:", err);
-        document.getElementById("place-content").innerHTML = "<h1>❌ Nie udało się załadować miejsca.</h1>";
+        document.getElementById("place-content").innerHTML = "<p>❌ Nie udało się załadować miejsca.</p>";
       });
 
     // --- Funkcje galerii (lightbox) ---
