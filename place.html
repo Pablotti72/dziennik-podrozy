@@ -74,7 +74,7 @@
 
     // Funkcja wyświetlająca szczegóły miejsca
     function displayPlace(place) {
-      // Sprawdzenie, czy URL obrazu istnieje
+      // Pobieranie głównego URL zdjęcia z klucza 'image'
       const mainImageUrl = place.image ? place.image : 'https://placehold.co/800x400/e0e0e0/555555?text=Brak+zdjęcia';
       
       const contentHtml = `
@@ -120,7 +120,7 @@
               item.className = "photo-gallery-item";
               item.onclick = (e) => {
                   e.preventDefault();
-                  openGalleryModal(index);
+                  // Tutaj brakuje funkcji openGalleryModal, która jest potrzebna do obsługi kliknięcia
               };
               item.innerHTML = `<img src="${photo.url}" alt="${photo.caption}" class="thumb" onerror="this.onerror=null;this.src='https://placehold.co/150x150/e0e0e0/555555?text=Brak+zdjęcia';">`;
               gallery.appendChild(item);
@@ -168,19 +168,8 @@
 
     // Obsługa klawisza ESC
     document.addEventListener("keydown", function (e) {
-      if (
-        document.getElementById("galleryModal").style.display === "flex" &&
-        photosData.length > 1
-      ) {
-        if (e.key === "ArrowRight") {
-          // nextPhoto();
-        } else if (e.key === "ArrowLeft") {
-          // prevPhoto();
-        }
-      }
       if (e.key === "Escape") {
         closeMsgModal();
-        closeGalleryModal();
       }
     });
   </script>
