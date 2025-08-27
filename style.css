@@ -14,7 +14,7 @@ body {
   right: 10px;
   display: flex;
   flex-direction: column;
-  align-items: flex-end; /* Zmiana z flex-start na flex-end */
+  align-items: flex-end;
   gap: 6px;
   z-index: 1000;
   background: white;
@@ -29,7 +29,7 @@ body {
   font-size: 18px;
   font-weight: bold;
   color: #2c3e50;
-  text-align: right; /* Ustawienie tekstu po prawej */
+  text-align: right;
 }
 
 /* --- PRZYCISKI --- */
@@ -51,20 +51,20 @@ body {
 }
 
 .edit-btn {
-    background: #FFC107;
-    color: #333;
-    border: none;
-    padding: 8px 12px;
-    font-size: 14px;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: background 0.2s;
-    width: 100%;
-    text-align: center;
+  background: #FFC107;
+  color: #333;
+  border: none;
+  padding: 8px 12px;
+  font-size: 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+  width: 100%;
+  text-align: center;
 }
 
 .edit-btn:hover {
-    background: #ffb300;
+  background: #ffb300;
 }
 
 /* --- MAPA GŁÓWNA --- */
@@ -102,7 +102,7 @@ body {
   padding: 0 0 10px;
   margin: 0 0 15px;
   z-index: 10;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 /* --- MODAL (FORMULARZ) --- */
@@ -143,20 +143,51 @@ body {
 .modal-content label {
   font-weight: bold;
   color: #555;
+  display: block;
+  margin-top: 8px;
 }
 
+/* Poprawione style dla wszystkich pól formularza */
 .modal-content input[type="text"],
 .modal-content input[type="url"],
 .modal-content input[type="date"],
+.modal-content input[type="password"],
 .modal-content select,
-.modal-content textarea,
-.modal-content input[type="password"] {
+.modal-content textarea {
   width: 100%;
   padding: 10px;
   margin-top: 5px;
   border: 1px solid #ddd;
   border-radius: 6px;
   box-sizing: border-box;
+  background-color: white;
+  color: #333;
+  font-size: 14px;
+}
+
+/* Dodane style dla .photo-caption – kluczowe dla poprawnego wyświetlania */
+.photo-caption {
+  width: 100%;
+  padding: 10px;
+  margin-top: 5px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background-color: white;
+  color: #333;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.photo-caption:focus,
+.modal-content input[type="text"]:focus,
+.modal-content input[type="url"]:focus,
+.modal-content input[type="date"]:focus,
+.modal-content input[type="password"]:focus,
+.modal-content select:focus,
+.modal-content textarea:focus {
+  outline: none;
+  border-color: #4CAF50;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
 }
 
 .modal-content button {
@@ -173,8 +204,8 @@ body {
 }
 
 .modal-content button[type="button"] {
-  background: #ccc;
-  color: #333;
+  background: #f44336;
+  color: white;
 }
 
 /* --- MODAL KOMUNIKATU --- */
@@ -211,66 +242,66 @@ body {
 }
 
 .no-content-message {
-    text-align: center;
-    color: #888;
-    font-style: italic;
-    margin: 20px 0;
+  text-align: center;
+  color: #888;
+  font-style: italic;
+  margin: 20px 0;
 }
 
 /* --- KONTROLKI MAPY --- */
 .leaflet-container {
-    border-radius: 12px;
+  border-radius: 12px;
 }
+
 .leaflet-popup-content-wrapper {
-    border-radius: 12px;
+  border-radius: 12px;
 }
+
 .leaflet-popup-content-wrapper a {
-    color: #4CAF50;
+  color: #4CAF50;
 }
 
 .leaflet-popup-content button {
-    background: #4CAF50;
-    color: white;
-    border: none;
-    padding: 6px 10px;
-    font-size: 12px;
-    border-radius: 4px;
-    cursor: pointer;
-    margin-right: 5px;
-    transition: background 0.2s;
+  background: #4CAF50;
+  color: white;
+  border: none;
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-right: 5px;
+  transition: background 0.2s;
 }
 
 .leaflet-popup-content button:hover {
-    background: #45a049;
+  background: #45a049;
 }
 
 .leaflet-popup-content button:nth-child(2) {
-    background: #F44336;
+  background: #F44336;
 }
 
 .leaflet-popup-content button:nth-child(2):hover {
-    background: #d32f2f;
+  background: #d32f2f;
 }
 
 /* --- WIDOKI WYPRAW I MIEJSC --- */
 .back-link {
-    font-size: 16px;
-    font-weight: bold;
-    text-decoration: none;
-    background: white;
-    padding: 8px 12px;
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    transition: background 0.2s;
+  font-size: 16px;
+  font-weight: bold;
+  text-decoration: none;
+  background: white;
+  padding: 8px 12px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s ease;
+  display: inline-block;
+  max-width: 200px;
 }
 
 .back-link:hover {
-    background: #f0f0f0;
-}
-
-.back-link a {
-    text-decoration: none;
-    color: #2c3e50;
+  background: #f0f0f0;
+  transform: translateX(-3px);
 }
 
 .place-page {
@@ -290,24 +321,31 @@ body {
 }
 
 .place-page p {
-    margin: 4px 0;
+  margin: 4px 0;
 }
 
 /* Nowe style dla głównego zdjęcia */
 .main-image-container {
-    margin: 15px auto;
-    text-align: center;
-    max-width: 50%; /* Ograniczenie szerokości do 50% */
+  margin: 15px auto;
+  text-align: center;
+  max-width: 100%;
+}
+
+@media (min-width: 768px) {
+  .main-image-container {
+    max-width: 60%;
+  }
 }
 
 .main-image {
-    width: 100%;
-    height: auto;
-    object-fit: contain;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
+/* Galeria zdjęć */
 .photo-gallery {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -329,7 +367,7 @@ body {
 
 .photo-item img.place-image {
   width: 100%;
-  height: 150px; /* Stała wysokość */
+  height: 150px;
   object-fit: cover;
   transition: transform 0.3s ease;
 }
@@ -349,9 +387,12 @@ body {
   font-size: 12px;
   box-sizing: border-box;
   text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* Nowe style dla galerii zdjęć */
+/* --- GALERIA MODALNA --- */
 .gallery-modal {
   display: none;
   position: fixed;
@@ -375,9 +416,9 @@ body {
 }
 
 .gallery-image-container {
-    position: relative;
-    width: 100%;
-    text-align: center;
+  position: relative;
+  width: 100%;
+  text-align: center;
 }
 
 .gallery-image-container img {
@@ -389,9 +430,9 @@ body {
 }
 
 .gallery-image-container p {
-    color: white;
-    margin-top: 10px;
-    font-size: 1.2em;
+  color: white;
+  margin-top: 10px;
+  font-size: 1.2em;
 }
 
 .gallery-close-btn {
@@ -403,6 +444,7 @@ body {
   font-weight: bold;
   transition: 0.3s;
   cursor: pointer;
+  z-index: 100;
 }
 
 .gallery-close-btn:hover,
