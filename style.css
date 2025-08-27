@@ -14,7 +14,7 @@ body {
   right: 10px;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: flex-end; /* Zmiana z flex-start na flex-end */
   gap: 6px;
   z-index: 1000;
   background: white;
@@ -29,6 +29,7 @@ body {
   font-size: 18px;
   font-weight: bold;
   color: #2c3e50;
+  text-align: right; /* Ustawienie tekstu po prawej */
 }
 
 /* --- PRZYCISKI --- */
@@ -253,10 +254,6 @@ body {
 
 /* --- WIDOKI WYPRAW I MIEJSC --- */
 .back-link {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    z-index: 1000;
     font-size: 16px;
     font-weight: bold;
     text-decoration: none;
@@ -276,7 +273,7 @@ body {
     color: #2c3e50;
 }
 
-.trip-content, .place-content {
+.place-page {
   max-width: 800px;
   margin: 20px auto;
   padding: 20px;
@@ -285,27 +282,28 @@ body {
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
 
-.trip-content h1, .place-content h1 {
+.place-page h1 {
   color: #2c3e50;
   border-bottom: 2px solid #4CAF50;
   padding-bottom: 8px;
   margin-bottom: 16px;
 }
 
-.trip-content p, .place-content p {
+.place-page p {
     margin: 4px 0;
 }
 
 /* Nowe style dla głównego zdjęcia */
 .main-image-container {
-    margin: 15px 0;
+    margin: 15px auto;
     text-align: center;
+    max-width: 50%; /* Ograniczenie szerokości do 50% */
 }
 
 .main-image {
     width: 100%;
-    max-height: 500px;
-    object-fit: cover;
+    height: auto;
+    object-fit: contain;
     border-radius: 8px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
