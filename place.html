@@ -36,126 +36,152 @@
     </div>
   </div>
 
-  <!-- Modal do wyświetlania zdjęć w galerii -->
-  <div id="galleryModal" class="gallery-modal" style="display: none;">
-      <div class="gallery-content">
-          <button id="prevBtn" class="gallery-nav-btn prev"><i class="fa-solid fa-chevron-left"></i></button>
-          <div class="gallery-image-container">
-              <img id="galleryImage" src="" alt="Zdjęcie z galerii"/>
-              <p id="galleryCaption"></p>
-          </div>
-          <button id="nextBtn" class="gallery-nav-btn next"><i class="fa-solid fa-chevron-right"></i></button>
-          <button class="gallery-close-btn" onclick="closeGalleryModal()">&times;</button>
+  <!-- Modal do galerii zdjęć -->
+  <div id="galleryModal" class="gallery-modal" style="display: none">
+    <span class="gallery-close-btn" onclick="closeGalleryModal()">
+      &times;
+    </span>
+    <button class="gallery-nav-btn gallery-prev" onclick="changePhoto(-1)">
+      &#10094;
+    </button>
+    <div class="gallery-content">
+      <div class="gallery-image-container">
+        <img id="modalImage" src="" alt="Powiększone zdjęcie" />
+        <p id="modalCaption"></p>
       </div>
+    </div>
+    <button class="gallery-nav-btn gallery-next" onclick="changePhoto(1)">
+      &#10095;
+    </button>
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
+    // URL do bazy danych Firebase Realtime Database
+    const firebaseBaseUrl =
+      "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
+    
+    // Pobieranie parametrów z URL
     const urlParams = new URLSearchParams(window.location.search);
     const tripId = urlParams.get("tripId");
     const placeId = urlParams.get("placeId");
+
+    const backLink = document.getElementById("backLink");
+    if (tripId) {
+      backLink.href = `trip.html?id=${tripId}`;
+    } else {
+      backLink.href = "index.html";
+    }
+
+    // Zmienne globalne dla galerii
     let photosData = [];
     let currentPhotoIndex = 0;
 
-    // Ustawienie linku powrotnego
-    document.getElementById("backLink").href = `trip.html?id=${tripId}`;
-
     // Funkcja do ładowania danych miejsca
     function loadPlace() {
-      if (!tripId || !placeId) {
-        document.getElementById("place-content").innerHTML = "<p>❌ Brak ID wyprawy lub miejsca.</p>";
-        return;
-      }
-
       const placeUrl = `${firebaseBaseUrl}/trips/${tripId}/places/${placeId}.json`;
       fetch(placeUrl)
-        .then(res => {
-          if (!res.ok) throw new Error("Błąd ładowania miejsca.");
-          return res.json();
-        })
-        .then(place => {
+        .then((res) => res.json())
+        .then((place) => {
           if (!place) {
-            document.getElementById("place-content").innerHTML = "<p>❌ Nie znaleziono takiego miejsca.</p>";
+            document.getElementById("place-content").innerHTML =
+              "<p class='no-content-message'>❌ Nie udało się załadować miejsca.</p>";
             return;
           }
-          displayPlace(place);
+
+          photosData = place.photos || [];
+
+          // Ustawianie treści
+          const contentElement = document.getElementById("place-content");
+          contentElement.innerHTML = `
+            <h1>${place.name}</h1>
+            <div class="main-image-container">
+                ${
+                  photosData.length > 0
+                    ? `<img src="${
+                        photosData[0].url
+                      }" alt="${photosData[0].caption}" class="main-image" onerror="this.onerror=null;this.src='https://placehold.co/400x300/e0e0e0/555555?text=Brak+zdjęcia';" />`
+                    : `<img src="https://placehold.co/400x300/e0e0e0/555555?text=Brak+zdjęcia" alt="Brak zdjęcia" class="main-image" />`
+                }
+            </div>
+            <p><strong>Kategoria:</strong> ${getCategoryLabel(
+              place.category
+            )}</p>
+            <p><strong>Data:</strong> ${formatDate(place.date)}</p>
+            <p>${place.description || "Brak opisu."}</p>
+          `;
+
+          // Ustawianie mapy, jeśli są koordynaty
+          const mapContainer = document.getElementById("place-map");
+          if (place.coords && place.coords.lat && place.coords.lng) {
+            mapContainer.style.display = "block";
+            const map = L.map(mapContainer).setView(
+              [place.coords.lat, place.coords.lng],
+              14
+            );
+            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+              attribution: "© OpenStreetMap contributors",
+            }).addTo(map);
+            L.marker([place.coords.lat, place.coords.lng]).addTo(map);
+          } else {
+            mapContainer.style.display = "none";
+          }
+
+          // Tworzenie galerii
+          const galleryElement = document.getElementById("place-photos");
+          galleryElement.innerHTML = "";
+          photosData.forEach((photo, index) => {
+            const item = document.createElement("div");
+            item.className = "photo-item";
+            item.onclick = () => showGallery(index);
+            item.innerHTML = `
+              <img src="${photo.url}" alt="${
+              photo.caption
+            }" class="place-image" onerror="this.onerror=null;this.src='https://placehold.co/150x150/e0e0e0/555555?text=Brak+zdjęcia';" />
+              <div class="photo-caption">${photo.caption || "Brak opisu"}</div>
+            `;
+            galleryElement.appendChild(item);
+          });
         })
-        .catch(err => {
+        .catch((err) => {
           console.error("Błąd ładowania miejsca:", err);
-          document.getElementById("place-content").innerHTML = "<p>❌ Nie udało się załadować miejsca.</p>";
+          document.getElementById("place-content").innerHTML =
+            "<p>❌ Nie udało się załadować miejsca.</p>";
         });
     }
 
-    // Funkcja do wyświetlania danych miejsca
-    function displayPlace(place) {
-      // Wyświetlanie ogólnych informacji
-      document.getElementById("place-content").innerHTML = `
-        <h1>${place.name}</h1>
-        ${place.photos && place.photos.length > 0 && place.photos[0].url ? `<img src="${place.photos[0].url}" alt="Zdjęcie miejsca" class="place-image" onerror="this.onerror=null;this.src='https://placehold.co/800x400/e0e0e0/555555?text=Brak+zdjęcia';" />` : ''}
-        <p><strong>Kategoria:</strong> ${getCategoryLabel(place.category)}</p>
-        <p><strong>Data:</strong> ${formatDate(place.date)}</p>
-        <p><strong>Opis:</strong> ${place.description || "Brak opisu."}</p>
-      `;
+    // --- Obsługa galerii ---
+    window.showGallery = function (startIndex) {
+      currentPhotoIndex = startIndex;
+      updateModalPhoto();
+      document.getElementById("galleryModal").style.display = "flex";
+    };
 
-      // Inicjalizacja mapy
-      let placeMap = L.map("place-map").setView([place.coords.lat, place.coords.lng], 13);
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: "© OpenStreetMap contributors",
-      }).addTo(placeMap);
-      L.marker([place.coords.lat, place.coords.lng]).addTo(placeMap);
+    window.closeGalleryModal = function () {
+      document.getElementById("galleryModal").style.display = "none";
+    };
 
-      // Wyświetlanie galerii zdjęć
-      const photoGallery = document.getElementById("place-photos");
-      photoGallery.innerHTML = "";
-      photosData = place.photos || [];
+    window.changePhoto = function (direction) {
+      let newIndex = currentPhotoIndex + direction;
+      if (newIndex < 0) {
+        newIndex = photosData.length - 1;
+      } else if (newIndex >= photosData.length) {
+        newIndex = 0;
+      }
+      currentPhotoIndex = newIndex;
+      updateModalPhoto();
+    };
 
-      if (photosData.length > 0) {
-        photosData.forEach((photo, index) => {
-          const item = document.createElement("div");
-          item.className = "photo-item";
-          item.innerHTML = `
-            <img src="${photo.url}" alt="${photo.caption}" onclick="openGalleryModal(${index})" onerror="this.onerror=null;this.src='https://placehold.co/200x200/e0e0e0/555555?text=Brak+zdjęcia';" />
-            <p>${photo.caption}</p>
-          `;
-          photoGallery.appendChild(item);
-        });
-      } else {
-        photoGallery.innerHTML = "<p>Brak zdjęć w galerii.</p>";
+    function updateModalPhoto() {
+      const modalImage = document.getElementById("modalImage");
+      const modalCaption = document.getElementById("modalCaption");
+      if (photosData[currentPhotoIndex]) {
+        modalImage.src = photosData[currentPhotoIndex].url;
+        modalImage.alt = photosData[currentPhotoIndex].caption;
+        modalCaption.textContent =
+          photosData[currentPhotoIndex].caption || "Brak opisu";
       }
     }
-    
-    // --- Obsługa modali i galerii ---
-    window.openGalleryModal = function(index) {
-      currentPhotoIndex = index;
-      document.getElementById("galleryImage").src = photosData[currentPhotoIndex].url;
-      document.getElementById("galleryCaption").textContent = photosData[currentPhotoIndex].caption;
-      document.getElementById("galleryModal").style.display = "flex";
-      updateGalleryNavButtons();
-    };
-
-    window.closeGalleryModal = function() {
-        document.getElementById("galleryModal").style.display = "none";
-    };
-
-    function updateGalleryNavButtons() {
-        document.getElementById("prevBtn").style.display = (photosData.length > 1 && currentPhotoIndex > 0) ? "block" : "none";
-        document.getElementById("nextBtn").style.display = (photosData.length > 1 && currentPhotoIndex < photosData.length - 1) ? "block" : "none";
-    }
-
-    document.getElementById("prevBtn").onclick = function() {
-        if (currentPhotoIndex > 0) {
-            currentPhotoIndex--;
-            openGalleryModal(currentPhotoIndex);
-        }
-    };
-
-    document.getElementById("nextBtn").onclick = function() {
-        if (currentPhotoIndex < photosData.length - 1) {
-            currentPhotoIndex++;
-            openGalleryModal(currentPhotoIndex);
-        }
-    };
 
     // --- Funkcje pomocnicze ---
     function formatDate(dateStr) {
@@ -200,9 +226,9 @@
         photosData.length > 1
       ) {
         if (e.key === "ArrowLeft") {
-          document.getElementById("prevBtn").click();
+          changePhoto(-1);
         } else if (e.key === "ArrowRight") {
-          document.getElementById("nextBtn").click();
+          changePhoto(1);
         }
       }
       if (e.key === "Escape") {
@@ -211,7 +237,6 @@
       }
     });
 
-    // Uruchomienie ładowania strony
     loadPlace();
   </script>
 </body>
