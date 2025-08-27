@@ -36,146 +36,171 @@
     </div>
   </div>
 
-  <!-- Modal do wyświetlania zdjęć w pełnym ekranie -->
+  <!-- Modal do wyświetlania galerii zdjęć -->
   <div id="galleryModal" class="gallery-modal" style="display: none">
     <div class="gallery-content">
-      <span class="gallery-close-btn" onclick="closeGalleryModal()"
-        >&times;</span
-      >
-      <button class="gallery-nav-btn prev" onclick="prevPhoto()">
-        &#10094;
-      </button>
-      <div id="galleryImageContainer" class="gallery-image-container">
-        <img id="galleryImage" src="" alt="Zdjęcie z galerii" />
-        <p id="galleryCaption"></p>
+      <button class="gallery-close-btn" onclick="closeGalleryModal()">&times;</button>
+      <button class="gallery-nav-btn prev" onclick="prevPhoto()"><i class="fas fa-chevron-left"></i></button>
+      <div class="gallery-image-container">
+        <img id="gallery-image" src="" alt="" />
+        <p id="gallery-caption"></p>
       </div>
-      <button class="gallery-nav-btn next" onclick="nextPhoto()">
-        &#10095;
-      </button>
+      <button class="gallery-nav-btn next" onclick="nextPhoto()"><i class="fas fa-chevron-right"></i></button>
     </div>
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    // Konfiguracja Firebase, zakładając, że te zmienne są zdefiniowane globalnie w Twojej aplikacji
-    const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
-    let photosData = []; // Zmienna do przechowywania danych zdjęć
-    let currentPhotoIndex = 0; // Aktualny indeks zdjęcia w galerii
+    // Konfiguracja Firebase
+    const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app/";
+    let photosData = []; // Zmienna globalna do przechowywania danych zdjęć
+    let currentPhotoIndex = 0; // Zmienna do śledzenia aktualnego zdjęcia w galerii
 
-    // Funkcja do renderowania wszystkich szczegółów miejsca
-    function renderPlaceDetails(placeData) {
-      const placeContent = document.getElementById("place-content");
-      const placePhotosGallery = document.getElementById("place-photos");
-      const backLink = document.getElementById("backLink");
-      const urlParams = new URLSearchParams(window.location.search);
-      const tripId = urlParams.get("tripId");
-
-      // Ustawienie linku powrotu
-      backLink.href = `trip.html?id=${tripId}`;
-      
-      // Wyczyść zawartość przed renderowaniem
-      placeContent.innerHTML = "";
-      placePhotosGallery.innerHTML = "";
-      
-      // Obsługa głównego zdjęcia
-      if (placeData.image) {
-        const mainImage = document.createElement("img");
-        mainImage.className = "place-image";
-        mainImage.src = placeData.image;
-        mainImage.alt = placeData.name || "Zdjęcie główne";
-        // Ustawienie fall-back'owego obrazu na wypadek błędu ładowania
-        mainImage.onerror = () => {
-          mainImage.src = "https://placehold.co/800x600/E9ECEF/495057?text=Brak+zdjęcia";
-        };
-        placeContent.appendChild(mainImage);
+    // Funkcja otwierająca modal galerii zdjęć
+    window.openGalleryModal = function (index) {
+      if (photosData.length === 0) return;
+      currentPhotoIndex = index;
+      updateGalleryModal();
+      document.getElementById("galleryModal").style.display = "flex";
+      // Ukryj przyciski nawigacyjne, jeśli jest tylko jedno zdjęcie
+      const navButtons = document.querySelectorAll('.gallery-nav-btn');
+      if (photosData.length <= 1) {
+        navButtons.forEach(btn => btn.style.display = 'none');
+      } else {
+        navButtons.forEach(btn => btn.style.display = 'block');
       }
+    };
 
-      // Renderowanie tytułu, dat, kategorii i opisu
-      const title = document.createElement("h1");
-      title.textContent = placeData.name || "Brak nazwy";
-      placeContent.appendChild(title);
+    // Funkcja zamykająca modal galerii
+    window.closeGalleryModal = function () {
+      document.getElementById("galleryModal").style.display = "none";
+    };
 
-      const category = document.createElement("p");
-      category.innerHTML = `<strong>Kategoria:</strong> ${getCategoryLabel(placeData.category)}`;
-      placeContent.appendChild(category);
-
-      const dates = document.createElement("p");
-      dates.innerHTML = `<strong>Data:</strong> ${formatDate(placeData.date)}`;
-      placeContent.appendChild(dates);
-
-      if (placeData.description) {
-        const description = document.createElement("p");
-        description.innerHTML = `<strong>Opis:</strong> ${placeData.description.replace(/\n/g, "<br>")}`;
-        placeContent.appendChild(description);
-      }
-      
-      // Zapisz zdjęcia do zmiennej globalnej i wygeneruj galerię
-      if (placeData.photos) {
-        photosData = Object.values(placeData.photos);
-        photosData.forEach((photo, index) => {
-          const thumbnail = document.createElement("div");
-          thumbnail.className = "thumbnail-container";
-          thumbnail.onclick = () => openGalleryModal(index);
-          
-          const img = document.createElement("img");
-          img.className = "thumbnail";
-          img.src = photo.url;
-          img.alt = photo.caption || "Zdjęcie z galerii";
-          img.onerror = () => {
-            img.src = "https://placehold.co/150x150/E9ECEF/495057?text=Brak+zdjęcia";
-          };
-          
-          const caption = document.createElement("p");
-          caption.className = "thumbnail-caption";
-          caption.textContent = photo.caption || "Brak opisu";
-
-          thumbnail.appendChild(img);
-          thumbnail.appendChild(caption);
-          placePhotosGallery.appendChild(thumbnail);
-        });
-      }
-
-      // Inicjalizacja mapy z lokalizacją miejsca
-      if (placeData.coords && placeData.coords.lat && placeData.coords.lng) {
-        const map = L.map('place-map').setView([placeData.coords.lat, placeData.coords.lng], 13);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(map);
-        L.marker([placeData.coords.lat, placeData.coords.lng]).addTo(map).bindPopup(placeData.name).openPopup();
-        setTimeout(() => map.invalidateSize(), 400);
+    // Funkcja do aktualizacji zawartości modalu galerii
+    function updateGalleryModal() {
+      const photo = photosData[currentPhotoIndex];
+      if (photo) {
+        document.getElementById("gallery-image").src = photo.url;
+        document.getElementById("gallery-image").alt = photo.caption;
+        document.getElementById("gallery-caption").textContent = photo.caption;
       }
     }
 
-    // --- Pobieranie danych z Firebase i uruchamianie renderowania ---
+    // Nawigacja w galerii
+    window.prevPhoto = function () {
+      currentPhotoIndex = (currentPhotoIndex - 1 + photosData.length) % photosData.length;
+      updateGalleryModal();
+    };
+
+    window.nextPhoto = function () {
+      currentPhotoIndex = (currentPhotoIndex + 1) % photosData.length;
+      updateGalleryModal();
+    };
+
+    // Obsługa klawisza ESC
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") {
+        if (document.getElementById("galleryModal").style.display === "flex") {
+          closeGalleryModal();
+        }
+        if (document.getElementById("msgModal").style.display === "flex") {
+          closeMsgModal();
+        }
+      }
+      if (
+        document.getElementById("galleryModal").style.display === "flex" &&
+        photosData.length > 1
+      ) {
+        if (e.key === "ArrowLeft") {
+          prevPhoto();
+        } else if (e.key === "ArrowRight") {
+          nextPhoto();
+        }
+      }
+    });
+
     const urlParams = new URLSearchParams(window.location.search);
     const tripId = urlParams.get("tripId");
-    const placeId = urlParams.get("placeId");
+    const placeId = urlParams.get("id");
 
-    if (tripId && placeId) {
-      const placeUrl = `${firebaseBaseUrl}/trips/${tripId}/places/${placeId}.json`;
-      fetch(placeUrl)
-        .then(response => {
-          if (!response.ok) {
-            throw new Error(`Błąd sieci: ${response.status}`);
-          }
-          return response.json();
-        })
-        .then(data => {
-          if (data) {
-            renderPlaceDetails(data);
-          } else {
-            document.getElementById("place-content").innerHTML = "<p>❌ Nie znaleziono miejsca.</p>";
-          }
-        })
-        .catch(err => {
-          console.error("Błąd ładowania miejsca:", err);
-          document.getElementById("place-content").innerHTML = "<p>❌ Nie udało się załadować miejsca.</p>";
-        });
-    } else {
-      document.getElementById("place-content").innerHTML = "<p>❌ Brak ID wyprawy lub miejsca w URL.</p>";
+    if (!tripId || !placeId) {
+      document.getElementById("place-content").innerHTML =
+        "<p>❌ Nieprawidłowy adres URL. Brakuje ID wyprawy lub miejsca.</p>";
     }
 
-    // --- Funkcje pomocnicze i obsługa UI ---
+    // Adresy URL
+    const placeUrl = `${firebaseBaseUrl}trips/${tripId}/places/${placeId}.json`;
+    const backLink = document.getElementById("backLink");
+    backLink.href = `trip.html?id=${tripId}`;
+
+    fetch(placeUrl)
+      .then((res) => {
+        if (!res.ok) throw new Error("Błąd ładowania danych.");
+        return res.json();
+      })
+      .then((place) => {
+        if (!place) {
+          document.getElementById("place-content").innerHTML =
+            "<p>❌ Nie znaleziono miejsca.</p>";
+          return;
+        }
+
+        const placeContent = document.getElementById("place-content");
+        placeContent.innerHTML = `
+          <h1>${place.name}</h1>
+          <p><strong>Kategoria:</strong> ${getCategoryLabel(place.category)}</p>
+          <p><strong>Data:</strong> ${formatDate(place.date)}</p>
+          <p><strong>Opis:</strong> ${place.description || "Brak opisu."}</p>
+        `;
+
+        // Ładowanie głównego zdjęcia
+        if (place.mainPhoto) {
+          const mainPhotoHtml = `
+            <img src="${place.mainPhoto}" alt="Główne zdjęcie miejsca" class="place-image">
+          `;
+          placeContent.innerHTML += mainPhotoHtml;
+        }
+
+        // Inicjalizacja mapy Leaflet
+        const placeMap = document.getElementById("place-map");
+        if (place.coords && place.coords.lat && place.coords.lng) {
+          placeMap.style.height = "400px";
+          const map = L.map("place-map").setView(
+            [place.coords.lat, place.coords.lng],
+            13
+          );
+          L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            attribution:
+              '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+          }).addTo(map);
+          L.marker([place.coords.lat, place.coords.lng]).addTo(map).bindPopup(place.name);
+          map.invalidateSize();
+        } else {
+          placeMap.style.display = "none";
+        }
+
+        // Ładowanie galerii zdjęć
+        const photoGallery = document.getElementById("place-photos");
+        photosData = Array.isArray(place.photos) ? place.photos : [];
+        if (photosData.length > 0) {
+          photosData.forEach((photo, index) => {
+            const item = document.createElement("div");
+            item.className = "photo-item-thumb";
+            item.innerHTML = `
+                <img src="${photo.url}" alt="${photo.caption}" onclick="openGalleryModal(${index})">
+                <p>${photo.caption}</p>
+              `;
+            photoGallery.appendChild(item);
+          });
+        }
+      })
+      .catch((err) => {
+        console.error("Błąd ładowania miejsca:", err);
+        document.getElementById("place-content").innerHTML =
+          "<p>❌ Nie udało się załadować miejsca.</p>";
+      });
+
+    // --- Funkcje pomocnicze ---
     function formatDate(dateStr) {
       if (!dateStr) return "Brak daty";
       const date = new Date(dateStr);
@@ -210,57 +235,6 @@
     window.closeMsgModal = function () {
       document.getElementById("msgModal").style.display = "none";
     };
-
-    window.openGalleryModal = function (index) {
-      currentPhotoIndex = index;
-      updateGalleryImage();
-      document.getElementById("galleryModal").style.display = "flex";
-    };
-
-    window.closeGalleryModal = function () {
-      document.getElementById("galleryModal").style.display = "none";
-    };
-
-    window.nextPhoto = function () {
-      if (photosData.length > 0) {
-        currentPhotoIndex = (currentPhotoIndex + 1) % photosData.length;
-        updateGalleryImage();
-      }
-    };
-
-    window.prevPhoto = function () {
-      if (photosData.length > 0) {
-        currentPhotoIndex = (currentPhotoIndex - 1 + photosData.length) % photosData.length;
-        updateGalleryImage();
-      }
-    };
-
-    function updateGalleryImage() {
-      if (photosData[currentPhotoIndex]) {
-        const photo = photosData[currentPhotoIndex];
-        document.getElementById("galleryImage").src = photo.url;
-        document.getElementById("galleryCaption").textContent = photo.caption || "Brak opisu";
-      }
-    }
-
-    // Obsługa klawisza ESC
-    document.addEventListener("keydown", function (e) {
-      if (e.key === "Escape") {
-        closeGalleryModal();
-        closeMsgModal();
-      }
-    });
-
-    // Obsługa klawiszy strzałek dla galerii zdjęć
-    document.addEventListener("keydown", function (e) {
-      if (document.getElementById("galleryModal").style.display === "flex") {
-        if (e.key === "ArrowLeft") {
-          prevPhoto();
-        } else if (e.key === "ArrowRight") {
-          nextPhoto();
-        }
-      }
-    });
   </script>
 </body>
 </html>
