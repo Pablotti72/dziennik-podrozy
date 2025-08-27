@@ -39,9 +39,9 @@ body {
   border: none;
   padding: 8px 12px;
   font-size: 14px;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
-  transition: background 0.3s ease;
+  transition: background 0.2s;
   width: 100%;
   text-align: center;
 }
@@ -51,117 +51,61 @@ body {
 }
 
 .edit-btn {
-  background: #2c3e50;
-  color: white;
-  border: none;
-  padding: 8px 12px;
-  font-size: 14px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background 0.3s ease;
-  width: 100%;
-  text-align: center;
+    background: #FFC107;
+    color: #333;
+    border: none;
+    padding: 8px 12px;
+    font-size: 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s;
+    width: 100%;
+    text-align: center;
 }
 
 .edit-btn:hover {
-  background: #1a252f;
+    background: #ffb300;
 }
 
-.delete-btn {
-  background: #e74c3c;
-  color: white;
-  border: none;
-  padding: 6px 10px;
-  font-size: 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.3s ease;
-}
-
-.delete-btn:hover {
-  background: #c0392b;
-}
-
-/* --- LINK POWROTNY --- */
-.back-link {
-  position: absolute;
-  top: 15px;
-  left: 15px;
-  z-index: 1000;
-  background: white;
-  padding: 8px 12px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  text-decoration: none;
-  color: #2c3e50;
-  font-weight: bold;
-  transition: background 0.3s ease;
-}
-
-.back-link:hover {
-  background: #f0f0f0;
-}
-
-/* --- MAPA --- */
+/* --- MAPA GŁÓWNA --- */
 #map {
+  width: 100%;
   height: 100vh;
-  width: 100%;
-  z-index: 1;
-}
-
-/* --- LISTA WYPRAW --- */
-.trip-list-container {
-  position: absolute;
-  bottom: 0;
-  width: 100%;
-  z-index: 1000;
-  display: flex;
-  overflow-x: auto;
-  gap: 15px;
-  padding: 10px 15px;
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(5px);
-  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
-  box-sizing: border-box;
-}
-
-.trip-card {
-  flex: 0 0 auto;
-  width: 220px;
-  padding: 15px;
-  background: white;
-  border-radius: 12px;
+  border: 2px solid #ddd;
+  border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  text-align: left;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  cursor: pointer;
-  border: 1px solid #ddd;
+  background-color: #f0f0f0;
 }
 
-.trip-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+/* --- MAPA WYPRAWY --- */
+#trip-map {
+  width: 100%;
+  height: 500px;
+  border-radius: 8px;
+  margin: 20px 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.trip-card h3 {
-  margin: 0 0 5px 0;
-  font-size: 16px;
-  color: #2c3e50;
+/* --- MODAL Z PRZEWIJANIEM --- */
+.scrollable-modal {
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 20px;
+  border-radius: 12px;
+  background: white;
 }
 
-.trip-card p {
-  margin: 0;
-  font-size: 12px;
-  color: #777;
+.scrollable-modal h2 {
+  position: sticky;
+  top: 0;
+  background: white;
+  padding: 0 0 10px;
+  margin: 0 0 15px;
+  z-index: 10;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
-.trip-actions {
-  display: flex;
-  gap: 5px;
-  margin-top: 10px;
-}
-
-/* --- MODALE --- */
+/* --- MODAL (FORMULARZ) --- */
 .modal {
   display: none;
   position: fixed;
@@ -176,41 +120,41 @@ body {
 }
 
 .modal-content {
-  background-color: #fefefe;
-  padding: 25px;
-  border-radius: 12px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-  max-width: 500px;
+  background-color: white;
   width: 90%;
-  box-sizing: border-box;
-  text-align: center;
-  position: relative;
+  max-width: 500px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  animation: fadeIn 0.3s ease;
 }
 
-.modal-content.scrollable-modal {
-  max-height: 80vh;
-  overflow-y: auto;
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 .modal-content h2 {
-  margin-top: 0;
-  font-size: 24px;
   color: #2c3e50;
+  border-bottom: 2px solid #ddd;
+  padding-bottom: 8px;
+  margin-bottom: 15px;
 }
 
-.modal-content form {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-  text-align: left;
+.modal-content label {
+  font-weight: bold;
+  color: #555;
 }
 
-.modal-content input,
+.modal-content input[type="text"],
+.modal-content input[type="url"],
+.modal-content input[type="date"],
+.modal-content select,
 .modal-content textarea,
-.modal-content select {
+.modal-content input[type="password"] {
   width: 100%;
   padding: 10px;
-  border: 1px solid #ccc;
+  margin-top: 5px;
+  border: 1px solid #ddd;
   border-radius: 6px;
   box-sizing: border-box;
 }
@@ -220,175 +164,20 @@ body {
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  margin-top: 10px;
-  font-weight: bold;
+  margin-top: 15px;
 }
 
-.modal-content button.submit-btn {
+.modal-content button[type="submit"] {
   background: #4CAF50;
   color: white;
-  transition: background 0.3s ease;
 }
 
-.modal-content button.submit-btn:hover {
-  background: #45a049;
-}
-
-.modal-content button.cancel-btn {
-  background: #f4f4f4;
+.modal-content button[type="button"] {
+  background: #ccc;
   color: #333;
-  transition: background 0.3s ease;
 }
 
-.modal-content button.cancel-btn:hover {
-  background: #e0e0e0;
-}
-
-/* --- KONTENERY ZDJĘĆ --- */
-.photo-item {
-  border: 1px solid #eee;
-  padding: 10px;
-  border-radius: 8px;
-  margin-bottom: 10px;
-  background: #f9f9f9;
-}
-
-.add-photo-btn {
-  background: #3498db;
-  color: white;
-  border: none;
-  padding: 8px 12px;
-  font-size: 14px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background 0.3s ease;
-}
-
-.add-photo-btn:hover {
-  background: #2980b9;
-}
-
-.no-content-message {
-  text-align: center;
-  color: #777;
-  font-style: italic;
-  padding: 20px;
-}
-
-/* --- STRONA Z WYPRAWĄ (trip.html) --- */
-.trip-page {
-  max-width: 800px;
-  margin: 30px auto;
-  padding: 20px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-}
-
-.trip-page h1 {
-  color: #2c3e50;
-  border-bottom: 2px solid #3498db;
-  padding-bottom: 8px;
-  margin-bottom: 8px;
-}
-
-.trip-page p {
-  margin: 4px 0;
-}
-
-.place-link {
-  display: block;
-  margin: 10px 0;
-  padding: 15px;
-  background: #f0f8ff;
-  border: 1px solid #e0eaf2;
-  border-radius: 8px;
-  text-decoration: none;
-  color: #2c3e50;
-  transition: background 0.3s ease;
-}
-
-.place-link:hover {
-  background: #eaf6ff;
-}
-
-/* --- STRONA Z MIEJSCAMI (place.html) --- */
-.place-page {
-  max-width: 800px;
-  /* Zmniejszono górny margines z 70px do 30px */
-  margin: 30px auto;
-  padding: 20px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-}
-
-.place-page h1 {
-  color: #2c3e50;
-  border-bottom: 2px solid #4CAF50;
-  padding-bottom: 8px;
-  /* Zmniejszono margines pod tytułem z 16px do 8px */
-  margin-bottom: 8px;
-}
-
-/* Dodano nową regułę, by zmniejszyć marginesy w paragrafach */
-.place-page p {
-  margin: 4px 0;
-}
-
-.place-page img.place-image {
-  width: 100%;
-  max-height: 500px;
-  object-fit: cover;
-  border-radius: 8px;
-  margin: 15px 0;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
-
-.place-info {
-  display: flex;
-  justify-content: space-around;
-  margin-bottom: 15px;
-  flex-wrap: wrap;
-}
-
-.info-box {
-  background: #f8f8f8;
-  padding: 10px 15px;
-  border-radius: 8px;
-  margin: 5px;
-  text-align: center;
-  flex: 1;
-}
-
-.info-box span {
-  font-weight: bold;
-  color: #4CAF50;
-  display: block;
-}
-
-.photo-gallery {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 10px;
-  margin-top: 20px;
-}
-
-.photo-gallery img {
-  width: 100%;
-  height: 100px;
-  object-fit: cover;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-}
-
-.photo-gallery img:hover {
-  transform: scale(1.05);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-}
-
+/* --- MODAL KOMUNIKATU --- */
 .msg-modal {
   display: none;
   position: fixed;
@@ -404,31 +193,165 @@ body {
 
 .msg-modal-content {
   background-color: white;
-  padding: 20px;
+  padding: 25px;
   border-radius: 12px;
   text-align: center;
-  max-width: 400px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-}
-
-.msg-modal-content p {
-  margin: 0 0 15px 0;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  animation: fadeIn 0.3s ease;
 }
 
 .msg-modal-content button {
-  background-color: #4CAF50;
-  color: white;
-  border: none;
   padding: 10px 20px;
-  border-radius: 8px;
+  border: none;
+  border-radius: 6px;
+  background: #4CAF50;
+  color: white;
   cursor: pointer;
-  transition: background 0.3s ease;
+  margin-top: 15px;
 }
 
-.msg-modal-content button:hover {
-  background-color: #45a049;
+.no-content-message {
+    text-align: center;
+    color: #888;
+    font-style: italic;
+    margin: 20px 0;
 }
 
+/* --- KONTROLKI MAPY --- */
+.leaflet-container {
+    border-radius: 12px;
+}
+.leaflet-popup-content-wrapper {
+    border-radius: 12px;
+}
+.leaflet-popup-content-wrapper a {
+    color: #4CAF50;
+}
+
+.leaflet-popup-content button {
+    background: #4CAF50;
+    color: white;
+    border: none;
+    padding: 6px 10px;
+    font-size: 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-right: 5px;
+    transition: background 0.2s;
+}
+
+.leaflet-popup-content button:hover {
+    background: #45a049;
+}
+
+.leaflet-popup-content button:nth-child(2) {
+    background: #F44336;
+}
+
+.leaflet-popup-content button:nth-child(2):hover {
+    background: #d32f2f;
+}
+
+/* --- WIDOKI WYPRAW I MIEJSC --- */
+.back-link {
+    font-size: 16px;
+    font-weight: bold;
+    text-decoration: none;
+    background: white;
+    padding: 8px 12px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: background 0.2s;
+}
+
+.back-link:hover {
+    background: #f0f0f0;
+}
+
+.back-link a {
+    text-decoration: none;
+    color: #2c3e50;
+}
+
+.place-page {
+  max-width: 800px;
+  margin: 20px auto;
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.place-page h1 {
+  color: #2c3e50;
+  border-bottom: 2px solid #4CAF50;
+  padding-bottom: 8px;
+  margin-bottom: 16px;
+}
+
+.place-page p {
+    margin: 4px 0;
+}
+
+/* Nowe style dla głównego zdjęcia */
+.main-image-container {
+    margin: 15px auto;
+    text-align: center;
+    max-width: 50%; /* Ograniczenie szerokości do 50% */
+}
+
+.main-image {
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.photo-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 15px;
+  padding: 15px;
+  background: white;
+  border-radius: 12px;
+  margin-top: 20px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.photo-item {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+}
+
+.photo-item img.place-image {
+  width: 100%;
+  height: 150px; /* Stała wysokość */
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.photo-item:hover img.place-image {
+  transform: scale(1.05);
+}
+
+.photo-item .photo-caption {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  padding: 8px;
+  font-size: 12px;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+/* Nowe style dla galerii zdjęć */
 .gallery-modal {
   display: none;
   position: fixed;
@@ -474,23 +397,43 @@ body {
 .gallery-close-btn {
   position: absolute;
   top: 20px;
-  right: 30px;
-  color: white;
+  right: 35px;
+  color: #f1f1f1;
   font-size: 40px;
   font-weight: bold;
+  transition: 0.3s;
   cursor: pointer;
-  z-index: 3001;
+}
+
+.gallery-close-btn:hover,
+.gallery-close-btn:focus {
+  color: #bbb;
+  text-decoration: none;
 }
 
 .gallery-nav-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 30px;
   color: white;
-  font-size: 50px;
+  background: rgba(0, 0, 0, 0.5);
+  border: none;
+  border-radius: 50%;
+  padding: 10px 15px;
   cursor: pointer;
-  user-select: none;
-  padding: 0 15px;
-  transition: transform 0.2s ease;
+  transition: background 0.3s;
+  z-index: 100;
 }
 
 .gallery-nav-btn:hover {
-    transform: scale(1.1);
+  background: rgba(0, 0, 0, 0.8);
+}
+
+.gallery-prev {
+  left: 10px;
+}
+
+.gallery-next {
+  right: 10px;
 }
