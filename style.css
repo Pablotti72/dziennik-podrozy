@@ -67,8 +67,8 @@ body, html {
 /* Dostosowanie nagłówka */
 .header-container {
   position: absolute;
-  top: 20px;
-  left: 20px; /* Przesunięcie nagłówka, aby nie kolidował z menu */
+  top: 60px; /* Przesunięcie w dół, poniżej przycisków skalowania */
+  left: 60px; /* Przesunięcie w prawo, aby nie kolidował z przyciskami */
   z-index: 999;
   display: flex;
   flex-direction: column;
@@ -298,3 +298,4 @@ body, html {
   text-align: center;
   width: 80%;
 }
+
