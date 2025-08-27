@@ -1,222 +1,133 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Miejsce</title>
-    <link rel="stylesheet" href="style.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Miejsce</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
+  <div class="back-link">
+    <a id="backLink" href="#">← Wróć do wyprawy</a>
+  </div>
 
-    <!-- Główny nagłówek z przyciskami -->
-    <header>
-        <div class="header-container-left">
-            <h1 class="page-title">Miejsce</h1>
-        </div>
-        <div class="header-container-right">
-            <button id="openMenuBtn" class="open-btn-menu">
-                <i class="fas fa-bars"></i>
-            </button>
-        </div>
-    </header>
+  <main class="place-page">
+    <article id="place-content">
+      <p>Ładowanie miejsca...</p>
+    </article>
+    <div id="place-map"></div>
+    <div id="place-photos" class="photo-gallery"></div>
+  </main>
 
-    <!-- Boczne menu -->
-    <div id="sideMenu" class="side-menu">
-        <button id="closeMenuBtn" class="close-btn-menu">&times;</button>
-        <div class="menu-content">
-            <h2>Opcje</h2>
-            <a id="backLink" href="#">← Wróć do wyprawy</a>
-            <a id="homeLink" href="index.html">🏠 Strona główna</a>
-        </div>
+  <div id="msgModal" class="msg-modal" style="display: none;">
+    <div class="msg-modal-content">
+      <p id="msgText"></p>
+      <button onclick="closeMsgModal()">OK</button>
     </div>
+  </div>
 
-    <!-- Główna zawartość strony z miejscem -->
-    <main class="place-page">
-        <article id="place-content">
-            <p>Ładowanie miejsca...</p>
-        </article>
-        <h2 class="section-title" id="gallery-title" style="display:none;">Galeria zdjęć</h2>
-        <div id="place-photos" class="photo-gallery"></div>
-    </main>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
+    const urlParams = new URLSearchParams(window.location.search);
+    const tripId = urlParams.get("tripId");
+    const placeId = urlParams.get("placeId");
+    const fromPage = urlParams.get("from");
+    const isEditing = sessionStorage.getItem("isEditing") === "true";
 
-    <!-- Lightbox dla zdjęć -->
-    <div id="lightbox" class="lightbox">
-        <span class="close-btn" onclick="closeLightbox()">&times;</span>
-        <span class="nav-btn prev" onclick="navigatePhotos(-1)">&#10094;</span>
-        <img id="lightbox-image" src="" alt="">
-        <span class="nav-btn next" onclick="navigatePhotos(1)">&#10095;</span>
-        <div id="lightbox-caption" class="lightbox-caption"></div>
-    </div>
+    const backLink = document.getElementById("backLink");
+    if (isEditing) {
+        backLink.href = `trip.html?id=${tripId}&from=edit`;
+    } else {
+        backLink.href = `trip.html?id=${tripId}`;
+    }
+    
+    const placeUrl = `${firebaseBaseUrl}/trips/${tripId}/places/${placeId}.json`;
+    const map = L.map("place-map");
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
-    <!-- Modal komunikatu -->
-    <div id="msgModal" class="msg-modal">
-        <div class="msg-modal-content">
-            <p id="msgText"></p>
-            <button onclick="closeMsgModal()">OK</button>
-        </div>
-    </div>
+    fetch(placeUrl)
+      .then(res => res.json())
+      .then(place => {
+        if (!place) {
+          document.getElementById("place-content").innerHTML = "<p>❌ Miejsce nie istnieje.</p>";
+          return;
+        }
 
-    <script>
-        const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
-        const urlParams = new URLSearchParams(window.location.search);
-        const tripId = urlParams.get("tripId");
-        const placeId = urlParams.get("placeId");
+        let editButton = '';
+        if (isEditing) {
+            editButton = `<button onclick="editPlace('${placeId}')">✏️ Edytuj to miejsce</button>`;
+        }
+
+        document.getElementById("place-content").innerHTML = `
+          <h1>${place.name}</h1>
+          <p><strong>Kategoria:</strong> ${getCategoryLabel(place.category)}</p>
+          <p><strong>Data:</strong> ${formatDate(place.date)}</p>
+          <p>${place.description || ''}</p>
+          ${editButton}
+        `;
         
-        let allPhotos = [];
-        let currentPhotoIndex = 0;
-
-        const backLink = document.getElementById("backLink");
-        const galleryTitle = document.getElementById("gallery-title");
-        const sideMenu = document.getElementById('sideMenu');
-        const openMenuBtn = document.getElementById('openMenuBtn');
-        const closeMenuBtn = document.getElementById('closeMenuBtn');
-        const placePhotosContainer = document.getElementById("place-photos");
-        const lightbox = document.getElementById("lightbox");
-        const lightboxImage = document.getElementById("lightbox-image");
-        const lightboxCaption = document.getElementById("lightbox-caption");
-
-        // Funkcja do formatowania daty
-        function formatDate(dateStr) {
-            if (!dateStr) return "Brak daty";
-            const date = new Date(dateStr);
-            return date.toLocaleDateString("pl-PL", { day: "numeric", month: "long", year: "numeric" });
+        if (place.image) {
+          const img = document.createElement("img");
+          img.src = place.image;
+          img.className = "place-image";
+          document.getElementById("place-content").appendChild(img);
         }
 
-        // Funkcja do pobierania etykiety kategorii
-        function getCategoryLabel(category) {
-            const categories = {
-                "miasto": "🏙️ Miasto", "park": "🌳 Park", "zabytek": "🏛️ Zabytek",
-                "muzeum": "🖼️ Muzeum", "hotel": "🏨 Hotel", "szczyt": "⛰️ Szczyt",
-                "restauracja": "🍽️ Restauracja", "miejsce_widokowe": "🌄 Miejsce widokowe",
-                "atrakcja_turystyczna": "🎯 Atrakcja turystyczna", "inny": "🔧 Inny"
-            };
-            return categories[category] || category;
+        if (place.lat && place.lng) {
+          map.setView([place.lat, place.lng], 12);
+          L.marker([place.lat, place.lng]).addTo(map).bindPopup(`<strong>${place.name}</strong>`).openPopup();
         }
 
-        // Funkcja do pokazywania komunikatów
-        function showMessage(text) {
-            document.getElementById("msgText").textContent = text;
-            document.getElementById("msgModal").style.display = "flex";
+        if (place.photos && place.photos.length > 0) {
+          const gallery = document.getElementById("place-photos");
+          place.photos.forEach(photo => {
+            const item = document.createElement("div");
+            item.className = "photo-item";
+            item.innerHTML = `
+              <img src="${photo.url}" alt="${photo.caption || ''}">
+              <p>${photo.caption || ''}</p>
+            `;
+            gallery.appendChild(item);
+          });
         }
+      })
+      .catch(err => {
+        console.error("Błąd ładowania miejsca:", err);
+        document.getElementById("place-content").innerHTML = "<p>❌ Nie udało się załadować miejsca.</p>";
+      });
 
-        function closeMsgModal() {
-            document.getElementById("msgModal").style.display = "none";
-        }
+    // --- Funkcje pomocnicze ---
+    function formatDate(dateStr) {
+      if (!dateStr) return "Brak daty";
+      const date = new Date(dateStr);
+      return date.toLocaleDateString("pl-PL", { day: "numeric", month: "long", year: "numeric" });
+    }
 
-        // Funkcja do otwierania menu bocznego
-        function openNav() {
-            sideMenu.style.width = "250px";
-        }
+    function getCategoryLabel(category) {
+      const categories = {
+        "miasto": "🏙️ Miasto", "park": "🌳 Park", "zabytek": "🏛️ Zabytek",
+        "muzeum": "🖼️ Muzeum", "hotel": "🏨 Hotel", "szczyt": "⛰️ Szczyt",
+        "restauracja": "🍽️ Restauracja", "miejsce_widokowe": "🌄 Miejsce widokowe",
+        "atrakcja_turystyczna": "🎯 Atrakcja turystyczna", "inny": "🔧 Inny"
+      };
+      return categories[category] || category;
+    }
 
-        // Funkcja do zamykania menu bocznego
-        function closeNav() {
-            sideMenu.style.width = "0";
-        }
-        
-        // Obsługa kliknięć przycisków menu
-        openMenuBtn.addEventListener('click', openNav);
-        closeMenuBtn.addEventListener('click', closeNav);
+    window.showMessage = function(text) {
+      document.getElementById("msgText").textContent = text;
+      document.getElementById("msgModal").style.display = "flex";
+    };
 
-        // Funkcje obsługujące lightbox
-        function openLightbox(url, caption) {
-            lightboxImage.src = url;
-            lightboxCaption.textContent = caption;
-            lightbox.style.display = "flex";
-        }
+    window.closeMsgModal = function() {
+      document.getElementById("msgModal").style.display = "none";
+    };
 
-        window.closeLightbox = function() {
-            lightbox.style.display = "none";
-        };
-
-        window.navigatePhotos = function(direction) {
-            currentPhotoIndex += direction;
-            if (currentPhotoIndex < 0) {
-                currentPhotoIndex = allPhotos.length - 1;
-            } else if (currentPhotoIndex >= allPhotos.length) {
-                currentPhotoIndex = 0;
-            }
-            const nextPhoto = allPhotos[currentPhotoIndex];
-            openLightbox(nextPhoto.url, nextPhoto.caption);
-        };
-
-        // Nasłuchiwanie na klawisze strzałek i Esc
-        document.addEventListener("keydown", function(e) {
-            if (lightbox.style.display === "flex") {
-                if (e.key === "ArrowLeft") {
-                    navigatePhotos(-1);
-                } else if (e.key === "ArrowRight") {
-                    navigatePhotos(1);
-                } else if (e.key === "Escape") {
-                    closeLightbox();
-                }
-            }
-            if (e.key === "Escape") {
-                closeMsgModal();
-            }
-        });
-
-        // Ładowanie danych z Firebase
-        function loadPlaceData() {
-            backLink.href = `trip.html?id=${tripId}`;
-            const placeUrl = `${firebaseBaseUrl}/trips/${tripId}/places/${placeId}.json`;
-
-            fetch(placeUrl)
-                .then(res => res.json())
-                .then(place => {
-                    if (!place) {
-                        document.getElementById("place-content").innerHTML = "<p>❌ Miejsce nie istnieje.</p>";
-                        return;
-                    }
-                    
-                    document.getElementById("place-content").innerHTML = `
-                        <h1>${place.name}</h1>
-                        <p><strong>Kategoria:</strong> ${getCategoryLabel(place.category)}</p>
-                        <p><strong>Data:</strong> ${formatDate(place.date)}</p>
-                        <p>${place.description || ''}</p>
-                    `;
-                    
-                    if (place.image) {
-                        const mainImg = document.createElement("img");
-                        mainImg.src = place.image;
-                        mainImg.className = "place-image";
-                        mainImg.onerror = function() { this.onerror=null; this.src='https://placehold.co/600x400/cccccc/333333?text=Brak%20zdjęcia%20głównego'; };
-                        document.getElementById("place-content").appendChild(mainImg);
-                    }
-
-                    if (place.photos && place.photos.length > 0) {
-                        allPhotos = place.photos;
-                        placePhotosContainer.innerHTML = "";
-                        galleryTitle.style.display = "block";
-                        
-                        place.photos.forEach((photo, index) => {
-                            const item = document.createElement("div");
-                            item.className = "photo-item";
-                            item.innerHTML = `
-                                <img src="${photo.url}" alt="${photo.caption || ''}" data-index="${index}" onerror="this.onerror=null; this.src='https://placehold.co/300x200/cccccc/333333?text=Brak%20zdjęcia';">
-                                <p>${photo.caption || ''}</p>
-                            `;
-                            placePhotosContainer.appendChild(item);
-                            
-                            const img = item.querySelector("img");
-                            img.addEventListener("click", () => {
-                                currentPhotoIndex = index;
-                                openLightbox(img.src, img.alt);
-                            });
-                        });
-                    } else {
-                        galleryTitle.style.display = "none";
-                        placePhotosContainer.innerHTML = "<p>Brak zdjęć w galerii.</p>";
-                    }
-                })
-                .catch(err => {
-                    console.error("Błąd ładowania miejsca:", err);
-                    document.getElementById("place-content").innerHTML = "<p>❌ Nie udało się załadować miejsca.</p>";
-                });
-        }
-
-        // Wywołanie funkcji ładowania danych przy starcie strony
-        loadPlaceData();
-    </script>
+    // To be implemented as part of trip.html logic, not this page.
+    window.editPlace = function(id) {
+        window.location.href = `trip.html?id=${tripId}&editPlaceId=${id}&from=edit`;
+    };
+  </script>
 </body>
 </html>
