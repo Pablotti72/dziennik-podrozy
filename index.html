@@ -6,8 +6,30 @@
   <title>Dziennik podróży</title>
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
+  <aside id="side-menu" class="side-menu">
+    <button class="close-btn-menu" onclick="toggleMenu()">×</button>
+    <div class="menu-content">
+      <h2>Menu</h2>
+      <a href="index.html">Strona główna</a>
+      <div class="menu-item-dropdown">
+        <a href="#" onclick="toggleDropdown('countries-dropdown')">Odwiedzone kraje <i class="fas fa-caret-down"></i></a>
+        <div id="countries-dropdown" class="dropdown-content">
+          </div>
+      </div>
+      <div class="menu-item-dropdown">
+        <a href="#" onclick="toggleDropdown('categories-dropdown')">Kategorie <i class="fas fa-caret-down"></i></a>
+        <div id="categories-dropdown" class="dropdown-content">
+          </div>
+      </div>
+      <a href="#">Wyszukiwarka</a>
+      <a href="#">Opcje sortowania</a>
+      <a href="#">Statystyki</a>
+    </div>
+  </aside>
+
   <div id="authModal" class="modal" style="display: none;">
     <div class="modal-content">
       <h2>🔐 Dostęp do edycji</h2>
@@ -18,11 +40,16 @@
     </div>
   </div>
 
-  <div class="header-container right-top">
-    <div class="header-box">Nasze podróże</div>
-    <button id="addTripBtn" class="add-btn" style="display: none;">➕ Dodaj wyprawę</button>
-    <button id="editModeBtn" class="edit-btn">🔧 Tryb edycji</button>
-  </div>
+  <header>
+    <div class="header-container-left">
+      <h1 class="page-title">Nasze podróże</h1>
+    </div>
+    <div class="header-container-right">
+      <button id="addTripBtn" class="add-btn" style="display: none;">➕ Dodaj wyprawę</button>
+      <button id="editModeBtn" class="edit-btn">🔧 Tryb edycji</button>
+      <button class="open-btn-menu" onclick="toggleMenu()">☰</button>
+    </div>
+  </header>
 
   <div id="map"></div>
 
@@ -222,28 +249,28 @@
       let fetchUrl, method;
 
       if (isEdit) {
-          if (originalId !== newId) {
-            try {
-              const oldTrip = await fetch(`${firebaseBaseUrl}/trips/${originalId}.json`).then(res => res.json());
-              if (oldTrip) {
-                await fetch(`${firebaseBaseUrl}/trips/${newId}.json`, { method: "PUT", body: JSON.stringify({...oldTrip, ...tripData}) });
-                await fetch(`${firebaseBaseUrl}/trips/${originalId}.json`, { method: "DELETE" });
-                closeTripModal();
-                showMessage("✅ Zmieniono nazwę i zapisano wyprawę!");
-                loadTrips();
-                return;
-              }
-            } catch (err) {
-              console.error("Błąd zmiany nazwy wyprawy:", err);
-              showMessage("Nie udało się zmienić nazwy wyprawy.");
+        if (originalId !== newId) {
+          try {
+            const oldTrip = await fetch(`${firebaseBaseUrl}/trips/${originalId}.json`).then(res => res.json());
+            if (oldTrip) {
+              await fetch(`${firebaseBaseUrl}/trips/${newId}.json`, { method: "PUT", body: JSON.stringify({...oldTrip, ...tripData}) });
+              await fetch(`${firebaseBaseUrl}/trips/${originalId}.json`, { method: "DELETE" });
+              closeTripModal();
+              showMessage("✅ Zmieniono nazwę i zapisano wyprawę!");
+              loadTrips();
               return;
             }
+          } catch (err) {
+            console.error("Błąd zmiany nazwy wyprawy:", err);
+            showMessage("Nie udało się zmienić nazwy wyprawy.");
+            return;
           }
-          fetchUrl = `${firebaseBaseUrl}/trips/${id}.json`;
-          method = "PATCH";
+        }
+        fetchUrl = `${firebaseBaseUrl}/trips/${id}.json`;
+        method = "PATCH";
       } else {
-          fetchUrl = `${firebaseBaseUrl}/trips/${newId}.json`;
-          method = "PUT";
+        fetchUrl = `${firebaseBaseUrl}/trips/${newId}.json`;
+        method = "PUT";
       }
 
       fetch(fetchUrl, {
@@ -299,6 +326,18 @@
       document.getElementById("msgModal").style.display = "flex";
     };
     window.closeMsgModal = function() { document.getElementById("msgModal").style.display = "none"; };
+    function toggleMenu() {
+      const menu = document.getElementById("side-menu");
+      if (menu.style.width === "250px") {
+        menu.style.width = "0";
+      } else {
+        menu.style.width = "250px";
+      }
+    }
+    function toggleDropdown(id) {
+      const dropdown = document.getElementById(id);
+      dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
+    }
 
     document.addEventListener("keydown", function(e) {
       if (e.key === "Escape") {
@@ -309,8 +348,56 @@
         if (addTripBtn && addTripBtn.textContent === "🛑 Anuluj") {
           addTripBtn.click();
         }
+        document.getElementById("side-menu").style.width = "0";
       }
     });
+
+    // Poniższa funkcja będzie uzupełniona w kolejnym kroku
+    function fetchAndPopulateMenu() {
+        fetch(tripsUrl)
+            .then(res => res.json())
+            .then(trips => {
+                if (!trips) return;
+                const countries = {};
+                const categories = {};
+                Object.values(trips).forEach(trip => {
+                    if (trip.places) {
+                        Object.values(trip.places).forEach(place => {
+                            // Populate countries (based on some logic, placeholder for now)
+                            // Populate categories
+                            if (place.category) {
+                                categories[place.category] = true;
+                            }
+                        });
+                    }
+                });
+
+                // Populate countries dropdown - this requires a country field
+                // For now, we'll assume we get countries from the places data, which is an upcoming change.
+                // const countriesDropdown = document.getElementById("countries-dropdown");
+                // Object.keys(countries).forEach(country => {
+                //     const link = document.createElement("a");
+                //     link.href = `list.html?country=${country}`;
+                //     link.textContent = country;
+                //     countriesDropdown.appendChild(link);
+                // });
+
+                // Populate categories dropdown
+                const categoriesDropdown = document.getElementById("categories-dropdown");
+                Object.keys(categories).forEach(category => {
+                    const link = document.createElement("a");
+                    link.href = `list.html?category=${category}`;
+                    link.textContent = getCategoryLabel(category);
+                    categoriesDropdown.appendChild(link);
+                });
+
+            })
+            .catch(err => console.error("Błąd ładowania danych dla menu:", err));
+    }
+
+    // Wywołanie funkcji po załadowaniu strony
+    fetchAndPopulateMenu();
+
   </script>
 </body>
 </html>
