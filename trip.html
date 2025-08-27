@@ -53,12 +53,7 @@
         <label>Data wizyty: <input type="date" id="placeDate" required></label><br><br>
 
         <h3>Galeria zdjęć</h3>
-        <div id="photos-container">
-          <div class="photo-item">
-            <label>Zdjęcie URL: <input type="url" class="photo-url" placeholder="https://..."></label><br>
-            <label>Komentarz: <input type="text" class="photo-caption" placeholder="Opis zdjęcia"></label><br><br>
-          </div>
-        </div>
+        <div id="photos-container"></div>
         <button type="button" onclick="addPhotoField()">➕ Dodaj zdjęcie</button><br><br>
 
         <button type="submit">Zapisz</button>
@@ -88,25 +83,13 @@
     let tripData = null;
     let isAddingPlace = false;
 
-    // --- Ustawienie dynamicznego linku powrotnego ---
     const backLink = document.getElementById("backLink");
-    if (fromPage === "edit") {
-        backLink.href = "index.html?from=edit";
-    } else {
-        backLink.href = "index.html";
-    }
+    backLink.href = fromPage === "edit" ? "index.html?from=edit" : "index.html";
 
-    // --- Ładowanie i wyświetlanie danych ---
     function loadTripAndPlaces() {
       document.getElementById("trip-content").innerHTML = "<p>Ładowanie wyprawy...</p>";
-      
-      // Wyświetlanie przycisku dodawania tylko w trybie edycji
       const addPlaceBtn = document.getElementById("addPlaceBtn");
-      if (isEditing) {
-        addPlaceBtn.style.display = "block";
-      } else {
-        addPlaceBtn.style.display = "none";
-      }
+      addPlaceBtn.style.display = isEditing ? "block" : "none";
 
       fetch(`${firebaseBaseUrl}/trips/${tripId}.json`)
         .then(res => res.json())
@@ -121,9 +104,7 @@
             <p><strong>Okres:</strong> ${formatDate(trip.dateFrom)} – ${formatDate(trip.dateTo)}</p>
             <p>${trip.description || ''}</p>
           `;
-          if (trip.lat && trip.lng) {
-            map.setView([trip.lat, trip.lng], 10);
-          }
+          if (trip.lat && trip.lng) map.setView([trip.lat, trip.lng], 10);
 
           map.eachLayer(l => { if (l instanceof L.Marker) map.removeLayer(l); });
           if (trip.places) {
@@ -131,25 +112,24 @@
               const p = trip.places[key];
               if (!p.lat || !p.lng) return;
               const m = L.marker([p.lat, p.lng]).addTo(map);
-
               let popupContent;
               if (isEditing) {
-                  popupContent = `
-                      <strong><a href="place.html?tripId=${tripId}&placeId=${key}&from=edit">${p.name}</a></strong><br>
-                      ${p.description || ''}<br>
-                      <img src="${p.image}" width="100"><br>
-                      <small>${p.category} • ${formatDate(p.date)}</small><br><br>
-                      <button onclick="editPlace('${key}')">✏️ Edytuj</button>
-                      <button onclick="deletePlace('${key}')">🗑️ Usuń</button>
-                  `;
+                popupContent = `
+                  <strong><a href="place.html?tripId=${tripId}&placeId=${key}&from=edit">${p.name}</a></strong><br>
+                  ${p.description || ''}<br>
+                  <img src="${p.image}" width="100"><br>
+                  <small>${p.category} • ${formatDate(p.date)}</small><br><br>
+                  <button onclick="editPlace('${key}')">✏️ Edytuj</button>
+                  <button onclick="deletePlace('${key}')">🗑️ Usuń</button>
+                `;
               } else {
-                  popupContent = `
-                      <strong><a href="place.html?tripId=${tripId}&placeId=${key}">${p.name}</a></strong><br>
-                      ${p.description || ''}<br>
-                      <img src="${p.image}" width="100"><br>
-                      <small>${p.category} • ${formatDate(p.date)}</small><br><br>
-                      <em>Kliknij, aby zobaczyć szczegóły</em>
-                  `;
+                popupContent = `
+                  <strong><a href="place.html?tripId=${tripId}&placeId=${key}">${p.name}</a></strong><br>
+                  ${p.description || ''}<br>
+                  <img src="${p.image}" width="100"><br>
+                  <small>${p.category} • ${formatDate(p.date)}</small><br><br>
+                  <em>Kliknij, aby zobaczyć szczegóły</em>
+                `;
               }
               m.bindPopup(popupContent);
             });
@@ -163,7 +143,6 @@
 
     loadTripAndPlaces();
 
-    // --- Logika edycji ---
     if (isEditing) {
       document.getElementById("addPlaceBtn").addEventListener("click", function () {
         if (isAddingPlace) {
@@ -191,12 +170,8 @@
       document.getElementById("placeForm").reset();
       document.getElementById("placeId").value = "";
       document.getElementById("originalPlaceId").value = "";
-      document.getElementById("photos-container").innerHTML = `
-        <div class="photo-item">
-          <label>Zdjęcie URL: <input type="url" class="photo-url" placeholder="https://..."></label><br>
-          <label>Komentarz: <input type="text" class="photo-caption" placeholder="Opis zdjęcia"></label><br><br>
-        </div>
-      `;
+      document.getElementById("photos-container").innerHTML = "";
+      addPhotoField();
       document.getElementById("placeLat").value = lat;
       document.getElementById("placeLng").value = lng;
       document.getElementById("placeModalTitle").textContent = "Dodaj nowe miejsce";
@@ -225,19 +200,38 @@
         p.photos.forEach(photo => {
           const item = document.createElement("div");
           item.className = "photo-item";
-          item.innerHTML = `
-            <label>Zdjęcie URL: <input type="url" class="photo-url" value="${photo.url || ''}" placeholder="https://..."></label><br>
-            <label>Komentarz: <input type="text" class="photo-caption" value="${photo.caption || ''}" placeholder="Opis zdjęcia"></label><br><br>
-          `;
+
+          const urlInput = document.createElement("input");
+          urlInput.type = "url";
+          urlInput.className = "photo-url";
+          urlInput.placeholder = "https://...";
+          urlInput.value = photo.url || "";
+
+          const captionInput = document.createElement("input");
+          captionInput.type = "text";
+          captionInput.className = "photo-caption";
+          captionInput.placeholder = "Opis zdjęcia";
+          captionInput.value = photo.caption || "";
+
+          const removeBtn = document.createElement("button");
+          removeBtn.type = "button";
+          removeBtn.textContent = "❌ Usuń zdjęcie";
+          removeBtn.onclick = () => item.remove();
+
+          item.appendChild(document.createTextNode("Zdjęcie URL: "));
+          item.appendChild(urlInput);
+          item.appendChild(document.createElement("br"));
+          item.appendChild(document.createTextNode("Komentarz: "));
+          item.appendChild(captionInput);
+          item.appendChild(document.createElement("br"));
+          item.appendChild(removeBtn);
+          item.appendChild(document.createElement("br"));
+          item.appendChild(document.createElement("br"));
+
           container.appendChild(item);
         });
       } else {
-        container.innerHTML = `
-          <div class="photo-item">
-            <label>Zdjęcie URL: <input type="url" class="photo-url" placeholder="https://..."></label><br>
-            <label>Komentarz: <input type="text" class="photo-caption" placeholder="Opis zdjęcia"></label><br><br>
-          </div>
-        `;
+        addPhotoField();
       }
       document.getElementById("placeModalTitle").textContent = "Edytuj miejsce";
       document.getElementById("placeModal").style.display = "flex";
@@ -250,13 +244,10 @@
       const isEdit = id !== "";
 
       const photos = [];
-      document.querySelectorAll(".photo-url").forEach((input, i) => {
-        if (input.value.trim() !== "") {
-          photos.push({
-            url: input.value.trim(),
-            caption: document.querySelectorAll(".photo-caption")[i]?.value.trim() || ""
-          });
-        }
+      document.querySelectorAll(".photo-item").forEach(item => {
+        const url = item.querySelector(".photo-url").value.trim();
+        const caption = item.querySelector(".photo-caption").value.trim();
+        if (url) photos.push({ url, caption });
       });
 
       const placeData = {
@@ -343,7 +334,6 @@
       }
     };
 
-    // --- Funkcje pomocnicze ---
     function generateId(name) {
       return name
         .toLowerCase()
@@ -357,29 +347,6 @@
     function formatDate(dateStr) {
       return dateStr ? new Date(dateStr).toLocaleDateString("pl-PL", { day: "numeric", month: "long", year: "numeric" }) : "Brak daty";
     }
+
     window.addPhotoField = function() {
-      const container = document.getElementById("photos-container");
-      const item = document.createElement("div");
-      item.className = "photo-item";
-      item.innerHTML = `
-        <label>Zdjęcie URL: <input type="url" class="photo-url" placeholder="https://..."></label><br>
-        <label>Komentarz: <input type="text" class="photo-caption" placeholder="Opis zdjęcia"></label><br><br>
-      `;
-      container.appendChild(item);
-    };
-    window.closePlaceModal = function() { document.getElementById("placeModal").style.display = "none"; };
-    window.closeMsgModal = function() { document.getElementById("msgModal").style.display = "none"; };
-    window.showMessage = function(text) { document.getElementById("msgText").textContent = text; document.getElementById("msgModal").style.display = "flex"; };
-    document.addEventListener("keydown", function(e) {
-      if (e.key === "Escape") {
-        document.getElementById("placeModal").style.display = "none";
-        document.getElementById("msgModal").style.display = "none";
-        const addBtn = document.getElementById("addPlaceBtn");
-        if (addBtn && addBtn.textContent === "🛑 Anuluj") {
-          addBtn.click();
-        }
-      }
-    });
-  </script>
-</body>
-</html>
+      const
