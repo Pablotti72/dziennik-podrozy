@@ -86,12 +86,27 @@
       `;
       document.getElementById("place-content").innerHTML = contentHtml;
 
+      // Sprawdzamy, czy dane lokalizacji są zagnieżdżone w "coords" czy bezpośrednio w obiekcie
+      let lat, lng;
+      if (place.coords) {
+          lat = place.coords.lat;
+          lng = place.coords.lng;
+      } else if (place.lat && place.lng) {
+          lat = place.lat;
+          lng = place.lng;
+      } else {
+          // Jeśli brak danych, nie próbuj tworzyć mapy
+          console.error("Brak danych geolokalizacyjnych dla tego miejsca.");
+          document.getElementById("place-map").style.display = "none";
+          return;
+      }
+
       // Wyświetlanie mapy z lokalizacją
-      const map = L.map("place-map").setView([place.coords.lat, place.coords.lng], 13);
+      const map = L.map("place-map").setView([lat, lng], 13);
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         attribution: "© OpenStreetMap contributors",
       }).addTo(map);
-      L.marker([place.coords.lat, place.coords.lng]).addTo(map).bindPopup(place.name).openPopup();
+      L.marker([lat, lng]).addTo(map).bindPopup(place.name).openPopup();
       
       // Obsługa galerii zdjęć - jeśli istnieje
       photosData = place.photos || [];
