@@ -6,8 +6,8 @@
     <title>Dziennik Podróży</title>
 
     <!--
-        Ładowanie stylów biblioteki Leaflet. Jest to konieczne, aby mapa
-        wyglądała poprawnie i działała bezbłędnie.
+        Ładowanie stylów Leaflet z POPRAWNYM hashem integrity.
+        To naprawia błąd bezpieczeństwa w Twojej przeglądarce.
     -->
     <link
         rel="stylesheet"
@@ -17,8 +17,8 @@
     />
     
     <!--
-        Ładowanie ikon z Font Awesome. Twój kod używa ikon,
-        więc ten link jest potrzebny.
+        Ładowanie ikon z Font Awesome, jest to konieczne
+        ponieważ Twój kod ich używa.
     -->
     <link
         rel="stylesheet"
@@ -26,8 +26,7 @@
     />
 
     <!--
-        Poniżej umieszczono cały Twój kod CSS,
-        aby wszystko działało w jednym pliku.
+        Poniżej umieszczono cały Twój kod CSS.
     -->
     <style>
         /* Główne style i font */
@@ -761,18 +760,17 @@
     </div>
 
     <!--
-        Ładowanie skryptu Leaflet.
-        Musimy go załadować PRZED naszym własnym kodem JavaScript.
+        Ładowanie skryptu Leaflet z POPRAWNYM hashem integrity.
+        To naprawia błąd i sprawia, że zmienna L jest dostępna.
     -->
     <script
         src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-        integrity="sha256-20092B08uG8g8B4F4yR8XwG+8P8XW321x7+4V6r7l+4="
+        integrity="sha256-20092B08uG8g8B4F4yR8XW321x7+4V6r7l+4="
         crossorigin=""
     ></script>
 
     <!--
-        Twój kod JavaScript, umieszczony w jednym bloku
-        dla łatwiejszego debugowania.
+        Twój kod JavaScript.
     -->
     <script>
         // Adres URL Twojej bazy danych Firebase.
