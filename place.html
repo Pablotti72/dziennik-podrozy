@@ -41,7 +41,6 @@
     const urlParams = new URLSearchParams(window.location.search);
     const tripId = urlParams.get("tripId");
     const placeId = urlParams.get("placeId");
-    const fromPage = urlParams.get("from");
     const isEditing = sessionStorage.getItem("isEditing") === "true";
 
     let allPhotos = [];
@@ -49,20 +48,21 @@
 
     const backLink = document.getElementById("backLink");
     if (isEditing) {
-        backLink.href = `trip.html?id=${tripId}&from=edit`;
+      backLink.href = `trip.html?id=${tripId}&mode=edit`;
     } else {
-        backLink.href = `trip.html?id=${tripId}`;
+      backLink.href = `trip.html?id=${tripId}`;
     }
-    
-    const placeUrl = `${firebaseBaseUrl}/trips/${tripId}/places/${placeId}.json`;
+
     const map = L.map("place-map");
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+
+    const placeUrl = `${firebaseBaseUrl}/trips/${tripId}/places/${placeId}.json`;
 
     fetch(placeUrl)
       .then(res => res.json())
       .then(place => {
         if (!place) {
-          document.getElementById("place-content").innerHTML = "<p>❌ Miejsce nie istnieje.</p>";
+          document.getElementById("place-content").innerHTML = "<h1>❌ Miejsce nie istnieje.</h1>";
           return;
         }
 
@@ -95,44 +95,42 @@
       })
       .catch(err => {
         console.error("Błąd ładowania miejsca:", err);
-        document.getElementById("place-content").innerHTML = "<p>❌ Nie udało się załadować miejsca.</p>";
+        document.getElementById("place-content").innerHTML = "<h1>❌ Nie udało się załadować miejsca.</h1>";
       });
 
     // --- Funkcje galerii (lightbox) ---
     function addPhotoClickListeners() {
-        const photos = document.querySelectorAll(".photo-item img");
-        photos.forEach((img, index) => {
-            img.addEventListener("click", () => {
-                currentPhotoIndex = index;
-                openLightbox(img.src, img.alt);
-            });
+      const photos = document.querySelectorAll(".photo-item img");
+      photos.forEach((img, index) => {
+        img.addEventListener("click", () => {
+          currentPhotoIndex = index;
+          openLightbox(img.src, img.alt);
         });
+      });
     }
 
     window.openLightbox = function(url, caption) {
-        const lightbox = document.getElementById("lightbox");
-        const lightboxImage = document.getElementById("lightbox-image");
-        const lightboxCaption = document.getElementById("lightbox-caption");
-
-        lightboxImage.src = url;
-        lightboxCaption.textContent = caption;
-        lightbox.style.display = "flex";
+      const lightbox = document.getElementById("lightbox");
+      const lightboxImage = document.getElementById("lightbox-image");
+      const lightboxCaption = document.getElementById("lightbox-caption");
+      lightboxImage.src = url;
+      lightboxCaption.textContent = caption;
+      lightbox.style.display = "flex";
     };
 
     window.closeLightbox = function() {
-        document.getElementById("lightbox").style.display = "none";
+      document.getElementById("lightbox").style.display = "none";
     };
 
     window.navigatePhotos = function(direction) {
-        currentPhotoIndex += direction;
-        if (currentPhotoIndex < 0) {
-            currentPhotoIndex = allPhotos.length - 1;
-        } else if (currentPhotoIndex >= allPhotos.length) {
-            currentPhotoIndex = 0;
-        }
-        
-        const nextPhoto = allPhotos[currentPhotoIndex];
-        openLightbox(nextPhoto.url, nextPhoto.caption);
+      currentPhotoIndex += direction;
+      if (currentPhotoIndex < 0) {
+        currentPhotoIndex = allPhotos.length - 1;
+      } else if (currentPhotoIndex >= allPhotos.length) {
+        currentPhotoIndex = 0;
+      }
+      const nextPhoto = allPhotos[currentPhotoIndex];
+      openLightbox(nextPhoto.url, nextPhoto.caption);
     };
 
     // --- Funkcje pomocnicze ---
