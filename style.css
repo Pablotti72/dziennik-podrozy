@@ -176,6 +176,7 @@ body {
   color: #333;
   font-size: 14px;
   box-sizing: border-box;
+  text-align: left; /* ← Gwarantuje wyrównanie tekstu do lewej */
 }
 
 .photo-caption:focus,
@@ -479,3 +480,4 @@ body {
 .gallery-next {
   right: 10px;
 }
+
