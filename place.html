@@ -103,6 +103,13 @@
 
           document.getElementById("place-content").innerHTML = `
             <h1>${place.name}</h1>
+            <div class="main-image-container">
+              ${
+                place.photos && place.photos.length > 0
+                  ? `<img src="${place.photos[0].url}" alt="Główne zdjęcie miejsca" class="main-image" />`
+                  : `<p class="no-content-message">Brak głównego zdjęcia.</p>`
+              }
+            </div>
             <p><strong>Kategoria:</strong> ${getCategoryLabel(
               place.category
             )}</p>
@@ -118,21 +125,25 @@
             mapContainer.style.display = "none";
           }
 
-          // Ładowanie i renderowanie zdjęć
+          // Ładowanie i renderowanie zdjęć w galerii
           const photoGallery = document.getElementById("place-photos");
           photoGallery.innerHTML = "";
           photosData = place.photos || [];
 
           if (photosData.length > 0) {
-            photosData.forEach((photo, index) => {
+            // Pomijamy pierwsze zdjęcie, bo jest wyświetlane jako główne
+            photosData.slice(1).forEach((photo, index) => {
               const galleryItem = document.createElement("div");
               galleryItem.className = "photo-item";
               galleryItem.innerHTML = `
-                <img src="${photo.url}" alt="${photo.caption}" class="place-image" onclick="openGalleryModal(${index})" />
+                <img src="${photo.url}" alt="${photo.caption}" class="place-image" onclick="openGalleryModal(${index + 1})" />
                 <p class="photo-caption">${photo.caption}</p>
               `;
               photoGallery.appendChild(galleryItem);
             });
+            if (photosData.length === 1) {
+              photoGallery.innerHTML = "<p>Brak dodatkowych zdjęć w galerii.</p>";
+            }
           } else {
             photoGallery.innerHTML =
               "<p>Brak zdjęć w galerii.</p>";
