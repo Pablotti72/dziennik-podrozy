@@ -505,16 +505,18 @@ body {
 
 .trip-main-content {
   display: flex;
-  flex-direction: row; /* Zmieniono na row, aby kolejność była zgodna z kodem HTML */
+  flex-direction: row;
   gap: 20px;
 }
 
 #trip-info-and-places {
   flex: 1;
+  flex-basis: 30%;
 }
 
 #trip-map-container {
   flex: 1;
+  flex-basis: 70%;
 }
 
 @media (max-width: 767px) {
