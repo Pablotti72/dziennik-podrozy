@@ -3,188 +3,184 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Galeria</title>
+  <title>Galeria miejsc</title>
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
 
-  <div class="back-link">
-    <a href="index.html">← Wróć do mapy</a>
+  <!-- Przycisk powrotu -->
+  <div class="gallery-container">
+    <a href="index.html" class="back-to-map">← Wróć do mapy</a>
+    <h1 id="galleryTitle">Ładowanie galerii...</h1>
   </div>
 
-  <main class="gallery-page">
-    <h1 id="gallery-title"></h1>
-    <div id="gallery-grid" class="photo-gallery">
-      <p>Ładowanie zdjęć...</p>
-    </div>
-  </main>
-
-  <div id="lightbox" class="lightbox" style="display: none;">
-    <span class="close-btn" onclick="closeLightbox()">&times;</span>
-    <span class="nav-btn prev" onclick="navigatePhotos(-1)">&#10094;</span>
-    <img id="lightbox-image" src="" alt="">
-    <span class="nav-btn next" onclick="navigatePhotos(1)">&#10095;</span>
-    <div id="lightbox-caption" class="lightbox-caption"></div>
-  </div>
-
-  <div id="msgModal" class="msg-modal" style="display: none;">
-    <div class="msg-modal-content">
-      <p id="msgText"></p>
-      <button onclick="closeMsgModal()">OK</button>
+  <!-- Grid zdjęć -->
+  <div class="gallery-container">
+    <div id="photoGrid" class="photo-grid">
+      <!-- Zdjęcia zostaną załadowane dynamicznie -->
     </div>
   </div>
 
+  <!-- Lightbox -->
+  <div id="lightbox" class="lightbox">
+    <button class="lightbox-close" onclick="closeLightbox()">&times;</button>
+    <div class="lightbox-content">
+      <button class="lightbox-nav lightbox-prev" onclick="prevPhoto()">&#10094;</button>
+      <img id="lightboxImage" class="lightbox-image" src="" alt="Pełne zdjęcie">
+      <p id="lightboxCaption" class="lightbox-caption"></p>
+      <button class="lightbox-nav lightbox-next" onclick="nextPhoto()">&#10095;</button>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
     const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
     const tripsUrl = `${firebaseBaseUrl}/trips.json`;
-    const urlParams = new URLSearchParams(window.location.search);
-    const countryParam = urlParams.get("country");
-    const categoryParam = urlParams.get("category");
 
-    let allPhotos = [];
+    const urlParams = new URLSearchParams(window.location.search);
+    const type = urlParams.get("type"); // country lub category
+    const value = urlParams.get("value");
+
+    const photoGrid = document.getElementById("photoGrid");
+    const galleryTitle = document.getElementById("galleryTitle");
+    const lightbox = document.getElementById("lightbox");
+    const lightboxImage = document.getElementById("lightboxImage");
+    const lightboxCaption = document.getElementById("lightboxCaption");
+
+    let allPhotos = []; // Wszystkie zdjęcia pasujące do filtra
     let currentPhotoIndex = 0;
 
-    // Ustawia tytuł strony
-    const pageTitle = document.getElementById("gallery-title");
-    if (countryParam) {
-      pageTitle.textContent = `Wyprawy w kraju: ${countryParam}`;
-    } else if (categoryParam) {
-      pageTitle.textContent = `Miejsca w kategorii: ${getCategoryLabel(categoryParam)}`;
-    } else {
-      pageTitle.textContent = 'Galeria zdjęć';
+    // Ustaw tytuł
+    if (type === "country") {
+      galleryTitle.textContent = `Miejsca w kraju: ${decodeURIComponent(value)}`;
+    } else if (type === "category") {
+      galleryTitle.textContent = `Miejsca w kategorii: ${getCategoryLabel(decodeURIComponent(value))}`;
     }
-    
-    // --- Ładowanie i generowanie galerii ---
-    function loadAndDisplayGallery() {
-      fetch(tripsUrl)
-        .then(res => res.json())
-        .then(trips => {
-          if (!trips) return;
-          const galleryGrid = document.getElementById("gallery-grid");
-          galleryGrid.innerHTML = '';
 
-          allPhotos = [];
+    // Załaduj dane
+    fetch(tripsUrl)
+      .then(res => res.json())
+      .then(trips => {
+        if (!trips) return;
 
-          Object.keys(trips).forEach(tripKey => {
-            const trip = trips[tripKey];
+        allPhotos = [];
 
-            // Filtrowanie po kraju
-            if (countryParam && trip.country !== countryParam) {
-                return;
-            }
-
-            // Pętla po miejscach w ramach wyprawy
-            if (trip.places) {
-              Object.keys(trip.places).forEach(placeKey => {
-                const place = trip.places[placeKey];
-
-                // Filtrowanie po kategorii
-                if (categoryParam && place.category !== categoryParam) {
-                    return;
-                }
+        Object.values(trips).forEach(trip => {
+          if (trip.places) {
+            Object.values(trip.places).forEach(place => {
+              if ((type === "country" && place.country === value) ||
+                  (type === "category" && place.category === value)) {
 
                 if (place.photos && place.photos.length > 0) {
                   place.photos.forEach(photo => {
-                    const item = document.createElement("div");
-                    item.className = "photo-item";
-                    item.innerHTML = `
-                      <img src="${photo.url}" alt="${photo.caption || ''}" data-url="${photo.url}" data-caption="${photo.caption || ''}" data-place-name="${place.name}">
-                      <p>${photo.caption || ''}</p>
-                    `;
-                    galleryGrid.appendChild(item);
-                    allPhotos.push(photo);
+                    allPhotos.push({
+                      url: photo.url,
+                      caption: photo.caption || `Zdjęcie z ${place.name}`,
+                      placeName: place.name,
+                      date: place.date
+                    });
+                  });
+                } else if (place.image) {
+                  allPhotos.push({
+                    url: place.image,
+                    caption: `Zdjęcie główne z ${place.name}`,
+                    placeName: place.name,
+                    date: place.date
                   });
                 }
-              });
-            }
-          });
-          
-          addPhotoClickListeners();
-
-          if (allPhotos.length === 0) {
-            galleryGrid.innerHTML = '<p>Brak zdjęć do wyświetlenia w tej kategorii.</p>';
-          }
-
-        })
-        .catch(err => {
-          console.error("Błąd ładowania galerii:", err);
-          showMessage("Nie udało się załadować galerii.");
-        });
-    }
-
-    // --- Funkcje galerii (lightbox) ---
-    function addPhotoClickListeners() {
-        const photos = document.querySelectorAll(".photo-item img");
-        photos.forEach((img, index) => {
-            img.addEventListener("click", () => {
-                currentPhotoIndex = index;
-                openLightbox(img.src, img.alt);
+              }
             });
+          }
         });
-    }
 
-    window.openLightbox = function(url, caption) {
-        const lightbox = document.getElementById("lightbox");
-        const lightboxImage = document.getElementById("lightbox-image");
-        const lightboxCaption = document.getElementById("lightbox-caption");
+        renderGallery();
+      })
+      .catch(err => {
+        console.error("Błąd ładowania galerii:", err);
+        photoGrid.innerHTML = "<p>❌ Nie udało się załadować zdjęć.</p>";
+      });
 
-        lightboxImage.src = url;
-        lightboxCaption.textContent = caption;
-        lightbox.style.display = "flex";
-    };
-
-    window.closeLightbox = function() {
-        document.getElementById("lightbox").style.display = "none";
-    };
-
-    window.navigatePhotos = function(direction) {
-        currentPhotoIndex += direction;
-        if (currentPhotoIndex < 0) {
-            currentPhotoIndex = allPhotos.length - 1;
-        } else if (currentPhotoIndex >= allPhotos.length) {
-            currentPhotoIndex = 0;
-        }
-        
-        const nextPhoto = allPhotos[currentPhotoIndex];
-        openLightbox(nextPhoto.url, nextPhoto.caption);
-    };
-
-    // --- Funkcje pomocnicze ---
-    function getCategoryLabel(category) {
-      const categories = {
-        "miasto": "🏙️ Miasto", "park": "🌳 Park", "zabytek": "🏛️ Zabytek",
-        "muzeum": "🖼️ Muzeum", "hotel": "🏨 Hotel", "szczyt": "⛰️ Szczyt",
-        "restauracja": "🍽️ Restauracja", "miejsce_widokowe": "🌄 Miejsce widokowe",
-        "atrakcja_turystyczna": "🎯 Atrakcja turystyczna", "inny": "🔧 Inny"
-      };
-      return categories[category] || category;
-    }
-
-    window.showMessage = function(text) {
-      document.getElementById("msgText").textContent = text;
-      document.getElementById("msgModal").style.display = "flex";
-    };
-
-    window.closeMsgModal = function() {
-      document.getElementById("msgModal").style.display = "none";
-    };
-
-    document.addEventListener("keydown", function(e) {
-      if (document.getElementById("lightbox").style.display === "flex") {
-        if (e.key === "ArrowLeft") {
-          navigatePhotos(-1);
-        } else if (e.key === "ArrowRight") {
-          navigatePhotos(1);
-        }
+    function renderGallery() {
+      photoGrid.innerHTML = "";
+      if (allPhotos.length === 0) {
+        photoGrid.innerHTML = "<p>Brak zdjęć do wyświetlenia.</p>";
+        return;
       }
-      if (e.key === "Escape") {
-        closeLightbox();
-        closeMsgModal();
+
+      allPhotos.forEach((photo, index) => {
+        const item = document.createElement("div");
+        item.className = "photo-item";
+        item.onclick = () => openLightbox(index);
+        item.innerHTML = `
+          <img src="${photo.url}" alt="Zdjęcie z ${photo.placeName}">
+          <div class="photo-caption">
+            <strong>${photo.placeName}</strong><br>
+            ${formatDate(photo.date) || 'Bez daty'}
+          </div>
+        `;
+        photoGrid.appendChild(item);
+      });
+    }
+
+    // Lightbox
+    function openLightbox(index) {
+      currentPhotoIndex = index;
+      updateLightbox();
+      lightbox.style.display = "flex";
+      document.body.style.overflow = "hidden";
+    }
+
+    function closeLightbox() {
+      lightbox.style.display = "none";
+      document.body.style.overflow = "";
+    }
+
+    function updateLightbox() {
+      const photo = allPhotos[currentPhotoIndex];
+      lightboxImage.src = photo.url;
+      lightboxCaption.textContent = `${photo.placeName} • ${formatDate(photo.date) || 'Bez daty'}${photo.caption ? ' – ' + photo.caption : ''}`;
+    }
+
+    function nextPhoto() {
+      currentPhotoIndex = (currentPhotoIndex + 1) % allPhotos.length;
+      updateLightbox();
+    }
+
+    function prevPhoto() {
+      currentPhotoIndex = (currentPhotoIndex - 1 + allPhotos.length) % allPhotos.length;
+      updateLightbox();
+    }
+
+    // Obsługa klawiatury
+    document.addEventListener("keydown", e => {
+      if (lightbox.style.display === "flex") {
+        if (e.key === "ArrowRight") nextPhoto();
+        if (e.key === "ArrowLeft") prevPhoto();
+        if (e.key === "Escape") closeLightbox();
       }
     });
 
-    loadAndDisplayGallery();
+    // Pomocnicze funkcje
+    function formatDate(dateStr) {
+      return dateStr ? new Date(dateStr).toLocaleDateString("pl-PL") : "";
+    }
+
+    function getCategoryLabel(category) {
+      const labels = {
+        miasto: "🏙️ Miasto",
+        park: "🌳 Park",
+        zabytek: "🏛️ Zabytek",
+        muzeum: "🖼️ Muzeum",
+        hotel: "🏨 Hotel",
+        szczyt: "⛰️ Szczyt",
+        restauracja: "🍽️ Restauracja",
+        miejsce_widokowe: "🌄 Miejsce widokowe",
+        atrakcja_turystyczna: "🎯 Atrakcja turystyczna",
+        inny: "🔧 Inny"
+      };
+      return labels[category] || category;
+    }
   </script>
 </body>
 </html>
