@@ -2,12 +2,14 @@
 <html lang="pl">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dziennik podróży</title>
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" />
 </head>
 <body>
+  <!-- Modal do autoryzacji -->
   <div id="authModal" class="modal" style="display: none;">
     <div class="modal-content">
       <h2>🔐 Dostęp do edycji</h2>
@@ -18,35 +20,51 @@
     </div>
   </div>
 
+  <!-- Główny nagłówek z przyciskami -->
   <div class="header-container right-top">
     <div class="header-box">Nasze podróże</div>
     <button id="addTripBtn" class="add-btn" style="display: none;">➕ Dodaj wyprawę</button>
     <button id="editModeBtn" class="edit-btn">🔧 Tryb edycji</button>
+    <button id="menuBtn" class="menu-btn">☰ Menu</button>
+  </div>
+
+  <!-- Boczne menu (domyślnie ukryte) -->
+  <div id="sideMenu" class="side-menu">
+    <button id="closeMenuBtn" class="close-btn">&times;</button>
+    <a href="#" onclick="showMessage('Przejdź do Strony głównej')">Strona główna</a>
+    <a href="#" onclick="showMessage('Przejdź do Odwiedzonych krajów')">Odwiedzone kraje</a>
+    <a href="#" onclick="showMessage('Przejdź do Kategorii')">Kategorie</a>
+    <a href="#" onclick="showMessage('Otwórz Wyszukiwarkę')">Wyszukiwarka</a>
+    <a href="#" onclick="showMessage('Opcje sortowania')">Opcje sortowania</a>
+    <a href="#" onclick="showMessage('Pokaż Statystyki')">Statystyki</a>
   </div>
 
   <div id="map"></div>
 
+  <!-- Modal do dodawania/edycji wyprawy -->
   <div id="tripModal" class="modal" style="display: none;">
     <div class="modal-content scrollable-modal">
       <h2 id="tripModalTitle">Dodaj wyprawę</h2>
       <form id="tripForm">
         <input type="hidden" id="tripId">
-        <input type="hidden" id="tripLat">
-        <input type="hidden" id="tripLng">
-        <input type="hidden" id="originalTripId">
-
-        <label>Nazwa: <input type="text" id="tripName" required></label><br><br>
-        <label>Opis: <textarea id="tripDescription" rows="2"></textarea></label><br><br>
-        <label>Zdjęcie (URL): <input type="url" id="tripImage" required></label><br><br>
-        <label>Data od: <input type="date" id="tripDateFrom" required></label><br><br>
-        <label>Data do: <input type="date" id="tripDateTo"></label><br><br>
-
-        <button type="submit" id="saveTripBtn">Zapisz</button>
+        <label>Nazwa: <input type="text" id="tripName" required></label>
+        <label>Data: <input type="date" id="tripDate" required></label>
+        <label>Opis: <textarea id="tripDescription" rows="4"></textarea></label>
+        <label>Zdjęcie URL: <input type="url" id="tripImageUrl" placeholder="https://..."></label>
+        <label>Zasięg mapy (współrzędne):</label>
+        <div class="map-bounds">
+          <label>Min Lat: <input type="number" step="0.000001" id="tripLatMin"></label>
+          <label>Min Lng: <input type="number" step="0.000001" id="tripLngMin"></label>
+          <label>Max Lat: <input type="number" step="0.000001" id="tripLatMax"></label>
+          <label>Max Lng: <input type="number" step="0.000001" id="tripLngMax"></label>
+        </div>
+        <button type="submit">Zapisz</button>
         <button type="button" onclick="closeTripModal()">Anuluj</button>
       </form>
     </div>
   </div>
 
+  <!-- Modal do wyświetlania wiadomości -->
   <div id="msgModal" class="msg-modal" style="display: none;">
     <div class="msg-modal-content">
       <p id="msgText"></p>
@@ -55,224 +73,223 @@
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script>
-    const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
-    const tripsUrl = `${firebaseBaseUrl}/trips.json`;
-    const correctPassword = "sekret2025";
-    let isAddingTrip = false;
-    let isEditing = sessionStorage.getItem("isEditing") === "true";
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc, deleteDoc, onSnapshot, collection, query, where, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-    const map = L.map("map").setView([54.5, -3.0], 6);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+    // Globalne zmienne dostarczone przez środowisko Canvas (NIE EDYTOWAĆ)
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+    const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+    const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
-    // --- Ładowanie i wyświetlanie wypraw ---
-    function loadTrips() {
-      fetch(tripsUrl)
-        .then(res => res.json())
-        .then(trips => {
-          map.eachLayer(layer => { if (layer instanceof L.Marker) map.removeLayer(layer); });
+    // Inicjalizacja Firebase i Firestore
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+    let userId = null;
 
-          if (!trips) return;
-          Object.keys(trips).forEach(key => {
-            const trip = trips[key];
-            if (!trip.lat || !trip.lng) return;
+    // Funkcja autoryzacji
+    async function authenticate() {
+      if (initialAuthToken) {
+        await signInWithCustomToken(auth, initialAuthToken);
+      } else {
+        await signInAnonymously(auth);
+      }
+    }
 
-            const marker = L.marker([trip.lat, trip.lng]).addTo(map);
-            let popupContent;
+    // Obsługa uwierzytelnienia
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        userId = user.uid;
+        document.body.dataset.userId = userId;
+        console.log("Authenticated with user ID:", userId);
 
-            if (isEditing) {
-              popupContent = `
-                <strong><a href="trip.html?id=${key}&from=edit">${trip.name}</a></strong><br>
-                ${trip.description || ''}<br>
-                <img src="${trip.image}" width="100"><br>
-                <small>${formatDate(trip.dateFrom)} – ${formatDate(trip.dateTo)}</small><br><br>
-                <button onclick="editTrip('${key}', ${trip.lat}, ${trip.lng})">✏️ Edytuj</button>
-                <button onclick="deleteTrip('${key}')">🗑️ Usuń</button>
-              `;
-            } else {
-              popupContent = `
-                <strong><a href="trip.html?id=${key}">${trip.name}</a></strong><br>
-                ${trip.description || ''}<br>
-                <img src="${trip.image}" width="100"><br>
-                <small>${formatDate(trip.dateFrom)} – ${formatDate(trip.dateTo)}</small>
-              `;
-            }
-            marker.bindPopup(popupContent);
+        // Subskrypcja kolekcji "wyprawy" po uwierzytelnieniu
+        try {
+          const tripsRef = collection(db, `artifacts/${appId}/public/data/wyprawy`);
+          onSnapshot(tripsRef, (querySnapshot) => {
+            const trips = [];
+            querySnapshot.forEach((doc) => {
+              const data = doc.data();
+              trips.push({ id: doc.id, ...data });
+            });
+            renderTrips(trips);
+          }, (error) => {
+            console.error("Error listening to trips:", error);
+            showMessage("Wystąpił błąd podczas ładowania wypraw.");
           });
-        })
-        .catch(err => {
-          console.error("Błąd ładowania wypraw:", err);
-          showMessage("Nie udało się załadować wypraw.");
-        });
-    }
-
-    loadTrips();
-    updateUIForEditMode();
-
-    // --- Funkcje trybu edycji ---
-    function checkPassword() {
-      const password = document.getElementById("adminPassword").value;
-      if (password === correctPassword) {
-        sessionStorage.setItem("isEditing", "true");
-        isEditing = true;
-        closeAuthModal();
-        updateUIForEditMode();
-        loadTrips();
+        } catch (err) {
+          console.error("Error setting up Firestore listener:", err);
+          showMessage("Nie udało się nawiązać połączenia z bazą danych.");
+        }
       } else {
-        showMessage("❌ Błędne hasło!");
-      }
-    }
-
-    function updateUIForEditMode() {
-      const addBtn = document.getElementById("addTripBtn");
-      const editBtn = document.getElementById("editModeBtn");
-
-      if (isEditing) {
-        addBtn.style.display = "block";
-        editBtn.textContent = "Wyjdź z edycji";
-      } else {
-        addBtn.style.display = "none";
-        editBtn.textContent = "🔧 Tryb edycji";
-      }
-    }
-
-    document.getElementById("editModeBtn").addEventListener("click", function() {
-      if (isEditing) {
-        sessionStorage.removeItem("isEditing");
-        isEditing = false;
-        updateUIForEditMode();
-        loadTrips();
-      } else {
-        document.getElementById("authModal").style.display = "flex";
+        userId = null;
+        console.log("User is signed out.");
+        // Opcjonalnie: Przekierowanie lub reset stanu
       }
     });
 
-    document.getElementById("addTripBtn").addEventListener("click", function () {
-      if (isAddingTrip) {
-        isAddingTrip = false;
-        this.textContent = "➕ Dodaj wyprawę";
-        this.style.background = "#4CAF50";
-      } else {
-        isAddingTrip = true;
-        this.textContent = "🛑 Anuluj";
-        this.style.background = "#f44336";
-        showMessage("Kliknij na mapie, gdzie dodać wyprawę");
+    // Uwierzytelnienie przy ładowaniu strony
+    authenticate();
+
+    // Stałe i zmienne
+    const PASSWORD = "admin";
+    let isEditMode = false;
+    let map = null;
+    let markers = [];
+    let trips = [];
+
+    // --- Funkcje główne ---
+
+    function initMap() {
+      if (map) map.remove();
+      map = L.map('map', { zoomControl: false }).setView([52.2297, 21.0122], 6); // Domyślna lokalizacja: Warszawa
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(map);
+
+      // Funkcja do rysowania granic i markerów na mapie
+      function drawTripBoundaries(trip) {
+        if (trip.latMin && trip.lngMin && trip.latMax && trip.lngMax) {
+          const bounds = L.latLngBounds(
+            [trip.latMin, trip.lngMin],
+            [trip.latMax, trip.lngMax]
+          );
+          L.rectangle(bounds, { color: "#ff7800", weight: 3, interactive: false }).addTo(map);
+        }
       }
-    });
 
-    map.on("click", function (e) {
-      if (isAddingTrip) {
-        isAddingTrip = false;
-        document.getElementById("addTripBtn").textContent = "➕ Dodaj wyprawę";
-        document.getElementById("addTripBtn").style.background = "#4CAF50";
-        openAddTripModal(e.latlng.lat, e.latlng.lng);
-      }
-    });
+      // Funkcja do pobierania i wyświetlania miejsc dla danej wyprawy
+      async function fetchAndRenderPlaces(tripId) {
+        const placesRef = collection(db, `artifacts/${appId}/public/data/wyprawy/${tripId}/miejsca`);
+        const q = query(placesRef);
+        const placesSnapshot = await getDocs(q);
+        const placeData = placesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-    window.openAddTripModal = function(lat, lng) {
-      document.getElementById("tripForm").reset();
-      document.getElementById("tripId").value = "";
-      document.getElementById("originalTripId").value = "";
-      document.getElementById("tripLat").value = lat;
-      document.getElementById("tripLng").value = lng;
-      document.getElementById("tripModalTitle").textContent = "Dodaj nową wyprawę";
-      document.getElementById("tripModal").style.display = "flex";
-    };
-
-    window.editTrip = function(id, lat, lng) {
-      fetch(`${firebaseBaseUrl}/trips/${id}.json`)
-        .then(res => res.json())
-        .then(trip => {
-          document.getElementById("tripName").value = trip.name;
-          document.getElementById("tripDescription").value = trip.description || '';
-          document.getElementById("tripImage").value = trip.image;
-          document.getElementById("tripDateFrom").value = trip.dateFrom || '';
-          document.getElementById("tripDateTo").value = trip.dateTo || '';
-          document.getElementById("tripLat").value = lat;
-          document.getElementById("tripLng").value = lng;
-          document.getElementById("tripId").value = id;
-          document.getElementById("originalTripId").value = id;
-
-          document.getElementById("tripModalTitle").textContent = "Edytuj wyprawę";
-          document.getElementById("tripModal").style.display = "flex";
-        })
-        .catch(err => {
-          console.error("Błąd ładowania wyprawy:", err);
-          showMessage("Nie udało się załadować wyprawy.");
-        });
-    };
-
-    document.getElementById("tripForm").addEventListener("submit", async function(e) {
-      e.preventDefault();
-      const id = document.getElementById("tripId").value;
-      const isEdit = id !== "";
-      const originalId = document.getElementById("originalTripId").value;
-      const newId = generateId(document.getElementById("tripName").value);
-
-      const tripData = {
-        name: document.getElementById("tripName").value,
-        description: document.getElementById("tripDescription").value,
-        image: document.getElementById("tripImage").value,
-        dateFrom: document.getElementById("tripDateFrom").value,
-        dateTo: document.getElementById("tripDateTo").value,
-        lat: parseFloat(document.getElementById("tripLat").value),
-        lng: parseFloat(document.getElementById("tripLng").value)
-      };
-
-      let fetchUrl, method;
-
-      if (isEdit) {
-          if (originalId !== newId) {
-            try {
-              const oldTrip = await fetch(`${firebaseBaseUrl}/trips/${originalId}.json`).then(res => res.json());
-              if (oldTrip) {
-                await fetch(`${firebaseBaseUrl}/trips/${newId}.json`, { method: "PUT", body: JSON.stringify({...oldTrip, ...tripData}) });
-                await fetch(`${firebaseBaseUrl}/trips/${originalId}.json`, { method: "DELETE" });
-                closeTripModal();
-                showMessage("✅ Zmieniono nazwę i zapisano wyprawę!");
-                loadTrips();
-                return;
-              }
-            } catch (err) {
-              console.error("Błąd zmiany nazwy wyprawy:", err);
-              showMessage("Nie udało się zmienić nazwy wyprawy.");
-              return;
-            }
+        placeData.forEach(place => {
+          if (place.latitude && place.longitude) {
+            const marker = L.marker([place.latitude, place.longitude]).addTo(map);
+            markers.push(marker);
+            marker.on('click', () => showPlaceDetails(place, tripId));
           }
-          fetchUrl = `${firebaseBaseUrl}/trips/${id}.json`;
-          method = "PATCH";
-      } else {
-          fetchUrl = `${firebaseBaseUrl}/trips/${newId}.json`;
-          method = "PUT";
+        });
       }
 
-      fetch(fetchUrl, {
-        method: method,
-        body: JSON.stringify(tripData),
-        headers: { "Content-Type": "application/json" }
-      })
-      .then(() => {
-        closeTripModal();
-        showMessage("✅ Wyprawa zapisana!");
-        loadTrips();
-      })
-      .catch(err => {
-        console.error("Błąd zapisu:", err);
-        showMessage("Nie udało się zapisać wyprawy.");
-      });
+      // Renderowanie wypraw
+      function renderTrips(fetchedTrips) {
+        trips = fetchedTrips;
+        markers.forEach(marker => map.removeLayer(marker));
+        markers = [];
+        map.eachLayer(layer => {
+          if (layer instanceof L.Rectangle) {
+            map.removeLayer(layer);
+          }
+        });
+
+        trips.forEach(trip => {
+          if (trip.latMin) {
+            drawTripBoundaries(trip);
+            fetchAndRenderPlaces(trip.id);
+          }
+        });
+      }
+    }
+
+    function toggleEditMode() {
+      isEditMode = !isEditMode;
+      const btn = document.getElementById("editModeBtn");
+      const addBtn = document.getElementById("addTripBtn");
+      btn.textContent = isEditMode ? "💾 Tryb przeglądania" : "🔧 Tryb edycji";
+      addBtn.style.display = isEditMode ? "inline-block" : "none";
+      showMessage(`Włączono tryb edycji: ${isEditMode ? "TAK" : "NIE"}`);
+    }
+
+    function showTripModal(trip = null) {
+      if (!isEditMode) return;
+      const modal = document.getElementById("tripModal");
+      const form = document.getElementById("tripForm");
+      const title = document.getElementById("tripModalTitle");
+
+      form.reset();
+      document.getElementById("tripId").value = "";
+
+      if (trip) {
+        title.textContent = "Edytuj wyprawę";
+        document.getElementById("tripId").value = trip.id;
+        document.getElementById("tripName").value = trip.name || "";
+        document.getElementById("tripDate").value = trip.date || "";
+        document.getElementById("tripDescription").value = trip.description || "";
+        document.getElementById("tripImageUrl").value = trip.imageUrl || "";
+        document.getElementById("tripLatMin").value = trip.latMin || "";
+        document.getElementById("tripLngMin").value = trip.lngMin || "";
+        document.getElementById("tripLatMax").value = trip.latMax || "";
+        document.getElementById("tripLngMax").value = trip.lngLng || "";
+      } else {
+        title.textContent = "Dodaj wyprawę";
+      }
+
+      modal.style.display = "flex";
+    }
+
+    // --- Zdarzenia i obsługa formularzy ---
+    document.getElementById("editModeBtn").addEventListener("click", () => {
+      const authModal = document.getElementById("authModal");
+      if (!isEditMode) {
+        authModal.style.display = "flex";
+      } else {
+        toggleEditMode();
+      }
     });
 
-    window.deleteTrip = function(tripId) {
+    document.getElementById("addTripBtn").addEventListener("click", () => {
+      showTripModal();
+    });
+
+    document.getElementById("tripForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const tripId = document.getElementById("tripId").value;
+      const name = document.getElementById("tripName").value;
+      const date = document.getElementById("tripDate").value;
+      const description = document.getElementById("tripDescription").value;
+      const imageUrl = document.getElementById("tripImageUrl").value;
+      const latMin = parseFloat(document.getElementById("tripLatMin").value) || null;
+      const lngMin = parseFloat(document.getElementById("tripLngMin").value) || null;
+      const latMax = parseFloat(document.getElementById("tripLatMax").value) || null;
+      const lngMax = parseFloat(document.getElementById("tripLngMax").value) || null;
+
+      const tripData = { name, date, description, imageUrl, latMin, lngMin, latMax, lngMax, userId };
+      const tripRef = doc(db, `artifacts/${appId}/public/data/wyprawy`, tripId || generateId(name));
+
+      try {
+        await setDoc(tripRef, tripData, { merge: true });
+        closeTripModal();
+        showMessage("Wyprawa zapisana pomyślnie!");
+      } catch (e) {
+        console.error("Error saving document: ", e);
+        showMessage("Nie udało się zapisać wyprawy.");
+      }
+    });
+
+    window.checkPassword = function() {
+      const password = document.getElementById("adminPassword").value;
+      if (password === PASSWORD) {
+        closeAuthModal();
+        toggleEditMode();
+      } else {
+        showMessage("Nieprawidłowe hasło.");
+      }
+    };
+
+    window.deleteTrip = async function(id) {
       if (confirm("Czy na pewno chcesz usunąć tę wyprawę?")) {
-        fetch(`${firebaseBaseUrl}/trips/${tripId}.json`, { method: "DELETE" })
-          .then(() => {
-            showMessage("✅ Wyprawa usunięta!");
-            loadTrips();
-          })
-          .catch(err => {
-            console.error("Błąd usuwania:", err);
-            showMessage("Nie udało się usunąć wyprawy.");
-          });
+        try {
+          await deleteDoc(doc(db, `artifacts/${appId}/public/data/wyprawy`, id));
+          showMessage("Wyprawa usunięta pomyślnie.");
+        } catch (err) {
+          console.error("Błąd usuwania:", err);
+          showMessage("Nie udało się usunąć wyprawy.");
+        }
       }
     };
 
@@ -290,7 +307,7 @@
     function formatDate(dateStr) {
       return dateStr ? new Date(dateStr).toLocaleDateString("pl-PL", { day: "numeric", month: "long", year: "numeric" }) : "Brak daty";
     }
-    
+
     // --- Obsługa UI i modalów ---
     window.closeTripModal = function() { document.getElementById("tripModal").style.display = "none"; };
     window.closeAuthModal = function() { document.getElementById("authModal").style.display = "none"; };
@@ -300,17 +317,429 @@
     };
     window.closeMsgModal = function() { document.getElementById("msgModal").style.display = "none"; };
 
+    // Obsługa bocznego menu
+    document.getElementById("menuBtn").addEventListener("click", () => {
+      document.getElementById("sideMenu").style.width = "250px";
+    });
+
+    document.getElementById("closeMenuBtn").addEventListener("click", () => {
+      document.getElementById("sideMenu").style.width = "0";
+    });
+
     document.addEventListener("keydown", function(e) {
       if (e.key === "Escape") {
         closeTripModal();
-        closeMsgModal();
         closeAuthModal();
-        const addTripBtn = document.getElementById("addTripBtn");
-        if (addTripBtn && addTripBtn.textContent === "🛑 Anuluj") {
-          addTripBtn.click();
-        }
+        closeMsgModal();
+        document.getElementById("sideMenu").style.width = "0";
       }
     });
+
+    initMap();
   </script>
 </body>
 </html>
+```css
+/* --- OGÓLNE --- */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f5f5f5;
+  color: #333;
+}
+
+/* --- KONTENER NAGŁÓWKA --- */
+.header-container {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  z-index: 1000;
+  background: white;
+  padding: 12px 16px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  max-width: 280px;
+  box-sizing: border-box;
+}
+
+.header-box {
+  font-size: 18px;
+  font-weight: bold;
+  color: #2c3e50;
+  text-align: right;
+}
+
+/* --- PRZYCISKI --- */
+.add-btn {
+  background: #4CAF50;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  font-size: 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.add-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.edit-btn {
+  background: #3498db;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  font-size: 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.edit-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Nowy przycisk menu */
+.menu-btn {
+  background: #5c6770;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  font-size: 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.menu-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* --- MAPA --- */
+#map {
+  width: 100%;
+  height: 100vh;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+}
+
+/* --- MODALE --- */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 2000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  justify-content: center;
+  align-items: center;
+  overflow-y: auto;
+}
+
+.modal-content {
+  background-color: white;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  max-width: 500px;
+  width: 90%;
+  text-align: center;
+  animation: fadeIn 0.3s;
+}
+
+.scrollable-modal {
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.modal-content h2 {
+  color: #2c3e50;
+  margin-top: 0;
+  border-bottom: 2px solid #4CAF50;
+  padding-bottom: 10px;
+  margin-bottom: 20px;
+}
+
+.modal-content label,
+.modal-content input,
+.modal-content textarea {
+  display: block;
+  width: 100%;
+  margin-bottom: 15px;
+}
+
+.modal-content input[type="text"],
+.modal-content input[type="date"],
+.modal-content input[type="url"],
+.modal-content textarea {
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  box-sizing: border-box;
+}
+
+.modal-content button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.2s;
+}
+
+.modal-content button[type="submit"] {
+  background-color: #4CAF50;
+  color: white;
+  margin-right: 10px;
+}
+
+.modal-content button[type="button"] {
+  background-color: #f44336;
+  color: white;
+}
+
+.modal-content button[type="submit"]:hover {
+  background-color: #45a049;
+}
+
+.modal-content button[type="button"]:hover {
+  background-color: #e53935;
+}
+
+.map-bounds {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.map-bounds label {
+  text-align: left;
+}
+
+.msg-modal {
+  display: none;
+  position: fixed;
+  z-index: 3000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  justify-content: center;
+  align-items: center;
+}
+
+.msg-modal-content {
+  background-color: white;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  max-width: 300px;
+}
+
+.msg-modal-content p {
+  margin: 0 0 20px;
+}
+
+.msg-modal-content button {
+  padding: 8px 16px;
+  background-color: #3498db;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* --- UKŁAD WYPRAW --- */
+.trip-card-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+  padding: 20px;
+}
+
+.trip-card {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s, box-shadow 0.3s;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+}
+
+.trip-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+.trip-card-image {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  display: block;
+}
+
+.trip-card-content {
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+.trip-card h3 {
+  color: #2c3e50;
+  margin: 0;
+  font-size: 1.5em;
+  border-bottom: 2px solid #4CAF50;
+  padding-bottom: 5px;
+  margin-bottom: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trip-card p {
+  margin: 0;
+  color: #555;
+  line-height: 1.4;
+  font-size: 0.9em;
+  flex-grow: 1;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.trip-card .trip-date {
+  color: #777;
+  font-size: 0.8em;
+  margin-top: 10px;
+}
+
+.trip-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+  align-items: center;
+}
+
+.trip-actions button {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-size: 0.9em;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.trip-actions .edit-btn-small {
+  background-color: #3498db;
+  color: white;
+}
+
+.trip-actions .delete-btn-small {
+  background-color: #e74c3c;
+  color: white;
+}
+
+.trip-actions .edit-btn-small:hover {
+  background-color: #2980b9;
+}
+
+.trip-actions .delete-btn-small:hover {
+  background-color: #c0392b;
+}
+
+/* --- ANULACJA PRZYCISKU TRYBU EDYCJI --- */
+.edit-btn.cancel {
+  background-color: #e74c3c;
+  color: white;
+}
+
+.edit-btn.cancel:hover {
+  background-color: #c0392b;
+}
+
+/* --- ANIMACJE --- */
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* --- RESPONSIVE DESIGN --- */
+@media (max-width: 768px) {
+  .header-container {
+    max-width: 95%;
+  }
+
+  .trip-card-container {
+    padding: 10px;
+  }
+}
+
+/* --- NOWE STYLE DLA BOCZNEGO MENU --- */
+.side-menu {
+  height: 100%;
+  width: 0; /* Domyślnie ukryte */
+  position: fixed;
+  z-index: 2001; /* Wyżej niż modale */
+  top: 0;
+  right: 0;
+  background-color: #111;
+  overflow-x: hidden;
+  transition: 0.5s;
+  padding-top: 60px;
+  box-shadow: -4px 0 15px rgba(0, 0, 0, 0.2);
+}
+
+.side-menu a {
+  padding: 15px 8px 15px 32px;
+  text-decoration: none;
+  font-size: 20px;
+  color: #818181;
+  display: block;
+  transition: 0.3s;
+}
+
+.side-menu a:hover {
+  color: #f1f1f1;
+  background-color: #333;
+}
+
+.side-menu .close-btn {
+  position: absolute;
+  top: 0;
+  right: 25px;
+  font-size: 36px;
+  margin-left: 50px;
+  border: none;
+  background: none;
+  color: #818181;
+  cursor: pointer;
+}
+
+.side-menu .close-btn:hover {
+  color: #f1f1f1;
+}
+
