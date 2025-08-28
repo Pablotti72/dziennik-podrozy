@@ -505,7 +505,7 @@ body {
 
 .trip-main-content {
   display: flex;
-  flex-direction: row-reverse; /* Zmieniono na row-reverse */
+  flex-direction: row; /* Zmieniono na row, aby kolejność była zgodna z kodem HTML */
   gap: 20px;
 }
 
