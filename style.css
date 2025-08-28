@@ -308,7 +308,7 @@ body {
 }
 
 .place-page {
-  max-width: 800px;
+  max-width: 1200px;
   margin: 20px auto;
   padding: 20px;
   background: white;
@@ -501,4 +501,24 @@ body {
 
 .photo-thumbnail:hover {
   transform: scale(1.05);
+}
+
+.trip-main-content {
+  display: flex;
+  flex-direction: row-reverse; /* Zmieniono na row-reverse */
+  gap: 20px;
+}
+
+#trip-info-and-places {
+  flex: 1;
+}
+
+#trip-map-container {
+  flex: 1;
+}
+
+@media (max-width: 767px) {
+  .trip-main-content {
+    flex-direction: column;
+  }
 }
