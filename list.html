@@ -1,186 +1,153 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Galeria miejsc</title>
-  <link rel="stylesheet" href="style.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Galeria</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" />
 </head>
 <body>
-
-  <!-- Przycisk powrotu -->
-  <div class="gallery-container">
-    <a href="index.html" class="back-to-map">← Wróć do mapy</a>
-    <h1 id="galleryTitle">Ładowanie galerii...</h1>
-  </div>
-
-  <!-- Grid zdjęć -->
-  <div class="gallery-container">
-    <div id="photoGrid" class="photo-grid">
-      <!-- Zdjęcia zostaną załadowane dynamicznie -->
+    <div class="header-container right-top">
+        <div class="header-box">Galeria</div>
+        <a id="backLink" class="back-link" href="index.html">← Wróć do mapy</a>
+        <button id="menuBtn" class="menu-btn"><i class="fas fa-bars"></i></button>
     </div>
-  </div>
 
-  <!-- Lightbox -->
-  <div id="lightbox" class="lightbox">
-    <button class="lightbox-close" onclick="closeLightbox()">&times;</button>
-    <div class="lightbox-content">
-      <button class="lightbox-nav lightbox-prev" onclick="prevPhoto()">&#10094;</button>
-      <img id="lightboxImage" class="lightbox-image" src="" alt="Pełne zdjęcie">
-      <p id="lightboxCaption" class="lightbox-caption"></p>
-      <button class="lightbox-nav lightbox-next" onclick="nextPhoto()">&#10095;</button>
+    <!-- Menu boczne (identyczne jak na stronie głównej) -->
+    <div id="sideMenu" class="side-menu">
+        <button class="menu-close-btn" onclick="toggleMenu()">
+            <i class="fas fa-times"></i>
+        </button>
+        <nav>
+            <ul>
+                <li><a href="index.html">Strona główna</a></li>
+                <li><a href="list.html">Galeria</a></li>
+                <li><a href="#">Odwiedzone kraje</a></li>
+                <li><a href="#">Kategorie</a></li>
+                <li><a href="#">Wyszukiwarka</a></li>
+                <li><a href="#">Opcje sortowania</a></li>
+                <li><a href="#">Statystyki</a></li>
+            </ul>
+        </nav>
     </div>
-  </div>
+    <div id="overlay" class="overlay" onclick="toggleMenu()"></div>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script>
-    const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
-    const tripsUrl = `${firebaseBaseUrl}/trips.json`;
+    <main class="gallery-page">
+        <div id="galleryContent" class="gallery-container">
+            <p>Ładowanie zdjęć...</p>
+        </div>
+    </main>
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const type = urlParams.get("type"); // country lub category
-    const value = urlParams.get("value");
+    <!-- Modal do wyświetlania wiadomości -->
+    <div id="msgModal" class="msg-modal" style="display: none;">
+        <div class="msg-modal-content">
+            <p id="msgText"></p>
+            <button onclick="closeMsgModal()">OK</button>
+        </div>
+    </div>
 
-    const photoGrid = document.getElementById("photoGrid");
-    const galleryTitle = document.getElementById("galleryTitle");
-    const lightbox = document.getElementById("lightbox");
-    const lightboxImage = document.getElementById("lightboxImage");
-    const lightboxCaption = document.getElementById("lightboxCaption");
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-    let allPhotos = []; // Wszystkie zdjęcia pasujące do filtra
-    let currentPhotoIndex = 0;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
-    // Ustaw tytuł
-    if (type === "country") {
-      galleryTitle.textContent = `Miejsca w kraju: ${decodeURIComponent(value)}`;
-    } else if (type === "category") {
-      galleryTitle.textContent = `Miejsca w kategorii: ${getCategoryLabel(decodeURIComponent(value))}`;
-    }
+        let app, db, auth;
 
-    // Załaduj dane
-    fetch(tripsUrl)
-      .then(res => res.json())
-      .then(trips => {
-        if (!trips) return;
+        async function initFirebase() {
+            if (!Object.keys(firebaseConfig).length) {
+                showMessage("Błąd: brak konfiguracji Firebase.");
+                return;
+            }
+            try {
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        loadGallery();
+                    } else {
+                        if (initialAuthToken) {
+                            await signInWithCustomToken(auth, initialAuthToken);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error("Błąd inicjalizacji Firebase:", error);
+                showMessage("Błąd podczas ładowania aplikacji.");
+            }
+        }
 
-        allPhotos = [];
+        window.toggleMenu = function() {
+            const body = document.body;
+            body.classList.toggle('menu-open');
+        };
 
-        Object.values(trips).forEach(trip => {
-          if (trip.places) {
-            Object.values(trip.places).forEach(place => {
-              if ((type === "country" && place.country === value) ||
-                  (type === "category" && place.category === value)) {
+        window.showMessage = function(text) {
+            document.getElementById("msgText").textContent = text;
+            document.getElementById("msgModal").style.display = "flex";
+        };
 
-                if (place.photos && place.photos.length > 0) {
-                  place.photos.forEach(photo => {
-                    allPhotos.push({
-                      url: photo.url,
-                      caption: photo.caption || `Zdjęcie z ${place.name}`,
-                      placeName: place.name,
-                      date: place.date
+        window.closeMsgModal = function() {
+            document.getElementById("msgModal").style.display = "none";
+        };
+
+        async function loadGallery() {
+            if (!db) return;
+            const galleryContainer = document.getElementById("galleryContent");
+            galleryContainer.innerHTML = '<p>Ładowanie zdjęć...</p>';
+            
+            try {
+                const tripsSnapshot = await getDocs(collection(db, `artifacts/${appId}/public/data/trips`));
+                const trips = tripsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                const placesSnapshot = await getDocs(collection(db, `artifacts/${appId}/public/data/places`));
+                const places = placesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                galleryContainer.innerHTML = '';
+                
+                if (places.length === 0) {
+                    galleryContainer.innerHTML = '<p>Brak zdjęć w galerii. Dodaj miejsca i zdjęcia w trybie edycji.</p>';
+                } else {
+                    places.forEach(place => {
+                        const trip = trips.find(t => t.id === place.tripId);
+                        if (place.photos && place.photos.length > 0) {
+                            const galleryItem = document.createElement('div');
+                            galleryItem.className = 'gallery-item';
+                            galleryItem.innerHTML = `<h3>${place.name} <br> <span class="gallery-trip-name">${trip ? `(${trip.name})` : ''}</span></h3>`;
+                            
+                            place.photos.forEach(photo => {
+                                const photoEl = document.createElement('div');
+                                photoEl.className = 'gallery-photo';
+                                photoEl.innerHTML = `<img src="${photo.url}" alt="${photo.caption || 'Zdjęcie'}">
+                                                     <p>${photo.caption || ''}</p>`;
+                                galleryItem.appendChild(photoEl);
+                            });
+                            galleryContainer.appendChild(galleryItem);
+                        }
                     });
-                  });
-                } else if (place.image) {
-                  allPhotos.push({
-                    url: place.image,
-                    caption: `Zdjęcie główne z ${place.name}`,
-                    placeName: place.name,
-                    date: place.date
-                  });
                 }
-              }
-            });
+            } catch (error) {
+                console.error("Błąd ładowania galerii:", error);
+                showMessage("Nie udało się załadować galerii zdjęć.");
+                galleryContainer.innerHTML = '<p>Wystąpił błąd podczas ładowania galerii.</p>';
+            }
+        }
+
+        document.getElementById("menuBtn").addEventListener("click", toggleMenu);
+        document.addEventListener("keydown", function(e) {
+          if (e.key === "Escape") {
+            document.body.classList.remove('menu-open');
           }
         });
 
-        renderGallery();
-      })
-      .catch(err => {
-        console.error("Błąd ładowania galerii:", err);
-        photoGrid.innerHTML = "<p>❌ Nie udało się załadować zdjęć.</p>";
-      });
-
-    function renderGallery() {
-      photoGrid.innerHTML = "";
-      if (allPhotos.length === 0) {
-        photoGrid.innerHTML = "<p>Brak zdjęć do wyświetlenia.</p>";
-        return;
-      }
-
-      allPhotos.forEach((photo, index) => {
-        const item = document.createElement("div");
-        item.className = "photo-item";
-        item.onclick = () => openLightbox(index);
-        item.innerHTML = `
-          <img src="${photo.url}" alt="Zdjęcie z ${photo.placeName}">
-          <div class="photo-caption">
-            <strong>${photo.placeName}</strong><br>
-            ${formatDate(photo.date) || 'Bez daty'}
-          </div>
-        `;
-        photoGrid.appendChild(item);
-      });
-    }
-
-    // Lightbox
-    function openLightbox(index) {
-      currentPhotoIndex = index;
-      updateLightbox();
-      lightbox.style.display = "flex";
-      document.body.style.overflow = "hidden";
-    }
-
-    function closeLightbox() {
-      lightbox.style.display = "none";
-      document.body.style.overflow = "";
-    }
-
-    function updateLightbox() {
-      const photo = allPhotos[currentPhotoIndex];
-      lightboxImage.src = photo.url;
-      lightboxCaption.textContent = `${photo.placeName} • ${formatDate(photo.date) || 'Bez daty'}${photo.caption ? ' – ' + photo.caption : ''}`;
-    }
-
-    function nextPhoto() {
-      currentPhotoIndex = (currentPhotoIndex + 1) % allPhotos.length;
-      updateLightbox();
-    }
-
-    function prevPhoto() {
-      currentPhotoIndex = (currentPhotoIndex - 1 + allPhotos.length) % allPhotos.length;
-      updateLightbox();
-    }
-
-    // Obsługa klawiatury
-    document.addEventListener("keydown", e => {
-      if (lightbox.style.display === "flex") {
-        if (e.key === "ArrowRight") nextPhoto();
-        if (e.key === "ArrowLeft") prevPhoto();
-        if (e.key === "Escape") closeLightbox();
-      }
-    });
-
-    // Pomocnicze funkcje
-    function formatDate(dateStr) {
-      return dateStr ? new Date(dateStr).toLocaleDateString("pl-PL") : "";
-    }
-
-    function getCategoryLabel(category) {
-      const labels = {
-        miasto: "🏙️ Miasto",
-        park: "🌳 Park",
-        zabytek: "🏛️ Zabytek",
-        muzeum: "🖼️ Muzeum",
-        hotel: "🏨 Hotel",
-        szczyt: "⛰️ Szczyt",
-        restauracja: "🍽️ Restauracja",
-        miejsce_widokowe: "🌄 Miejsce widokowe",
-        atrakcja_turystyczna: "🎯 Atrakcja turystyczna",
-        inny: "🔧 Inny"
-      };
-      return labels[category] || category;
-    }
-  </script>
+        initFirebase();
+    </script>
 </body>
 </html>
