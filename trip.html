@@ -74,6 +74,15 @@
     </div>
   </div>
 
+  <div id="galleryModal" class="gallery-modal" style="display: none">
+    <span class="gallery-close-btn" onclick="closeGalleryModal()">&times;</span>
+    <div class="gallery-content">
+      <div class="gallery-image-container">
+        <img id="modalImage" src="" alt="Powiększone zdjęcie" />
+      </div>
+    </div>
+  </div>
+
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
     const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
@@ -119,6 +128,9 @@
           document.getElementById("trip-content").innerHTML = `
             <h1>${trip.name}</h1>
             <p><strong>Okres:</strong> ${formatDate(trip.dateFrom)} – ${formatDate(trip.dateTo)}</p>
+            <div class="photo-thumbnail-container">
+              <img src="${trip.image}" onclick="showMainImageModal('${trip.image}')" alt="Zdjęcie wyprawy" class="photo-thumbnail">
+            </div>
             <p>${trip.description || ''}</p>
           `;
           if (trip.lat && trip.lng) {
@@ -370,10 +382,24 @@
     window.closePlaceModal = function() { document.getElementById("placeModal").style.display = "none"; };
     window.closeMsgModal = function() { document.getElementById("msgModal").style.display = "none"; };
     window.showMessage = function(text) { document.getElementById("msgText").textContent = text; document.getElementById("msgModal").style.display = "flex"; };
+    
+    // Obsługa nowo dodanego modala
+    window.showMainImageModal = function(imageUrl) {
+      const modal = document.getElementById("galleryModal");
+      const modalImage = document.getElementById("modalImage");
+      modalImage.src = imageUrl;
+      modal.style.display = "flex";
+    };
+    
+    window.closeGalleryModal = function() {
+      document.getElementById("galleryModal").style.display = "none";
+    };
+
     document.addEventListener("keydown", function(e) {
       if (e.key === "Escape") {
         document.getElementById("placeModal").style.display = "none";
         document.getElementById("msgModal").style.display = "none";
+        document.getElementById("galleryModal").style.display = "none";
         const addBtn = document.getElementById("addPlaceBtn");
         if (addBtn && addBtn.textContent === "🛑 Anuluj") {
           addBtn.click();

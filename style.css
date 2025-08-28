@@ -482,3 +482,23 @@ body {
 .gallery-next {
   right: 10px;
 }
+
+/* Dodane style */
+.photo-thumbnail-container {
+  display: inline-block;
+  margin-top: 10px;
+  margin-bottom: 15px;
+}
+
+.photo-thumbnail {
+  width: 150px;
+  height: auto;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.photo-thumbnail:hover {
+  transform: scale(1.05);
+}
