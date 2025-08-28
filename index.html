@@ -2,408 +2,378 @@
 <html lang="pl">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Dziennik podróży</title>
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" />
 </head>
 <body>
+  <!-- Modal do uwierzytelniania administratora -->
   <div id="authModal" class="modal" style="display: none;">
     <div class="modal-content">
       <h2>🔐 Dostęp do edycji</h2>
       <p>Wprowadź hasło administratora, aby edytować.</p>
-      <input type="password" id="adminPassword" placeholder="Hasło" autocomplete="current-password">
+      <input type="password" id="adminPassword" placeholder="Hasło">
       <button onclick="checkPassword()">Wejdź</button>
       <button onclick="closeAuthModal()" style="margin-top: 10px;">Anuluj</button>
     </div>
   </div>
 
-  <div class="header-container right-top">
-    <div class="header-box">Nasze podróże</div>
-    <button id="addTripBtn" class="add-btn" style="display: none;">➕ Dodaj wyprawę</button>
-    <button id="editModeBtn" class="edit-btn">🔧 Tryb edycji</button>
-  </div>
-
-  <div id="map"></div>
-  <div class="loader-overlay" id="loader-overlay" style="display: none;">
-    <div class="loader"></div>
-  </div>
-
+  <!-- Modal do dodawania/edycji wyprawy -->
   <div id="tripModal" class="modal" style="display: none;">
-    <div class="modal-content scrollable-modal">
-      <h2 id="tripModalTitle">Dodaj nową wyprawę</h2>
+    <div class="modal-content">
+      <h2 id="tripModalTitle">Dodaj wyprawę</h2>
       <form id="tripForm">
         <input type="hidden" id="tripId">
         <label>Nazwa: <input type="text" id="tripName" required></label>
-        <label>Krótki opis: <textarea id="tripDescription" required></textarea></label>
         <label>Data rozpoczęcia: <input type="date" id="tripStartDate" required></label>
         <label>Data zakończenia: <input type="date" id="tripEndDate"></label>
-        <label>Kategoria:
-          <select id="tripCategory" required>
-            <option value="trekking">⛰️ Trekking</option>
-            <option value="citybreak">🏙️ City Break</option>
-            <option value="relax">⛱️ Relaks</option>
-            <option value="roadtrip">🚗 Road Trip</option>
-            <option value="inny">🔧 Inny</option>
-          </select>
-        </label>
-        <label>Link do zdjęcia: <input type="url" id="tripImage" placeholder="https://..."></label>
-        <div class="modal-actions">
-          <button type="submit" id="tripSaveBtn">Zapisz</button>
-          <button type="button" onclick="closeTripModal()">Anuluj</button>
-        </div>
+        <label>Opis: <textarea id="tripDescription" rows="4"></textarea></label>
+        <button type="submit">Zapisz</button>
+        <button type="button" onclick="closeTripModal()">Anuluj</button>
       </form>
     </div>
   </div>
 
-  <div id="msgModal" class="msg-modal" style="display: none;">
+  <!-- Modal do wyświetlania wiadomości -->
+  <div id="msgModal" class="msg-modal" style="display: none">
     <div class="msg-modal-content">
       <p id="msgText"></p>
       <button onclick="closeMsgModal()">OK</button>
     </div>
   </div>
 
+  <!-- Główny kontener nagłówka i przycisków -->
+  <div class="header-container right-top">
+    <div class="header-box">Nasze podróże</div>
+    <button id="addTripBtn" class="add-btn" style="display: none;">➕ Dodaj wyprawę</button>
+    <button id="editModeBtn" class="edit-btn">🔧 Tryb edycji</button>
+    <button id="toggleViewBtn" class="toggle-view-btn">Lista krajów</button>
+  </div>
+
+  <!-- Kontener mapy -->
+  <div id="map"></div>
+
+  <!-- Kontener listy krajów (domyślnie ukryty) -->
+  <div id="countryListContainer" class="country-list-container" style="display: none;">
+    <h2>Kraje, które odwiedziliśmy</h2>
+    <div id="countriesList" class="countries-list">
+      <p>Ładowanie krajów...</p>
+    </div>
+  </div>
+
+  <!-- Skrypty -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script type="module">
-    // --- Firebase Imports ---
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, doc, getDoc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-    // --- Firestore Global Variables (Provided by Canvas) ---
-    // DO NOT change these variables. They are automatically managed.
+    // Global variables for Firebase configuration
     const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
     const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
     const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
-    // --- Firebase Initialization ---
-    let app, db, auth, userId;
-    let editMode = false;
-
-    // Use a loader to indicate that the app is loading
-    const showLoader = () => document.getElementById("loader-overlay").style.display = "flex";
-    const hideLoader = () => document.getElementById("loader-overlay").style.display = "none";
+    // Firebase Initialization
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
     
-    // Asynchronous function to initialize Firebase and authenticate
-    const initFirebaseAndAuth = async () => {
-      showLoader();
-      try {
-        app = initializeApp(firebaseConfig);
-        db = getFirestore(app);
-        auth = getAuth(app);
+    // Global state variables
+    let userId = null;
+    let map = null;
+    let trips = [];
+    const tripMarkers = {};
+    let editMode = false;
+    let currentMarker = null;
 
-        // Sign in with the provided token or anonymously if no token is available
+    // Authentication and data loading
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        userId = user.uid;
+        console.log("Authenticated with user ID:", userId);
+        loadTrips();
+        // Check if initial token is set, if so, we can proceed with other logic
+        // If not, we can assume we are in an anonymous session
+      } else {
         if (initialAuthToken) {
-          await signInWithCustomToken(auth, initialAuthToken);
+          try {
+            await signInWithCustomToken(auth, initialAuthToken);
+          } catch (error) {
+            console.error("Error signing in with custom token:", error);
+            await signInAnonymously(auth);
+          }
         } else {
           await signInAnonymously(auth);
         }
-
-        onAuthStateChanged(auth, async (user) => {
-          if (user) {
-            userId = user.uid;
-            console.log("Użytkownik zalogowany:", userId);
-            hideLoader();
-            await setupApp();
-          } else {
-            console.log("Brak zalogowanego użytkownika. Zaloguj się, aby uzyskać dostęp do edycji.");
-            hideLoader();
-            await setupApp();
-          }
-        });
-      } catch (error) {
-        console.error("Błąd uwierzytelniania lub inicjalizacji Firebase:", error);
-        showMessage("Wystąpił błąd podczas logowania. Spróbuj ponownie.");
-        hideLoader();
       }
-    };
+    });
 
-    // --- Map and UI Elements ---
-    let map;
-    const markers = {};
-    const tripMarkers = {};
-
-    const setupApp = async () => {
-      if (!map) {
-        map = L.map('map').setView([52.2297, 21.0122], 6);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(map);
-      }
-      
-      await loadTrips();
-      setupEventListeners();
-    };
-
-    // --- Firebase Functions ---
-    async function loadTrips() {
-      // Clear previous markers
-      Object.values(tripMarkers).forEach(marker => marker.remove());
-      Object.values(markers).forEach(marker => marker.remove());
-      
-      const tripsRef = collection(db, `/artifacts/${appId}/public/data/trips`);
-      onSnapshot(tripsRef, (querySnapshot) => {
-        Object.values(tripMarkers).forEach(marker => marker.remove());
-        querySnapshot.forEach((doc) => {
-          const trip = doc.data();
-          trip.id = doc.id;
-          if (trip.mainLocation) {
-            addTripMarker(trip);
-          }
-        });
-        hideLoader();
-      }, (error) => {
-        console.error("Błąd ładowania wypraw:", error);
-        showMessage("Nie udało się załadować listy wypraw.");
-        hideLoader();
-      });
-    }
-
-    async function addTrip(trip) {
-      try {
-        showLoader();
-        await addDoc(collection(db, `/artifacts/${appId}/public/data/trips`), trip);
-        showMessage("Wyprawa dodana pomyślnie! ✅");
-        hideLoader();
-        closeTripModal();
-      } catch (e) {
-        console.error("Błąd dodawania wyprawy:", e);
-        showMessage("Nie udało się dodać wyprawy.");
-        hideLoader();
-      }
-    }
-
-    async function updateTrip(id, data) {
-      try {
-        showLoader();
-        await setDoc(doc(db, `/artifacts/${appId}/public/data/trips`, id), data);
-        showMessage("Wyprawa zaktualizowana pomyślnie! ✅");
-        hideLoader();
-        closeTripModal();
-      } catch (e) {
-        console.error("Błąd aktualizacji wyprawy:", e);
-        showMessage("Nie udało się zaktualizować wyprawy.");
-        hideLoader();
-      }
-    }
-
-    async function deleteTrip(id) {
-      try {
-        showLoader();
-        await deleteDoc(doc(db, `/artifacts/${appId}/public/data/trips`, id));
-        showMessage("Wyprawa usunięta pomyślnie! ✅");
-        hideLoader();
-      } catch (e) {
-        console.error("Błąd usuwania wyprawy:", e);
-        showMessage("Nie udało się usunąć wyprawy.");
-        hideLoader();
-      }
-    }
-
-    async function fetchTrip(id) {
-        const docRef = doc(db, `/artifacts/${appId}/public/data/trips`, id);
-        try {
-            const docSnap = await getDoc(docRef);
-            if (docSnap.exists()) {
-                return docSnap.data();
-            } else {
-                console.log("Brak takiego dokumentu!");
-                return null;
-            }
-        } catch (e) {
-            console.error("Błąd pobierania dokumentu:", e);
-            return null;
-        }
-    }
-
-    // --- Marker Functions ---
-    function addTripMarker(trip) {
-      const { name, mainLocation, id } = trip;
-      if (!mainLocation || !mainLocation.lat || !mainLocation.lng) {
-        console.error("Brak danych lokalizacji dla wyprawy:", name);
-        return;
-      }
-      const marker = L.marker([mainLocation.lat, mainLocation.lng]).addTo(map);
-      marker.bindPopup(`<b>${name}</b><br><a href="trip.html?tripId=${id}">Zobacz szczegóły</a>`);
-      tripMarkers[id] = marker;
-
-      // Edit mode functionality
-      if (editMode) {
-        marker.on('click', () => {
-          editTrip(id);
-        });
-      }
-    }
-
-    function addTempMarker(lat, lng) {
-      const existingTempMarker = markers['temp'];
-      if (existingTempMarker) {
-        existingTempMarker.remove();
-      }
-      const newMarker = L.marker([lat, lng]).addTo(map);
-      markers['temp'] = newMarker;
-    }
-
-    // --- UI and Modal Handlers ---
-    function openTripModal(trip) {
-      const modal = document.getElementById("tripModal");
-      const form = document.getElementById("tripForm");
-      document.getElementById("tripId").value = trip ? trip.id : '';
-      document.getElementById("tripModalTitle").textContent = trip ? "Edytuj wyprawę" : "Dodaj nową wyprawę";
-      document.getElementById("tripName").value = trip ? trip.name : '';
-      document.getElementById("tripDescription").value = trip ? trip.description : '';
-      document.getElementById("tripStartDate").value = trip ? trip.startDate : '';
-      document.getElementById("tripEndDate").value = trip ? trip.endDate : '';
-      document.getElementById("tripCategory").value = trip ? trip.category : 'trekking';
-      document.getElementById("tripImage").value = trip ? trip.image : '';
-      document.getElementById("tripSaveBtn").textContent = trip ? "Zapisz zmiany" : "Dodaj wyprawę";
-      
-      const tripActionsContainer = document.querySelector(".modal-actions");
-      const deleteBtn = tripActionsContainer.querySelector("#deleteTripBtn");
-      if (deleteBtn) {
-        deleteBtn.remove();
-      }
-      if (trip) {
-        const newDeleteBtn = document.createElement("button");
-        newDeleteBtn.id = "deleteTripBtn";
-        newDeleteBtn.textContent = "Usuń";
-        newDeleteBtn.type = "button";
-        newDeleteBtn.onclick = () => {
-          if (confirm("Czy na pewno chcesz usunąć tę wyprawę?")) {
-            deleteTrip(trip.id);
-            closeTripModal();
-          }
-        };
-        tripActionsContainer.insertBefore(newDeleteBtn, tripActionsContainer.lastElementChild);
-      }
-      
-      modal.style.display = "flex";
-    }
-
-    async function editTrip(id) {
-        const trip = await fetchTrip(id);
-        if (trip) {
-            openTripModal(trip);
-        }
-    }
-
-    window.closeTripModal = function() {
-      document.getElementById("tripModal").style.display = "none";
-    };
-
-    window.closeAuthModal = function() {
-      document.getElementById("authModal").style.display = "none";
-    };
-    
+    // Helper function to show a message modal
     window.showMessage = function(text) {
       document.getElementById("msgText").textContent = text;
       document.getElementById("msgModal").style.display = "flex";
     };
-    
+
     window.closeMsgModal = function() {
       document.getElementById("msgModal").style.display = "none";
     };
 
-    document.addEventListener("keydown", function(e) {
-      if (e.key === "Escape") {
-        closeTripModal();
-        closeAuthModal();
-        closeMsgModal();
+    window.closeTripModal = function() {
+      document.getElementById("tripModal").style.display = "none";
+      if (currentMarker) {
+        map.removeLayer(currentMarker);
+      }
+    };
+    
+    window.closeAuthModal = function() {
+        document.getElementById("authModal").style.display = "none";
+    };
+
+    // Initialize map
+    function initMap() {
+      if (!map) {
+        map = L.map('map').setView([52.0, 19.0], 6); // Centered on Poland
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        map.on('click', onMapClick);
+      }
+    }
+
+    // Function to handle map clicks for adding new markers
+    async function onMapClick(e) {
+      if (editMode) {
+        if (currentMarker) {
+          map.removeLayer(currentMarker);
+        }
+        currentMarker = L.marker(e.latlng).addTo(map);
+        document.getElementById('tripId').value = '';
+        document.getElementById('tripName').value = '';
+        document.getElementById('tripStartDate').value = '';
+        document.getElementById('tripEndDate').value = '';
+        document.getElementById('tripDescription').value = '';
+        document.getElementById('tripModalTitle').textContent = 'Dodaj wyprawę';
+        document.getElementById('tripModal').style.display = 'flex';
+      }
+    }
+
+    // Function to handle form submission for saving a trip
+    document.getElementById('tripForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const tripName = document.getElementById('tripName').value;
+      const tripStartDate = document.getElementById('tripStartDate').value;
+      const tripEndDate = document.getElementById('tripEndDate').value;
+      const tripDescription = document.getElementById('tripDescription').value;
+      const tripId = document.getElementById('tripId').value;
+
+      // Reverse geocoding to get country
+      let country = 'Nieznany';
+      try {
+          const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${currentMarker.getLatLng().lat}&lon=${currentMarker.getLatLng().lng}`);
+          const data = await response.json();
+          country = data.address.country || 'Nieznany';
+      } catch (error) {
+          console.error("Geocoding failed:", error);
+      }
+
+      const tripData = {
+        name: tripName,
+        startDate: tripStartDate,
+        endDate: tripEndDate,
+        description: tripDescription,
+        latitude: currentMarker.getLatLng().lat,
+        longitude: currentMarker.getLatLng().lng,
+        country: country, // Add the new country field
+        authorId: userId
+      };
+
+      if (tripId) {
+        // Update existing trip
+        try {
+          await updateDoc(doc(db, `artifacts/${appId}/public/data/trips`, tripId), tripData);
+          showMessage("Wyprawa zaktualizowana!");
+        } catch (error) {
+          console.error("Error updating trip:", error);
+          showMessage("Nie udało się zaktualizować wyprawy.");
+        }
+      } else {
+        // Add new trip
+        try {
+          await addDoc(collection(db, `artifacts/${appId}/public/data/trips`), tripData);
+          showMessage("Wyprawa dodana!");
+        } catch (error) {
+          console.error("Error adding trip:", error);
+          showMessage("Nie udało się dodać wyprawy.");
+        }
+      }
+
+      closeTripModal();
+    });
+
+    // Load trips from Firestore and listen for changes
+    function loadTrips() {
+      const tripsCollectionRef = collection(db, `artifacts/${appId}/public/data/trips`);
+      onSnapshot(tripsCollectionRef, (snapshot) => {
+        trips = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        renderTripsOnMap(trips);
+        renderCountryList(trips);
+      }, (error) => {
+        console.error("Error listening to trips:", error);
+        showMessage("Nie udało się załadować wypraw.");
+      });
+    }
+
+    // Render trips on the map
+    function renderTripsOnMap(tripsToRender) {
+      // Clear all existing markers
+      for (const markerId in tripMarkers) {
+        map.removeLayer(tripMarkers[markerId]);
+        delete tripMarkers[markerId];
+      }
+
+      if (map) {
+        tripsToRender.forEach(trip => {
+          const latLng = [trip.latitude, trip.longitude];
+          const marker = L.marker(latLng).addTo(map)
+            .bindPopup(`<b>${trip.name}</b><br>${formatDate(trip.startDate)} - ${formatDate(trip.endDate)}<br><a href="trip.html?id=${trip.id}">Zobacz szczegóły</a>`);
+
+          marker.on('contextmenu', (e) => {
+            if (editMode) {
+              e.preventDefault();
+              showTripModal(trip);
+            }
+          });
+
+          // Add a delete listener
+          marker.on('dblclick', async (e) => {
+            if (editMode) {
+              e.preventDefault();
+              if (window.confirm("Czy na pewno chcesz usunąć tę wyprawę?")) {
+                try {
+                  await deleteDoc(doc(db, `artifacts/${appId}/public/data/trips`, trip.id));
+                  showMessage("Wyprawa usunięta!");
+                } catch (error) {
+                  console.error("Error deleting trip:", error);
+                  showMessage("Nie udało się usunąć wyprawy.");
+                }
+              }
+            }
+          });
+
+          tripMarkers[trip.id] = marker;
+        });
+      } else {
+        console.log("Map not initialized yet.");
+      }
+    }
+
+    // Function to render the country list
+    function renderCountryList(tripsData) {
+      const countries = {};
+      tripsData.forEach(trip => {
+        const countryName = trip.country || 'Nieznany';
+        if (!countries[countryName]) {
+          countries[countryName] = 0;
+        }
+        countries[countryName]++;
+      });
+
+      const countriesListDiv = document.getElementById('countriesList');
+      countriesListDiv.innerHTML = '';
+      
+      const sortedCountries = Object.keys(countries).sort();
+
+      sortedCountries.forEach(country => {
+        const countryItem = document.createElement('div');
+        countryItem.className = 'country-item';
+        countryItem.innerHTML = `
+          <span>${country} (${countries[country]})</span>
+        `;
+        countryItem.addEventListener('click', () => {
+          filterTripsByCountry(country);
+        });
+        countriesListDiv.appendChild(countryItem);
+      });
+    }
+
+    // Function to filter trips by selected country
+    function filterTripsByCountry(country) {
+      const filteredTrips = trips.filter(trip => trip.country === country);
+      renderTripsOnMap(filteredTrips);
+      // Switch back to map view
+      document.getElementById('map').style.display = 'block';
+      document.getElementById('countryListContainer').style.display = 'none';
+      document.getElementById('toggleViewBtn').textContent = 'Lista krajów';
+      // Adjust map view to fit the filtered markers
+      if (filteredTrips.length > 0) {
+        const group = new L.featureGroup(filteredTrips.map(t => L.marker([t.latitude, t.longitude])));
+        map.fitBounds(group.getBounds().pad(0.5));
+      }
+    }
+
+    // Function to handle the toggle view button
+    document.getElementById('toggleViewBtn').addEventListener('click', () => {
+      const mapContainer = document.getElementById('map');
+      const countryListContainer = document.getElementById('countryListContainer');
+      const toggleViewBtn = document.getElementById('toggleViewBtn');
+
+      if (mapContainer.style.display === 'none') {
+        // Switch to map view
+        mapContainer.style.display = 'block';
+        countryListContainer.style.display = 'none';
+        toggleViewBtn.textContent = 'Lista krajów';
+        renderTripsOnMap(trips); // Render all trips
+        initMap();
+        map.invalidateSize();
+      } else {
+        // Switch to country list view
+        mapContainer.style.display = 'none';
+        countryListContainer.style.display = 'block';
+        toggleViewBtn.textContent = 'Pokaż mapę';
       }
     });
 
-    // --- Event Listeners ---
-    function setupEventListeners() {
-      document.getElementById("addTripBtn").addEventListener("click", () => {
-        openTripModal();
-      });
-
-      document.getElementById("editModeBtn").addEventListener("click", () => {
-        editMode = !editMode;
-        document.getElementById("addTripBtn").style.display = editMode ? "block" : "none";
-        document.getElementById("editModeBtn").textContent = editMode ? "✅ Wyjdź z edycji" : "🔧 Tryb edycji";
-
-        // Open auth modal if entering edit mode
-        if (editMode) {
-            document.getElementById("authModal").style.display = "flex";
-        }
-        
-        // Re-render markers to be clickable in edit mode
-        loadTrips();
-      });
-
-      document.getElementById("tripForm").addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const tripId = document.getElementById("tripId").value;
-        const tripName = document.getElementById("tripName").value;
-        const tripDescription = document.getElementById("tripDescription").value;
-        const tripStartDate = document.getElementById("tripStartDate").value;
-        const tripEndDate = document.getElementById("tripEndDate").value;
-        const tripCategory = document.getElementById("tripCategory").value;
-        const tripImage = document.getElementById("tripImage").value;
-        
-        // Use a temp marker for the main location
-        const latLng = markers['temp'] ? markers['temp'].getLatLng() : null;
-        const mainLocation = latLng ? { lat: latLng.lat, lng: latLng.lng } : null;
-
-        const tripData = {
-          name: tripName,
-          description: tripDescription,
-          startDate: tripStartDate,
-          endDate: tripEndDate,
-          category: tripCategory,
-          image: tripImage,
-          mainLocation: mainLocation,
-          places: []
-        };
-        
-        if (tripId) {
-          await updateTrip(tripId, tripData);
-        } else {
-          await addTrip(tripData);
-        }
-      });
-      
-      map.on('click', (e) => {
-        if (editMode) {
-          addTempMarker(e.latlng.lat, e.latlng.lng);
-        }
-      });
-
-      window.checkPassword = async function() {
-        const password = document.getElementById('adminPassword').value;
-        // Simple password check for demo purposes, replace with proper auth
-        if (password === 'admin') {
-          closeAuthModal();
-          showMessage("Tryb edycji włączony. Możesz dodawać i edytować wyprawy.");
-        } else {
-          showMessage("Nieprawidłowe hasło. Tryb edycji nieaktywny.");
-          document.getElementById('editModeBtn').textContent = "🔧 Tryb edycji";
-          document.getElementById('addTripBtn').style.display = 'none';
-          editMode = false;
-        }
-      };
-    }
-    
-    // Initial call
-    initFirebaseAndAuth();
-
-    // --- Helper Functions ---
-    function generateId(name) {
-      return name
-        .toLowerCase()
-        .trim()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/[^a-z0-9]/g, "_")
-        .replace(/_+/g, "_")
-        .replace(/^_+|_+$/g, "");
-    }
-
+    // Helper function to format date
     function formatDate(dateStr) {
       return dateStr ? new Date(dateStr).toLocaleDateString("pl-PL", { day: "numeric", month: "long", year: "numeric" }) : "Brak daty";
     }
-  </script>
+
+    // Show trip modal for editing
+    function showTripModal(trip) {
+      document.getElementById('tripId').value = trip.id;
+      document.getElementById('tripName').value = trip.name;
+      document.getElementById('tripStartDate').value = trip.startDate;
+      document.getElementById('tripEndDate').value = trip.endDate;
+      document.getElementById('tripDescription').value = trip.description;
+      document.getElementById('tripModalTitle').textContent = 'Edytuj wyprawę';
+      document.getElementById('tripModal').style.display = 'flex';
+      currentMarker = L.marker([trip.latitude, trip.longitude]).addTo(map);
+    }
+    
+    // Toggle edit mode
+    document.getElementById('editModeBtn').addEventListener('click', () => {
+        editMode = !editMode;
+        const addTripBtn = document.getElementById('addTripBtn');
+        const editModeBtn = document.getElementById('editModeBtn');
+        if (editMode) {
+            addTripBtn.style.display = 'block';
+            editModeBtn.textContent = '🛑 Wyłącz edycję';
+            showMessage("Tryb edycji włączony. Kliknij mapę, aby dodać wyprawę, lub kliknij prawym przyciskiem, aby edytować istniejącą.");
+        } else {
+            addTripBtn.style.display = 'none';
+            editModeBtn.textContent = '🔧 Tryb edycji';
+            showMessage("Tryb edycji wyłączony.");
+        }
+    });
+
+    // Initial map setup
+    window.onload = function() {
+      initMap();
+    };
+
+    </script>
 </body>
 </html>
