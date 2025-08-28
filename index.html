@@ -5,16 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dziennik podróży</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <!-- Tailwind CSS CDN - used for development purposes only -->
+  <!-- Ostrzeżenie: ta wersja Tailwind jest tylko do celów deweloperskich. -->
+  <!-- W wersji produkcyjnej należy zainstalować ją jako wtyczkę PostCSS. -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="style.css" />
 </head>
-<body class="bg-gray-100 font-inter">
+<body class="bg-gray-100 font-sans antialiased text-gray-800">
 
-  <!-- Main container with responsive flex layout -->
-  <div class="flex flex-col md:flex-row h-screen">
+  <!-- Main application container with a responsive layout -->
+  <div class="flex flex-col md:flex-row h-screen overflow-hidden">
 
-    <!-- Sidebar for Trip List -->
-    <aside id="sidebar" class="w-full md:w-1/3 lg:w-1/4 bg-white shadow-xl p-4 overflow-y-auto transition-all duration-300 ease-in-out z-20">
+    <!-- Sidebar for the list of trips -->
+    <aside id="sidebar" class="w-full md:w-1/3 lg:w-1/4 bg-white shadow-xl p-4 overflow-y-auto transition-all duration-300 ease-in-out z-20 flex-shrink-0">
       <div class="flex items-center justify-between mb-4">
         <h1 class="text-2xl font-bold text-gray-800">Nasze podróże</h1>
         <button id="editModeBtn" class="bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-semibold hover:bg-blue-600 transition-colors">🔧 Tryb edycji</button>
@@ -25,7 +27,7 @@
           ➕ Dodaj wyprawę
         </button>
         <div id="trip-list" class="space-y-4">
-          <!-- Trip cards will be dynamically inserted here -->
+          <!-- The list of trips will be dynamically inserted here -->
           <p class="text-gray-500 text-center mt-8">Ładowanie wypraw...</p>
         </div>
       </div>
@@ -37,7 +39,7 @@
     </main>
   </div>
 
-  <!-- Auth Modal -->
+  <!-- Authentication Modal -->
   <div id="authModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
     <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm text-center transform transition-all scale-95 md:scale-100">
       <h2 class="text-2xl font-bold mb-4">🔐 Dostęp do edycji</h2>
@@ -50,7 +52,7 @@
     </div>
   </div>
 
-  <!-- Trip Modal for adding/editing -->
+  <!-- Trip Form Modal (for adding/editing) -->
   <div id="tripModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
     <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-lg transform transition-all scale-95 md:scale-100">
       <h2 id="tripModalTitle" class="text-2xl font-bold mb-4 text-gray-800">Dodaj wyprawę</h2>
@@ -83,7 +85,7 @@
     </div>
   </div>
 
-  <!-- Message Modal (replaces alert/confirm) -->
+  <!-- Custom Message/Confirmation Modal -->
   <div id="msgModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
     <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm text-center">
       <p id="msgText" class="text-lg font-semibold mb-4"></p>
@@ -94,15 +96,20 @@
     </div>
   </div>
 
-  <!-- Leaflet and Firebase Scripts -->
+  <!-- Scripts for Leaflet and Firebase -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script type="module">
     // Import necessary Firebase services
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, getDoc, setDoc, deleteDoc, onSnapshot, collection, getDocs, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, setDoc, deleteDoc, onSnapshot, collection, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
     
     // --- Global Variables and Initial State ---
+    // These variables are loaded from the environment
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+    const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
     let db;
     let auth;
     let map = null;
@@ -110,7 +117,13 @@
     let tripMarkers = {};
     let selectedTripId = null;
 
-    // --- Modal Functions (moved to top for early access) ---
+    // --- Modal Functions (defined first to be callable anywhere) ---
+    /**
+     * Shows a custom message modal, replacing the need for `alert()` and `confirm()`.
+     * @param {string} text - The message to display.
+     * @param {boolean} [isConfirm=false] - If true, shows a confirmation button.
+     * @param {function} [onConfirm=null] - The callback function to execute on confirmation.
+     */
     function showMessage(text, isConfirm = false, onConfirm = null) {
       document.getElementById("msgText").textContent = text;
       const confirmBtn = document.getElementById("msgConfirmBtn");
@@ -131,54 +144,61 @@
       document.getElementById("msgModal").style.display = "flex";
     }
 
+    /** Closes the message modal. */
     function closeMsgModal() {
       document.getElementById("msgModal").style.display = "none";
     }
     
+    /** Closes the authentication modal. */
     function closeAuthModal() {
       document.getElementById("authModal").style.display = "none";
     }
 
+    /** Closes the trip form modal. */
     function closeTripModal() {
       document.getElementById("tripModal").style.display = "none";
     }
     
     // --- Firebase Initialization and Authentication ---
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
-    const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
+    /** Initializes Firebase and handles user authentication. */
     async function initFirebaseAndAuth() {
-      if (!firebaseConfig || !firebaseConfig.projectId) {
-        console.error("Firebase configuration not provided. The app will not function correctly.");
-        showMessage("Błąd: Konfiguracja Firebase nie została dostarczona.");
-        return;
-      }
-
-      const app = initializeApp(firebaseConfig);
-      db = getFirestore(app);
-      auth = getAuth(app);
-
-      onAuthStateChanged(auth, async (user) => {
-        if (user) {
-          console.log("Użytkownik uwierzytelniony:", user.uid);
-          setupTripListener();
-        } else {
-          try {
-            if (initialAuthToken) {
-              await signInWithCustomToken(auth, initialAuthToken);
-            } else {
-              await signInAnonymously(auth);
-            }
-          } catch (error) {
-            console.error("Error during auth:", error);
-            showMessage("Błąd uwierzytelniania. Proszę odświeżyć stronę.");
-          }
+      try {
+        if (!firebaseConfig || !firebaseConfig.projectId) {
+          console.error("Firebase configuration not provided. The app will not function correctly.");
+          showMessage("Błąd: Konfiguracja Firebase nie została dostarczona.");
+          return;
         }
-      });
+
+        const app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        auth = getAuth(app);
+
+        // Listen for auth state changes and sign in if not authenticated
+        onAuthStateChanged(auth, async (user) => {
+          if (user) {
+            console.log("Użytkownik uwierzytelniony:", user.uid);
+            setupTripListener();
+          } else {
+            try {
+              if (initialAuthToken) {
+                await signInWithCustomToken(auth, initialAuthToken);
+              } else {
+                await signInAnonymously(auth);
+              }
+            } catch (error) {
+              console.error("Błąd uwierzytelniania:", error);
+              showMessage("Błąd uwierzytelniania. Proszę odświeżyć stronę.");
+            }
+          }
+        });
+      } catch (error) {
+        console.error("Wystąpił błąd podczas inicjalizacji Firebase:", error);
+        showMessage("Wystąpił nieoczekiwany błąd. Proszę odświeżyć stronę.");
+      }
     }
 
     // --- Map Initialization ---
+    /** Initializes the Leaflet map. */
     function initMap() {
       if (map === null) {
         map = L.map('map').setView([52.2297, 21.0122], 6);
@@ -186,7 +206,7 @@
           attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
 
-        map.on('click', function(e) {
+        map.on('click', (e) => {
           if (editMode) {
             openTripModal(null, e.latlng.lat, e.latlng.lng);
           }
@@ -195,7 +215,12 @@
     }
 
     // --- Data Listener (real-time updates) ---
+    /** Sets up a real-time listener for the trips collection. */
     function setupTripListener() {
+      if (!db) {
+          console.error("Database not initialized.");
+          return;
+      }
       const tripsRef = collection(db, `artifacts/${appId}/public/data/trips`);
       onSnapshot(tripsRef, (querySnapshot) => {
         const trips = [];
@@ -210,11 +235,17 @@
     }
 
     // --- Rendering Functions ---
+    /**
+     * Renders trip cards in the sidebar and markers on the map.
+     * @param {Array<Object>} trips - An array of trip objects.
+     */
     function renderTrips(trips) {
       const tripListDiv = document.getElementById("trip-list");
+      if (!tripListDiv) return;
+
       tripListDiv.innerHTML = '';
       
-      // Clear existing markers and re-create them
+      // Clear existing markers from the map before re-rendering
       Object.values(tripMarkers).forEach(marker => map.removeLayer(marker));
       tripMarkers = {};
 
@@ -224,29 +255,42 @@
       }
       
       trips.forEach(trip => {
-        // Create trip card in the sidebar
+        // Create a card for the sidebar
         const tripCard = document.createElement('div');
         tripCard.id = `trip-card-${trip.id}`;
         tripCard.className = `p-4 bg-gray-50 rounded-lg shadow-md hover:bg-gray-100 transition-colors cursor-pointer ${selectedTripId === trip.id ? 'border-2 border-blue-500' : ''}`;
         tripCard.innerHTML = `
-          <h3 class="font-bold text-lg text-gray-800">${trip.name}</h3>
-          <p class="text-sm text-gray-500">
-            ${formatDate(trip.startDate)} - ${formatDate(trip.endDate)}
-          </p>
-          <p class="mt-2 text-gray-600 truncate">${trip.description || 'Brak opisu.'}</p>
+          <h3 class="font-bold text-lg text-gray-800 truncate">${trip.name}</h3>
+          <p class="text-sm text-gray-500">${formatDate(trip.startDate)} - ${formatDate(trip.endDate)}</p>
+          <p class="mt-2 text-gray-600 line-clamp-2">${trip.description || 'Brak opisu.'}</p>
         `;
         tripCard.addEventListener('click', () => {
+          // Center the map view on the trip location when the card is clicked
           const lat = trip.startLocation?.latitude || 52.2297;
           const lng = trip.startLocation?.longitude || 21.0122;
-          map.setView([lat, lng], 10);
+          if (map) {
+              map.setView([lat, lng], 10);
+          }
           selectTripCard(trip.id);
         });
         tripListDiv.appendChild(tripCard);
         
-        // Create marker on the map
-        if (trip.startLocation && trip.startLocation.latitude && trip.startLocation.longitude) {
+        // Create a marker for the map
+        if (map && trip.startLocation && trip.startLocation.latitude && trip.startLocation.longitude) {
           const marker = L.marker([trip.startLocation.latitude, trip.startLocation.longitude]).addTo(map);
-          marker.bindPopup(`<b>${trip.name}</b><br><a href="trip.html?id=${trip.id}">Zobacz szczegóły</a>`);
+          const popupContent = `<b>${trip.name}</b><br><a href="trip.html?id=${trip.id}">Zobacz szczegóły</a>`;
+          
+          if (editMode) {
+              const editDeleteButtons = `
+                  <div class="mt-2 flex gap-2">
+                    <button onclick="openTripModal('${trip.id}')" class="bg-blue-500 text-white px-2 py-1 rounded-md text-xs hover:bg-blue-600 transition-colors">Edytuj</button>
+                    <button onclick="confirmDeleteTrip('${trip.id}')" class="bg-red-500 text-white px-2 py-1 rounded-md text-xs hover:bg-red-600 transition-colors">Usuń</button>
+                  </div>
+              `;
+              marker.bindPopup(popupContent + editDeleteButtons);
+          } else {
+              marker.bindPopup(popupContent);
+          }
           
           marker.on('click', () => {
             selectTripCard(trip.id);
@@ -257,15 +301,22 @@
       });
     }
 
+    /**
+     * Highlights the selected trip card in the sidebar.
+     * @param {string} tripId - The ID of the selected trip.
+     */
     function selectTripCard(tripId) {
       if (selectedTripId) {
         document.getElementById(`trip-card-${selectedTripId}`)?.classList.remove('border-2', 'border-blue-500');
       }
-      document.getElementById(`trip-card-${tripId}`)?.classList.add('border-2', 'border-blue-500');
-      selectedTripId = tripId;
+      const newSelectedCard = document.getElementById(`trip-card-${tripId}`);
+      if (newSelectedCard) {
+          newSelectedCard.classList.add('border-2', 'border-blue-500');
+          selectedTripId = tripId;
+      }
     }
 
-    // --- Form and Button Handlers ---
+    // --- User Interface Event Handlers ---
     document.getElementById("editModeBtn").addEventListener("click", () => {
       if (!editMode) {
         document.getElementById("authModal").style.display = 'flex';
@@ -275,9 +326,10 @@
       }
     });
 
+    /** Checks the admin password to enable edit mode. */
     window.checkPassword = function() {
       const password = document.getElementById("adminPassword").value;
-      if (password === 'admin123') { // Simple password check, for demonstration only
+      if (password === 'admin123') { // This is a placeholder for a real-world password check
         setEditMode(true);
         closeAuthModal();
         showMessage("Tryb edycji włączony.");
@@ -287,6 +339,10 @@
       document.getElementById("adminPassword").value = '';
     };
 
+    /**
+     * Toggles the edit mode on and off.
+     * @param {boolean} state - True to enable, false to disable.
+     */
     function setEditMode(state) {
       editMode = state;
       const editBtn = document.getElementById("editModeBtn");
@@ -303,18 +359,13 @@
         addBtn.classList.add('hidden');
       }
       
-      // Update markers to show/hide edit/delete links
-      if (map) {
-          Object.values(tripMarkers).forEach(marker => {
-              const tripId = Object.keys(tripMarkers).find(key => tripMarkers[key] === marker);
-              const popupContent = `<b>${marker.getPopup().getContent()}</b><br><a href="trip.html?id=${tripId}">Zobacz szczegóły</a>`;
-              const editDeleteButtons = `
-                  <div class="mt-2 flex gap-2">
-                    <button onclick="editTrip('${tripId}')" class="bg-blue-500 text-white px-2 py-1 rounded text-xs">Edytuj</button>
-                    <button onclick="confirmDeleteTrip('${tripId}')" class="bg-red-500 text-white px-2 py-1 rounded text-xs">Usuń</button>
-                  </div>
-              `;
-              marker.bindPopup(editMode ? popupContent + editDeleteButtons : popupContent);
+      // Re-render trips to update the markers with edit/delete buttons
+      if (map && db) {
+          const tripsRef = collection(db, `artifacts/${appId}/public/data/trips`);
+          onSnapshot(tripsRef, (querySnapshot) => {
+              const trips = [];
+              querySnapshot.forEach(doc => trips.push({ id: doc.id, ...doc.data() }));
+              renderTrips(trips);
           });
       }
     }
@@ -323,6 +374,12 @@
       openTripModal();
     });
 
+    /**
+     * Opens the trip modal for adding a new trip or editing an existing one.
+     * @param {string} [tripId=null] - The ID of the trip to edit. If null, a new trip is added.
+     * @param {number} [lat=null] - The latitude for a new trip.
+     * @param {number} [lng=null] - The longitude for a new trip.
+     */
     window.openTripModal = function(tripId = null, lat = null, lng = null) {
       const modalTitle = document.getElementById("tripModalTitle");
       const deleteBtn = document.getElementById("deleteTripBtn");
@@ -356,6 +413,11 @@
 
     document.getElementById("tripForm").addEventListener("submit", async (e) => {
       e.preventDefault();
+      if (!db) {
+          showMessage("Błąd: Nie połączono z bazą danych.");
+          return;
+      }
+      
       const tripId = document.getElementById("tripId").value;
       const tripName = document.getElementById("tripName").value;
       const tripDescription = document.getElementById("tripDescription").value;
@@ -369,7 +431,7 @@
         endDate: tripEndDate,
       };
 
-      if (window.tempLat && window.tempLng) {
+      if (window.tempLat !== null && window.tempLng !== null) {
         tripData.startLocation = { latitude: window.tempLat, longitude: window.tempLng };
       }
       
@@ -390,6 +452,10 @@
       }
     });
 
+    /**
+     * Confirms and deletes a trip after user confirmation.
+     * @param {string} tripId - The ID of the trip to delete.
+     */
     window.confirmDeleteTrip = function(tripId) {
       showMessage("Czy na pewno chcesz usunąć tę wyprawę?", true, async () => {
         try {
@@ -403,17 +469,11 @@
     };
 
     // --- Helper Functions ---
-    function generateId(name) {
-      return name
-        .toLowerCase()
-        .trim()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/[^a-z0-9]/g, "_")
-        .replace(/_+/g, "_")
-        .replace(/^_+|_+$/g, "");
-    }
-
+    /**
+     * Formats a date string to a Polish locale.
+     * @param {string} dateStr - The date string to format.
+     * @returns {string} The formatted date string or "Brak daty".
+     */
     function formatDate(dateStr) {
       if (!dateStr) return "Brak daty";
       const date = new Date(dateStr);
@@ -421,6 +481,7 @@
     }
 
     // --- Initial App Load ---
+    // The main entry point for the application.
     window.onload = function() {
       initMap();
       initFirebaseAndAuth();
