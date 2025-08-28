@@ -5,6 +5,7 @@ body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background-color: #f5f5f5;
   color: #333;
+  line-height: 1.6;
 }
 
 /* --- KONTENER NAGŁÓWKA --- */
@@ -33,53 +34,151 @@ body {
 }
 
 /* --- PRZYCISKI --- */
-.add-btn, .edit-btn, .toggle-view-btn {
+.add-btn, .edit-btn, .back-link a {
   background: #4CAF50;
   color: white;
   border: none;
   padding: 8px 12px;
   border-radius: 8px;
   cursor: pointer;
-  transition: background-color 0.3s, transform 0.2s, box-shadow 0.2s;
+  font-size: 14px;
   font-weight: bold;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-  white-space: nowrap; /* Zapobiega łamaniu tekstu */
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-block;
   text-align: center;
 }
 
 .edit-btn {
-  background-color: #f44336;
+  background-color: #f39c12;
 }
 
-.toggle-view-btn {
-  background-color: #2196F3;
+.edit-btn.active {
+  background-color: #2ecc71;
 }
 
-.add-btn:hover, .edit-btn:hover, .toggle-view-btn:hover {
-  background-color: #45a049;
+.add-btn:hover, .edit-btn:hover, .back-link a:hover {
+  filter: brightness(1.1);
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-.edit-btn:hover {
-  background-color: #da190b;
+.edit-btn-card, .delete-btn-card {
+  border: none;
+  background: none;
+  font-size: 1.2em;
+  cursor: pointer;
+  margin-left: 5px;
+  padding: 5px;
+  border-radius: 50%;
+  transition: transform 0.2s ease;
 }
 
-.toggle-view-btn:hover {
-  background-color: #0b7dda;
+.delete-btn-card {
+  color: #c0392b;
 }
 
-/* --- MAPA --- */
+.edit-btn-card {
+  color: #2980b9;
+}
+
+.edit-btn-card:hover, .delete-btn-card:hover {
+  transform: scale(1.2);
+}
+
+/* --- SEKCJE GŁÓWNE --- */
 #map {
+  width: 100%;
+  height: 100vh;
   position: absolute;
   top: 0;
-  bottom: 0;
   left: 0;
-  right: 0;
   z-index: 1;
 }
 
-/* --- MODALE --- */
+.trip-list-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  max-height: 100vh;
+  z-index: 2;
+  overflow-y: auto;
+  padding: 20px;
+  box-sizing: border-box;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 100px; /* Dodatkowy padding, żeby lista nie była pod nagłówkiem */
+}
+
+.trip-card {
+  display: block;
+  width: 280px;
+  height: 200px;
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  text-decoration: none;
+  color: #333;
+  overflow: hidden;
+  position: relative;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  background-size: cover;
+  background-position: center;
+}
+
+.trip-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.card-content {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 15px;
+  box-sizing: border-box;
+}
+
+.card-content h3 {
+  margin: 0 0 5px;
+  font-size: 1.2em;
+}
+
+.card-content p {
+  margin: 0;
+  font-size: 0.9em;
+  color: #666;
+}
+
+.card-buttons {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.7);
+  padding: 5px;
+  border-radius: 8px;
+}
+
+.no-trips-msg {
+  color: #777;
+  font-size: 1.2em;
+  text-align: center;
+  width: 100%;
+  margin-top: 50px;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 20px;
+  border-radius: 12px;
+}
+
+/* --- MODAL --- */
 .modal {
   display: none;
   position: fixed;
@@ -89,177 +188,79 @@ body {
   width: 100%;
   height: 100%;
   background-color: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(5px);
+  display: flex;
   justify-content: center;
   align-items: center;
-  overflow-y: auto;
 }
 
 .modal-content {
   background-color: #fff;
-  padding: 24px 30px;
-  border-radius: 16px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
   width: 90%;
   max-width: 500px;
   text-align: center;
-  position: relative;
-  animation: fadeInDown 0.4s ease-out;
+  box-sizing: border-box;
 }
 
 .modal-content h2 {
-  color: #2c3e50;
   margin-top: 0;
-  font-size: 1.8em;
-}
-
-.modal-content label {
-  display: block;
-  text-align: left;
-  margin: 12px 0 4px;
-  font-weight: bold;
-  color: #555;
+  color: #2c3e50;
 }
 
 .modal-content input, .modal-content textarea {
   width: 100%;
   padding: 10px;
-  margin-bottom: 15px;
-  border: 1px solid #ddd;
+  margin: 8px 0;
+  border: 1px solid #ccc;
   border-radius: 8px;
   box-sizing: border-box;
-  font-size: 1em;
 }
 
 .modal-content button {
-  width: 48%;
-  padding: 12px;
+  background-color: #3498db;
+  color: white;
+  padding: 12px 20px;
   border: none;
   border-radius: 8px;
-  background-color: #2c3e50;
-  color: white;
   cursor: pointer;
+  margin-top: 10px;
   font-weight: bold;
-  transition: background-color 0.3s;
+  transition: background-color 0.3s ease;
 }
 
 .modal-content button:hover {
-  background-color: #34495e;
-}
-
-.modal-content button:nth-of-type(2) {
-  background-color: #95a5a6;
-  margin-left: 4%;
-}
-
-.modal-content button:nth-of-type(2):hover {
-  background-color: #7f8c8d;
-}
-
-@keyframes fadeInDown {
-  from {
-    opacity: 0;
-    transform: translateY(-50px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Modal wiadomości */
-.msg-modal {
-  display: none;
-  position: fixed;
-  z-index: 3000;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(5px);
-  justify-content: center;
-  align-items: center;
-}
-
-.msg-modal-content {
-  background-color: #fff;
-  padding: 24px 30px;
-  border-radius: 16px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
-  width: 80%;
-  max-width: 400px;
-  text-align: center;
-}
-
-.msg-modal-content p {
-  font-size: 1.2em;
-  font-weight: 500;
-}
-
-.msg-modal-content button {
-  background-color: #3498db;
-  color: white;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  margin-top: 15px;
-}
-
-.msg-modal-content button:hover {
   background-color: #2980b9;
 }
 
-/* --- KONTENER LISTY KRAJÓW --- */
-.country-list-container {
-  display: none; /* Domyślnie ukryty */
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: #f5f5f5;
-  padding: 20px;
-  box-sizing: border-box;
-  overflow-y: auto;
-  z-index: 10;
-  animation: fadeIn 0.5s ease-out;
-}
-
-.country-list-container h2 {
+/* Dodatkowy styl dla modala z wiadomościami */
+.msg-modal-content {
   text-align: center;
+}
+.msg-modal-content p {
+  font-size: 1.1em;
   margin-bottom: 20px;
-  color: #2c3e50;
+}
+.msg-modal-content button {
+  background-color: #3498db;
 }
 
-.countries-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 15px;
-  max-width: 1200px;
-  margin: 0 auto;
+/* --- EFEKTY DODATKOWE --- */
+.scrollable-modal {
+  max-height: 80vh;
+  overflow-y: auto;
 }
 
-.country-item {
-  background: white;
-  padding: 15px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  text-align: center;
-  cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
-  font-weight: bold;
-  color: #34495e;
+.scrollable-modal::-webkit-scrollbar {
+  width: 8px;
 }
 
-.country-item:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+.scrollable-modal::-webkit-scrollbar-thumb {
+  background-color: #ccc;
+  border-radius: 4px;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+.scrollable-modal::-webkit-scrollbar-track {
+  background-color: #f5f5f5;
 }
-
