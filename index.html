@@ -80,7 +80,7 @@
                             
                             if (isEditing) {
                                 const popupContent = `
-                                    <strong>${trip.name}</strong><br>
+                                    <strong><a href="trip.html?id=${key}" onclick="saveMapState()">${trip.name}</a></strong><br>
                                     <small>${trip.description || ''}</small><br>
                                     <img src="${trip.image}" width="100"><br><br>
                                     <button onclick="editTrip('${key}')">✏️ Edytuj</button>
