@@ -89,10 +89,10 @@
                                 marker.bindPopup(popupContent);
                             } else {
                                 const popupContent = `
-                                    <strong>${trip.name}</strong><br>
+                                    <strong><a href="trip.html?id=${key}">${trip.name}</a></strong><br>
                                     <small>${trip.description || ''}</small><br>
                                     <img src="${trip.image}" width="100"><br><br>
-                                    <a href="trip.html?id=${key}">Przejdź do wyprawy</a>
+                                    <em>Kliknij, aby zobaczyć szczegóły</em>
                                 `;
                                 marker.bindPopup(popupContent);
                             }
