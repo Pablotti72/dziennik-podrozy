@@ -22,7 +22,6 @@
     <div id="place-photos" class="photo-gallery"></div>
   </main>
 
-  <!-- Modal do wyświetlania wiadomości -->
   <div id="msgModal" class="msg-modal" style="display: none">
     <div class="msg-modal-content">
       <p id="msgText"></p>
@@ -30,7 +29,6 @@
     </div>
   </div>
 
-  <!-- Modal do galerii zdjęć -->
   <div id="galleryModal" class="gallery-modal" style="display: none">
     <span class="gallery-close-btn" onclick="closeGalleryModal()">&times;</span>
     <button class="gallery-nav-btn gallery-prev" onclick="changePhoto(-1)">&#10094;</button>
@@ -85,10 +83,10 @@
                       onerror="this.onerror=null;this.src='https://placehold.co/400x300/e0e0e0/555555?text=Brak+zdjęcia';" />`
                   : `<img src="https://placehold.co/400x300/e0e0e0/555555?text=Brak+zdjęcia" alt="Brak zdjęcia" class="main-image" />`
               }
+              <p>${place.description || "Brak opisu."}</p>
             </div>
             <p><strong>Kategoria:</strong> ${getCategoryLabel(place.category)}</p>
             <p><strong>Data:</strong> ${formatDate(place.date)}</p>
-            <p>${place.description || "Brak opisu."}</p>
           `;
 
           const mapContainer = document.getElementById("place-map");
