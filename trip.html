@@ -136,16 +136,18 @@
             </div>
             <p>${trip.description || ''}</p>
           `;
-          if (trip.lat && trip.lng) {
-            map.setView([trip.lat, trip.lng], 10);
-          }
 
           map.eachLayer(l => { if (l instanceof L.Marker) map.removeLayer(l); });
+          const bounds = L.latLngBounds();
+          let hasMarkers = false;
+
           if (trip.places) {
             Object.keys(trip.places).forEach(key => {
               const p = trip.places[key];
               if (!p.lat || !p.lng) return;
+              hasMarkers = true;
               const m = L.marker([p.lat, p.lng]).addTo(map);
+              bounds.extend([p.lat, p.lng]);
 
               let popupContent;
               if (isEditing) {
@@ -168,6 +170,12 @@
               }
               m.bindPopup(popupContent);
             });
+          }
+
+          if (hasMarkers) {
+              map.fitBounds(bounds, { padding: [50, 50] });
+          } else if (trip.lat && trip.lng) {
+              map.setView([trip.lat, trip.lng], 10);
           }
         })
         .catch(err => {
