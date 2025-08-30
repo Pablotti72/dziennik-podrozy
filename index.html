@@ -37,7 +37,7 @@
         <label>Opis: <textarea id="tripDescription" rows="3"></textarea></label><br><br>
         <label>Zdjęcie (URL): <input type="url" id="tripImage" required></label><br><br>
         <label>Data od: <input type="date" id="tripDateFrom" required></label><br><br>
-        <label>Data do: <input type="date" id="tripDateTo" required></label><br><br>
+        <label>Data do: <input type="date" id="tripDateTo"></label><br><br>
 
         <button type="submit">Zapisz</button>
         <button type="button" onclick="closeTripModal()">Anuluj</button>
@@ -77,13 +77,7 @@
                         const trip = trips[key];
                         if (trip.lat && trip.lng) {
                             const marker = L.marker([trip.lat, trip.lng]).addTo(map);
-                            marker.bindPopup(`<strong>${trip.name}</strong><br>${trip.description || ''}`);
-
-                            marker.on("click", function() {
-                                saveMapState();
-                                window.location.href = `trip.html?id=${key}&from=index`;
-                            });
-
+                            
                             if (isEditing) {
                                 const popupContent = `
                                     <strong>${trip.name}</strong><br>
@@ -93,7 +87,20 @@
                                     <button onclick="deleteTrip('${key}')">🗑️ Usuń</button>
                                 `;
                                 marker.bindPopup(popupContent);
+                            } else {
+                                const popupContent = `
+                                    <strong>${trip.name}</strong><br>
+                                    <small>${trip.description || ''}</small><br>
+                                    <img src="${trip.image}" width="100"><br><br>
+                                    <a href="trip.html?id=${key}">Przejdź do wyprawy</a>
+                                `;
+                                marker.bindPopup(popupContent);
                             }
+                            
+                            // Dodana funkcja do zapisu stanu mapy przed przejściem
+                            marker.on("click", function() {
+                                saveMapState();
+                            });
                         }
                     });
                 }
@@ -184,7 +191,6 @@
     };
 
     window.editTrip = function(id) {
-        saveMapState();
         fetch(`${firebaseBaseUrl}/trips/${id}.json`)
             .then(res => res.json())
             .then(trip => {
