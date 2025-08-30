@@ -89,18 +89,13 @@
                                 marker.bindPopup(popupContent);
                             } else {
                                 const popupContent = `
-                                    <strong><a href="trip.html?id=${key}">${trip.name}</a></strong><br>
+                                    <strong><a href="trip.html?id=${key}" onclick="saveMapState()">${trip.name}</a></strong><br>
                                     <small>${trip.description || ''}</small><br>
                                     <img src="${trip.image}" width="100"><br><br>
                                     <em>Kliknij, aby zobaczyć szczegóły</em>
                                 `;
                                 marker.bindPopup(popupContent);
                             }
-                            
-                            // Dodana funkcja do zapisu stanu mapy przed przejściem
-                            marker.on("click", function() {
-                                saveMapState();
-                            });
                         }
                     });
                 }
