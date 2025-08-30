@@ -31,6 +31,8 @@
       <h2 id="tripModalTitle">Dodaj wyprawę</h2>
       <form id="tripForm">
         <input type="hidden" id="tripId">
+        <input type="hidden" id="tripLat">
+        <input type="hidden" id="tripLng">
         <label>Nazwa: <input type="text" id="tripName" required></label><br><br>
         <label>Opis: <textarea id="tripDescription" rows="3"></textarea></label><br><br>
         <label>Zdjęcie (URL): <input type="url" id="tripImage" required></label><br><br>
@@ -70,7 +72,6 @@
             .then(trips => {
                 map.eachLayer(l => { if (l instanceof L.Marker) map.removeLayer(l); });
 
-                const tripMarkers = [];
                 if (trips) {
                     Object.keys(trips).forEach(key => {
                         const trip = trips[key];
@@ -169,9 +170,9 @@
       map.on("click", onMapClick);
     });
 
-    let newTripCoords = null;
     function onMapClick(e) {
-      newTripCoords = e.latlng;
+      document.getElementById("tripLat").value = e.latlng.lat;
+      document.getElementById("tripLng").value = e.latlng.lng;
       map.off("click", onMapClick);
       document.getElementById("tripModal").style.display = "flex";
     }
@@ -179,6 +180,8 @@
     window.openTripModal = function() {
       document.getElementById("tripForm").reset();
       document.getElementById("tripId").value = "";
+      document.getElementById("tripLat").value = "";
+      document.getElementById("tripLng").value = "";
       document.getElementById("tripModalTitle").textContent = "Dodaj nową wyprawę";
       document.getElementById("tripModal").style.display = "flex";
     };
@@ -195,6 +198,8 @@
                     document.getElementById("tripImage").value = trip.image;
                     document.getElementById("tripDateFrom").value = trip.dateFrom;
                     document.getElementById("tripDateTo").value = trip.dateTo;
+                    document.getElementById("tripLat").value = trip.lat;
+                    document.getElementById("tripLng").value = trip.lng;
                     document.getElementById("tripModalTitle").textContent = "Edytuj wyprawę";
                     document.getElementById("tripModal").style.display = "flex";
                 }
@@ -216,8 +221,8 @@
         image: document.getElementById("tripImage").value,
         dateFrom: document.getElementById("tripDateFrom").value,
         dateTo: document.getElementById("tripDateTo").value,
-        lat: newTripCoords ? newTripCoords.lat : null,
-        lng: newTripCoords ? newTripCoords.lng : null
+        lat: parseFloat(document.getElementById("tripLat").value) || null,
+        lng: parseFloat(document.getElementById("tripLng").value) || null
       };
 
       fetch(url, {
@@ -229,7 +234,6 @@
         closeTripModal();
         showMessage("✅ Zapisano!");
         loadTrips();
-        newTripCoords = null;
       })
       .catch(err => {
         console.error("Błąd zapisu:", err);
