@@ -6,9 +6,6 @@
   <title>Wyprawa</title>
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 </head>
 <body>
   <div class="header-container right-top">
@@ -91,25 +88,11 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    // Twoje dane konfiguracyjne Firebase
-    const firebaseConfig = {
-      apiKey: "AIzaSyBcRB_dec2OunBPevgemcWouCfDP6dNZV4",
-      authDomain: "moj-dziennik-podrozy.firebaseapp.com",
-      databaseURL: "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app",
-      projectId: "moj-dziennik-podrozy",
-      storageBucket: "moj-dziennik-podrozy.firebasestorage.app",
-      messagingSenderId: "997572019753",
-      appId: "1:997572019753:web:e27b147f8b8709bce3be38"
-    };
-
-    // Inicjalizacja Firebase
-    firebase.initializeApp(firebaseConfig);
-
     const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
     const urlParams = new URLSearchParams(window.location.search);
     const tripId = urlParams.get("id");
     const fromPage = urlParams.get("from");
-    let isEditing = sessionStorage.getItem("isEditing") === "true";
+    const isEditing = sessionStorage.getItem("isEditing") === "true";
 
     const map = L.map("trip-map");
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
@@ -137,67 +120,60 @@
         addPlaceBtn.style.display = "none";
       }
 
-      firebase.database().ref(`trips/${tripId}`).once('value', snapshot => {
-        const trip = snapshot.val();
-        if (!trip) {
-          document.getElementById("trip-content").innerHTML = "<p>❌ Wyprawa nie istnieje.</p>";
-          return;
-        }
-        tripData = trip;
-        document.getElementById("trip-content").innerHTML = `
-          <h1>${trip.name}</h1>
-          <p><strong>Okres:</strong> ${formatDate(trip.dateFrom)} – ${formatDate(trip.dateTo)}</p>
-          <div class="photo-thumbnail-container">
-            <img src="${trip.image}" onclick="showMainImageModal('${trip.image}')" alt="Zdjęcie wyprawy" class="photo-thumbnail">
-          </div>
-          <p>${trip.description || ''}</p>
-        `;
-
-        map.eachLayer(l => { if (l instanceof L.Marker) map.removeLayer(l); });
-        const bounds = L.latLngBounds();
-        let hasMarkers = false;
-
-        if (trip.places) {
-          Object.keys(trip.places).forEach(key => {
-            const p = trip.places[key];
-            if (!p.lat || !p.lng) return;
-            hasMarkers = true;
-            const m = L.marker([p.lat, p.lng]).addTo(map);
-            bounds.extend([p.lat, p.lng]);
-
-            let popupContent;
-            if (isEditing) {
-                popupContent = `
-                    <strong><a href="place.html?tripId=${tripId}&placeId=${key}&from=edit">${p.name}</a></strong><br>
-                    ${p.description || ''}<br>
-                    <img src="${p.image}" width="100"><br>
-                    <small>${p.category} • ${formatDate(p.date)}</small><br><br>
-                    <button onclick="editPlace('${key}')">✏️ Edytuj</button>
-                    <button onclick="deletePlace('${key}')">🗑️ Usuń</button>
-                `;
-            } else {
-                popupContent = `
-                    <strong><a href="place.html?tripId=${tripId}&placeId=${key}">${p.name}</a></strong><br>
-                    ${p.description || ''}<br>
-                    <img src="${p.image}" width="100"><br>
-                    <small>${p.category} • ${formatDate(p.date)}</small><br><br>
-                    <em>Kliknij, aby zobaczyć szczegóły</em>
-                `;
-            }
-            m.bindPopup(popupContent);
-          });
-        }
-
-        if (hasMarkers) {
-            map.fitBounds(bounds, { padding: [50, 50] });
-        } else if (trip.lat && trip.lng) {
+      fetch(`${firebaseBaseUrl}/trips/${tripId}.json`)
+        .then(res => res.json())
+        .then(trip => {
+          if (!trip) {
+            document.getElementById("trip-content").innerHTML = "<p>❌ Wyprawa nie istnieje.</p>";
+            return;
+          }
+          tripData = trip;
+          document.getElementById("trip-content").innerHTML = `
+            <h1>${trip.name}</h1>
+            <p><strong>Okres:</strong> ${formatDate(trip.dateFrom)} – ${formatDate(trip.dateTo)}</p>
+            <div class="photo-thumbnail-container">
+              <img src="${trip.image}" onclick="showMainImageModal('${trip.image}')" alt="Zdjęcie wyprawy" class="photo-thumbnail">
+            </div>
+            <p>${trip.description || ''}</p>
+          `;
+          if (trip.lat && trip.lng) {
             map.setView([trip.lat, trip.lng], 10);
-        }
-      })
-      .catch(err => {
-        console.error("Błąd ładowania wyprawy:", err);
-        document.getElementById("trip-content").innerHTML = "<p>❌ Nie udało się załadować wyprawy.</p>";
-      });
+          }
+
+          map.eachLayer(l => { if (l instanceof L.Marker) map.removeLayer(l); });
+          if (trip.places) {
+            Object.keys(trip.places).forEach(key => {
+              const p = trip.places[key];
+              if (!p.lat || !p.lng) return;
+              const m = L.marker([p.lat, p.lng]).addTo(map);
+
+              let popupContent;
+              if (isEditing) {
+                  popupContent = `
+                      <strong><a href="place.html?tripId=${tripId}&placeId=${key}&from=edit">${p.name}</a></strong><br>
+                      ${p.description || ''}<br>
+                      <img src="${p.image}" width="100"><br>
+                      <small>${p.category} • ${formatDate(p.date)}</small><br><br>
+                      <button onclick="editPlace('${key}')">✏️ Edytuj</button>
+                      <button onclick="deletePlace('${key}')">🗑️ Usuń</button>
+                  `;
+              } else {
+                  popupContent = `
+                      <strong><a href="place.html?tripId=${tripId}&placeId=${key}">${p.name}</a></strong><br>
+                      ${p.description || ''}<br>
+                      <img src="${p.image}" width="100"><br>
+                      <small>${p.category} • ${formatDate(p.date)}</small><br><br>
+                      <em>Kliknij, aby zobaczyć szczegóły</em>
+                  `;
+              }
+              m.bindPopup(popupContent);
+            });
+          }
+        })
+        .catch(err => {
+          console.error("Błąd ładowania wyprawy:", err);
+          document.getElementById("trip-content").innerHTML = "<p>❌ Nie udało się załadować wyprawy.</p>";
+        });
     }
 
     loadTripAndPlaces();
@@ -285,11 +261,6 @@
     document.getElementById("placeForm").addEventListener("submit", async function(e) {
       e.preventDefault();
 
-      if (!firebase.auth().currentUser) {
-          showMessage("Musisz być zalogowany, aby zapisywać zmiany.");
-          return;
-      }
-
       const id = document.getElementById("placeId").value;
       const isEdit = id !== "";
 
@@ -319,13 +290,14 @@
         const newId = generateId(placeData.name);
 
         if (originalId !== newId) {
-          const oldRef = firebase.database().ref(`trips/${tripId}/places/${originalId}`);
-          const newRef = firebase.database().ref(`trips/${tripId}/places/${newId}`);
+          const originalDataUrl = `${firebaseBaseUrl}/trips/${tripId}/places/${originalId}.json`;
+          const newDataUrl = `${firebaseBaseUrl}/trips/${tripId}/places/${newId}.json`;
           try {
-            const oldPlaceSnapshot = await oldRef.once('value');
-            if (oldPlaceSnapshot.exists()) {
-              await newRef.set({...oldPlaceSnapshot.val(), ...placeData});
-              await oldRef.remove();
+            const res = await fetch(originalDataUrl);
+            const oldPlace = await res.json();
+            if (oldPlace) {
+              await fetch(newDataUrl, { method: "PUT", body: JSON.stringify({...oldPlace, ...placeData}) });
+              await fetch(originalDataUrl, { method: "DELETE" });
               closePlaceModal();
               showMessage("✅ Zmieniono nazwę i zapisano miejsce!");
               loadTripAndPlaces();
@@ -333,11 +305,16 @@
             }
           } catch (err) {
             console.error("Błąd zmiany nazwy miejsca:", err);
-            showMessage("❌ Nie udało się zmienić nazwy miejsca.");
+            showMessage("Nie udało się zmienić nazwy miejsca.");
             return;
           }
         }
-        firebase.database().ref(`trips/${tripId}/places/${id}`).update(placeData)
+        const fetchUrl = `${firebaseBaseUrl}/trips/${tripId}/places/${id}.json`;
+        fetch(fetchUrl, {
+          method: "PATCH",
+          body: JSON.stringify(placeData),
+          headers: { "Content-Type": "application/json" }
+        })
         .then(() => {
           closePlaceModal();
           showMessage("✅ Zapisano!");
@@ -349,7 +326,12 @@
         });
       } else {
         const newPlaceId = generateId(placeData.name);
-        firebase.database().ref(`trips/${tripId}/places/${newPlaceId}`).set(placeData)
+        const fetchUrl = `${firebaseBaseUrl}/trips/${tripId}/places/${newPlaceId}.json`;
+        fetch(fetchUrl, {
+          method: "PUT",
+          body: JSON.stringify(placeData),
+          headers: { "Content-Type": "application/json" }
+        })
         .then(() => {
           closePlaceModal();
           showMessage("✅ Zapisano!");
@@ -363,12 +345,8 @@
     });
 
     window.deletePlace = function(placeId) {
-      if (!firebase.auth().currentUser) {
-          showMessage("Musisz być zalogowany, aby usuwać miejsca.");
-          return;
-      }
       if (confirm("Usunąć?")) {
-        firebase.database().ref(`trips/${tripId}/places/${placeId}`).remove()
+        fetch(`${firebaseBaseUrl}/trips/${tripId}/places/${placeId}.json`, { method: "DELETE" })
           .then(() => {
             showMessage("✅ Usunięto!");
             loadTripAndPlaces();
