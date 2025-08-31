@@ -6,9 +6,6 @@
   <title>Dziennik podróży</title>
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 </head>
 <body>
   <div id="authModal" class="modal" style="display: none;">
@@ -57,22 +54,10 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyBcRB_dec2OunBPevgemcWouCfDP6dNZV4",
-      authDomain: "moj-dziennik-podrozy.firebaseapp.com",
-      databaseURL: "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app",
-      projectId: "moj-dziennik-podrozy",
-      storageBucket: "moj-dziennik-podrozy.firebasestorage.app",
-      messagingSenderId: "997572019753",
-      appId: "1:997572019753:web:e27b147f8b8709bce3be38"
-    };
-
-    // Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
-
     const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
     const editModeBtn = document.getElementById("editModeBtn");
     const addTripBtn = document.getElementById("addTripBtn");
+    const adminPassword = "admin";
 
     let isEditing = sessionStorage.getItem("isEditing") === "true";
     updateEditModeButton();
@@ -150,7 +135,6 @@
         sessionStorage.setItem("isEditing", "false");
         updateEditModeButton();
         loadTrips();
-        firebase.auth().signOut();
       } else {
         document.getElementById("authModal").style.display = "flex";
       }
@@ -158,19 +142,15 @@
 
     window.checkPassword = function() {
         const password = document.getElementById("adminPassword").value;
-        const email = "admin@admin.com"; 
-
-        firebase.auth().signInWithEmailAndPassword(email, password)
-            .then((userCredential) => {
-                isEditing = true;
-                sessionStorage.setItem("isEditing", "true");
-                updateEditModeButton();
-                closeAuthModal();
-                loadTrips();
-            })
-            .catch((error) => {
-                showMessage("❌ Nieprawidłowe hasło.");
-            });
+        if (password === adminPassword) {
+            isEditing = true;
+            sessionStorage.setItem("isEditing", "true");
+            updateEditModeButton();
+            closeAuthModal();
+            loadTrips();
+        } else {
+            showMessage("❌ Nieprawidłowe hasło.");
+        }
     };
 
     function updateEditModeButton() {
