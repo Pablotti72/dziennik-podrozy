@@ -6,6 +6,9 @@
   <title>Dziennik podróży</title>
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 </head>
 <body>
   <div id="authModal" class="modal" style="display: none;">
@@ -54,6 +57,17 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
+    const firebaseConfig = {
+        apiKey: "YOUR_API_KEY",
+        authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+        databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "YOUR_PROJECT_ID",
+        storageBucket: "YOUR_PROJECT_ID.appspot.com",
+        messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+        appId: "YOUR_APP_ID"
+    };
+    firebase.initializeApp(firebaseConfig);
+
     const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
     const editModeBtn = document.getElementById("editModeBtn");
     const addTripBtn = document.getElementById("addTripBtn");
@@ -134,6 +148,7 @@
         sessionStorage.setItem("isEditing", "false");
         updateEditModeButton();
         loadTrips();
+        firebase.auth().signOut();
       } else {
         document.getElementById("authModal").style.display = "flex";
       }
@@ -141,22 +156,18 @@
 
     window.checkPassword = function() {
         const password = document.getElementById("adminPassword").value;
-        fetch(`${firebaseBaseUrl}/admin/password.json`)
-            .then(res => res.json())
-            .then(adminPassword => {
-                if (password === adminPassword) {
-                    isEditing = true;
-                    sessionStorage.setItem("isEditing", "true");
-                    updateEditModeButton();
-                    closeAuthModal();
-                    loadTrips();
-                } else {
-                    showMessage("❌ Nieprawidłowe hasło.");
-                }
+        const email = "admin@admin.com"; 
+
+        firebase.auth().signInWithEmailAndPassword(email, password)
+            .then((userCredential) => {
+                isEditing = true;
+                sessionStorage.setItem("isEditing", "true");
+                updateEditModeButton();
+                closeAuthModal();
+                loadTrips();
             })
-            .catch(err => {
-                console.error("Błąd pobierania hasła:", err);
-                showMessage("❌ Wystąpił błąd podczas weryfikacji hasła.");
+            .catch((error) => {
+                showMessage("❌ Nieprawidłowe hasło.");
             });
     };
 
