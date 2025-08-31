@@ -57,7 +57,6 @@
     const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
     const editModeBtn = document.getElementById("editModeBtn");
     const addTripBtn = document.getElementById("addTripBtn");
-    const adminPassword = "admin";
 
     let isEditing = sessionStorage.getItem("isEditing") === "true";
     updateEditModeButton();
@@ -142,15 +141,23 @@
 
     window.checkPassword = function() {
         const password = document.getElementById("adminPassword").value;
-        if (password === adminPassword) {
-            isEditing = true;
-            sessionStorage.setItem("isEditing", "true");
-            updateEditModeButton();
-            closeAuthModal();
-            loadTrips();
-        } else {
-            showMessage("❌ Nieprawidłowe hasło.");
-        }
+        fetch(`${firebaseBaseUrl}/admin/password.json`)
+            .then(res => res.json())
+            .then(adminPassword => {
+                if (password === adminPassword) {
+                    isEditing = true;
+                    sessionStorage.setItem("isEditing", "true");
+                    updateEditModeButton();
+                    closeAuthModal();
+                    loadTrips();
+                } else {
+                    showMessage("❌ Nieprawidłowe hasło.");
+                }
+            })
+            .catch(err => {
+                console.error("Błąd pobierania hasła:", err);
+                showMessage("❌ Wystąpił błąd podczas weryfikacji hasła.");
+            });
     };
 
     function updateEditModeButton() {
