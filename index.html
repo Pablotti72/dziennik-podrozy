@@ -201,7 +201,7 @@
         .then(res => res.json())
         .then(trip => {
           if (trip) {
-            document.getElementById("tripId").").value = id;
+            document.getElementById("tripId").value = id;
             document.getElementById("tripName").value = trip.name;
             document.getElementById("tripDescription").value = trip.description || '';
             document.getElementById("tripImage").value = trip.image;
@@ -332,3 +332,4 @@
   </script>
 </body>
 </html>
+
