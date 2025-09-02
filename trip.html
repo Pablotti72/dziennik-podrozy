@@ -90,24 +90,23 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js";
-    import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js";
+    import { getDatabase, ref, get, set, remove, push, update } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js";
 
-    // Twoja konfiguracja Firebase - ZASTĄP SWOIMI DANYMI
+    // Twoja konfiguracja Firebase
     const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_AUTH_DOMAIN",
-      projectId: "YOUR_PROJECT_ID",
-      databaseURL: "YOUR_DATABASE_URL",
-      storageBucket: "YOUR_STORAGE_BUCKET",
-      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-      appId: "YOUR_APP_ID",
+      apiKey: "AIzaSyBcRB_dec2OunBPevgemcWouCfDP6dNZV4",
+      authDomain: "moj-dziennik-podrozy.firebaseapp.com",
+      databaseURL: "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "moj-dziennik-podrozy",
+      storageBucket: "moj-dziennik-podrozy.firebasestorage.app",
+      messagingSenderId: "997572019753",
+      appId: "1:997572019753:web:0f5aa78a1c24072de3be38"
     };
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const database = getDatabase(app);
 
-    const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
     const urlParams = new URLSearchParams(window.location.search);
     const tripId = urlParams.get("id");
     const backLink = document.getElementById("backLink");
@@ -149,9 +148,8 @@
     function loadTripAndPlaces() {
       document.getElementById("trip-content").innerHTML = "<p>Ładowanie wyprawy...</p>";
 
-      fetch(`${firebaseBaseUrl}/trips/${tripId}.json`)
-        .then(res => res.json())
-        .then(trip => {
+      get(ref(database, `trips/${tripId}`)).then((snapshot) => {
+          const trip = snapshot.val();
           if (!trip) {
             document.getElementById("trip-content").innerHTML = "<p>❌ Wyprawa nie istnieje.</p>";
             return;
@@ -171,8 +169,8 @@
           let hasMarkers = false;
 
           if (trip.places) {
-            Object.keys(trip.places).forEach(key => {
-              const p = trip.places[key];
+            const placesArray = Object.keys(trip.places).map(key => ({...trip.places[key], id: key}));
+            placesArray.forEach(p => {
               if (!p.lat || !p.lng) return;
               hasMarkers = true;
               const m = L.marker([p.lat, p.lng]).addTo(map);
@@ -181,16 +179,16 @@
               let popupContent;
               if (userRole === 'admin') {
                   popupContent = `
-                      <strong><a href="place.html?tripId=${tripId}&placeId=${key}">${p.name}</a></strong><br>
+                      <strong><a href="place.html?tripId=${tripId}&placeId=${p.id}">${p.name}</a></strong><br>
                       ${p.description || ''}<br>
                       <img src="${p.image}" width="100"><br>
                       <small>${p.category} • ${formatDate(p.date)}</small><br><br>
-                      <button onclick="editPlace('${key}')">✏️ Edytuj</button>
-                      <button onclick="deletePlace('${key}')">🗑️ Usuń</button>
+                      <button onclick="editPlace('${p.id}')">✏️ Edytuj</button>
+                      <button onclick="deletePlace('${p.id}')">🗑️ Usuń</button>
                   `;
               } else {
                   popupContent = `
-                      <strong><a href="place.html?tripId=${tripId}&placeId=${key}">${p.name}</a></strong><br>
+                      <strong><a href="place.html?tripId=${tripId}&placeId=${p.id}">${p.name}</a></strong><br>
                       ${p.description || ''}<br>
                       <img src="${p.image}" width="100"><br>
                       <small>${p.category} • ${formatDate(p.date)}</small><br><br>
@@ -292,7 +290,7 @@
       document.getElementById("placeModal").style.display = "flex";
     };
 
-    document.getElementById("placeForm").addEventListener("submit", async function(e) {
+    document.getElementById("placeForm").addEventListener("submit", function(e) {
       e.preventDefault();
 
       const id = document.getElementById("placeId").value;
@@ -324,31 +322,24 @@
         const newId = generateId(placeData.name);
 
         if (originalId !== newId) {
-          const originalDataUrl = `${firebaseBaseUrl}/trips/${tripId}/places/${originalId}.json`;
-          const newDataUrl = `${firebaseBaseUrl}/trips/${tripId}/places/${newId}.json`;
-          try {
-            const res = await fetch(originalDataUrl);
-            const oldPlace = await res.json();
+          get(ref(database, `trips/${tripId}/places/${originalId}`)).then((snapshot) => {
+            const oldPlace = snapshot.val();
             if (oldPlace) {
-              await fetch(newDataUrl, { method: "PUT", body: JSON.stringify({...oldPlace, ...placeData}) });
-              await fetch(originalDataUrl, { method: "DELETE" });
-              closePlaceModal();
-              showMessage("✅ Zmieniono nazwę i zapisano miejsce!");
-              loadTripAndPlaces();
-              return;
+              set(ref(database, `trips/${tripId}/places/${newId}`), {...oldPlace, ...placeData})
+              .then(() => remove(ref(database, `trips/${tripId}/places/${originalId}`)))
+              .then(() => {
+                closePlaceModal();
+                showMessage("✅ Zmieniono nazwę i zapisano miejsce!");
+                loadTripAndPlaces();
+              });
             }
-          } catch (err) {
+          }).catch(err => {
             console.error("Błąd zmiany nazwy miejsca:", err);
             showMessage("Nie udało się zmienić nazwy miejsca.");
-            return;
-          }
+          });
+          return;
         }
-        const fetchUrl = `${firebaseBaseUrl}/trips/${tripId}/places/${id}.json`;
-        fetch(fetchUrl, {
-          method: "PATCH",
-          body: JSON.stringify(placeData),
-          headers: { "Content-Type": "application/json" }
-        })
+        update(ref(database, `trips/${tripId}/places/${id}`), placeData)
         .then(() => {
           closePlaceModal();
           showMessage("✅ Zapisano!");
@@ -359,13 +350,8 @@
           showMessage("❌ Nie udało się zapisać.");
         });
       } else {
-        const newPlaceId = generateId(placeData.name);
-        const fetchUrl = `${firebaseBaseUrl}/trips/${tripId}/places/${newPlaceId}.json`;
-        fetch(fetchUrl, {
-          method: "PUT",
-          body: JSON.stringify(placeData),
-          headers: { "Content-Type": "application/json" }
-        })
+        const newPlaceRef = push(ref(database, `trips/${tripId}/places`));
+        set(newPlaceRef, placeData)
         .then(() => {
           closePlaceModal();
           showMessage("✅ Zapisano!");
@@ -380,7 +366,7 @@
 
     window.deletePlace = function(placeId) {
       if (confirm("Usunąć?")) {
-        fetch(`${firebaseBaseUrl}/trips/${tripId}/places/${placeId}.json`, { method: "DELETE" })
+        remove(ref(database, `trips/${tripId}/places/${placeId}`))
           .then(() => {
             showMessage("✅ Usunięto!");
             loadTripAndPlaces();

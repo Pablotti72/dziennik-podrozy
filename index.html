@@ -58,24 +58,23 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
     import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js";
-    import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js";
+    import { getDatabase, ref, get, set, remove, push, update } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js";
     
-    // Twoja konfiguracja Firebase - ZASTĄP SWOIMI DANYMI
+    // Twoja konfiguracja Firebase
     const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_AUTH_DOMAIN",
-      projectId: "YOUR_PROJECT_ID",
-      databaseURL: "YOUR_DATABASE_URL",
-      storageBucket: "YOUR_STORAGE_BUCKET",
-      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-      appId: "YOUR_APP_ID",
+      apiKey: "AIzaSyBcRB_dec2OunBPevgemcWouCfDP6dNZV4",
+      authDomain: "moj-dziennik-podrozy.firebaseapp.com",
+      databaseURL: "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "moj-dziennik-podrozy",
+      storageBucket: "moj-dziennik-podrozy.firebasestorage.app",
+      messagingSenderId: "997572019753",
+      appId: "1:997572019753:web:0f5aa78a1c24072de3be38"
     };
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const database = getDatabase(app);
 
-    const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
     const editModeBtn = document.getElementById("editModeBtn");
     const addTripBtn = document.getElementById("addTripBtn");
     let userRole = 'guest';
@@ -129,44 +128,42 @@
     
     // --- Ładowanie i wyświetlanie danych ---
     function loadTrips() {
-        fetch(`${firebaseBaseUrl}/trips.json`)
-            .then(res => res.json())
-            .then(trips => {
-                map.eachLayer(l => { if (l instanceof L.Marker) map.removeLayer(l); });
+        get(ref(database, 'trips')).then((snapshot) => {
+            map.eachLayer(l => { if (l instanceof L.Marker) map.removeLayer(l); });
 
-                if (trips) {
-                    Object.keys(trips).forEach(key => {
-                        const trip = trips[key];
-                        if (trip.lat && trip.lng) {
-                            const marker = L.marker([trip.lat, trip.lng]).addTo(map);
-                            
-                            if (userRole === 'admin') {
-                                const popupContent = `
-                                    <strong><a href="trip.html?id=${key}" onclick="saveMapState()">${trip.name}</a></strong><br>
-                                    <small>${trip.description || ''}</small><br>
-                                    <img src="${trip.image}" width="100"><br><br>
-                                    <button onclick="editTrip('${key}')">✏️ Edytuj</button>
-                                    <button onclick="deleteTrip('${key}')">🗑️ Usuń</button>
-                                `;
-                                marker.bindPopup(popupContent);
-                            } else {
-                                const popupContent = `
-                                    <strong><a href="trip.html?id=${key}" onclick="saveMapState()">${trip.name}</a></strong><br>
-                                    <small>${trip.description || ''}</small><br>
-                                    <img src="${trip.image}" width="100"><br><br>
-                                    <em>Kliknij, aby zobaczyć szczegóły</em>
-                                `;
-                                marker.bindPopup(popupContent);
-                            }
+            const trips = snapshot.val();
+            if (trips) {
+                Object.keys(trips).forEach(key => {
+                    const trip = trips[key];
+                    if (trip.lat && trip.lng) {
+                        const marker = L.marker([trip.lat, trip.lng]).addTo(map);
+                        
+                        if (userRole === 'admin') {
+                            const popupContent = `
+                                <strong><a href="trip.html?id=${key}" onclick="saveMapState()">${trip.name}</a></strong><br>
+                                <small>${trip.description || ''}</small><br>
+                                <img src="${trip.image}" width="100"><br><br>
+                                <button onclick="editTrip('${key}')">✏️ Edytuj</button>
+                                <button onclick="deleteTrip('${key}')">🗑️ Usuń</button>
+                            `;
+                            marker.bindPopup(popupContent);
+                        } else {
+                            const popupContent = `
+                                <strong><a href="trip.html?id=${key}" onclick="saveMapState()">${trip.name}</a></strong><br>
+                                <small>${trip.description || ''}</small><br>
+                                <img src="${trip.image}" width="100"><br><br>
+                                <em>Kliknij, aby zobaczyć szczegóły</em>
+                            `;
+                            marker.bindPopup(popupContent);
                         }
-                    });
-                }
-                restoreMapState();
-            })
-            .catch(err => {
-                console.error("Błąd ładowania wypraw:", err);
-                showMessage("❌ Nie udało się załadować listy wypraw.");
-            });
+                    }
+                });
+            }
+            restoreMapState();
+        }).catch(err => {
+            console.error("Błąd ładowania wypraw:", err);
+            showMessage("❌ Nie udało się załadować listy wypraw.");
+        });
     }
 
     // --- Zapisywanie i odtwarzanie stanu mapy ---
@@ -232,33 +229,27 @@
     };
 
     window.editTrip = function(id) {
-        fetch(`${firebaseBaseUrl}/trips/${id}.json`)
-            .then(res => res.json())
-            .then(trip => {
-                if (trip) {
-                    document.getElementById("tripId").value = id;
-                    document.getElementById("tripName").value = trip.name;
-                    document.getElementById("tripDescription").value = trip.description || '';
-                    document.getElementById("tripImage").value = trip.image;
-                    document.getElementById("tripDateFrom").value = trip.dateFrom;
-                    document.getElementById("tripDateTo").value = trip.dateTo;
-                    document.getElementById("tripLat").value = trip.lat;
-                    document.getElementById("tripLng").value = trip.lng;
-                    document.getElementById("tripModalTitle").textContent = "Edytuj wyprawę";
-                    document.getElementById("tripModal").style.display = "flex";
-                }
-            });
+        get(ref(database, `trips/${id}`)).then((snapshot) => {
+            const trip = snapshot.val();
+            if (trip) {
+                document.getElementById("tripId").value = id;
+                document.getElementById("tripName").value = trip.name;
+                document.getElementById("tripDescription").value = trip.description || '';
+                document.getElementById("tripImage").value = trip.image;
+                document.getElementById("tripDateFrom").value = trip.dateFrom;
+                document.getElementById("tripDateTo").value = trip.dateTo;
+                document.getElementById("tripLat").value = trip.lat;
+                document.getElementById("tripLng").value = trip.lng;
+                document.getElementById("tripModalTitle").textContent = "Edytuj wyprawę";
+                document.getElementById("tripModal").style.display = "flex";
+            }
+        });
     };
 
     document.getElementById("tripForm").addEventListener("submit", function(e) {
       e.preventDefault();
       
       const tripId = document.getElementById("tripId").value;
-      const isEdit = tripId !== "";
-      const url = isEdit ?
-        `${firebaseBaseUrl}/trips/${tripId}.json` :
-        `${firebaseBaseUrl}/trips/${generateId(document.getElementById("tripName").value)}.json`;
-
       const tripData = {
         name: document.getElementById("tripName").value,
         description: document.getElementById("tripDescription").value,
@@ -269,25 +260,37 @@
         lng: parseFloat(document.getElementById("tripLng").value) || null
       };
 
-      fetch(url, {
-        method: isEdit ? "PATCH" : "PUT",
-        body: JSON.stringify(tripData),
-        headers: { "Content-Type": "application/json" }
-      })
-      .then(() => {
-        closeTripModal();
-        showMessage("✅ Zapisano!");
-        loadTrips();
-      })
-      .catch(err => {
-        console.error("Błąd zapisu:", err);
-        showMessage("❌ Nie udało się zapisać.");
-      });
+      if (tripId) {
+        // Update
+        update(ref(database, `trips/${tripId}`), tripData)
+          .then(() => {
+            closeTripModal();
+            showMessage("✅ Zapisano!");
+            loadTrips();
+          })
+          .catch(err => {
+            console.error("Błąd zapisu:", err);
+            showMessage("❌ Nie udało się zapisać.");
+          });
+      } else {
+        // Add new
+        const newTripRef = push(ref(database, 'trips'));
+        set(newTripRef, tripData)
+          .then(() => {
+            closeTripModal();
+            showMessage("✅ Zapisano!");
+            loadTrips();
+          })
+          .catch(err => {
+            console.error("Błąd zapisu:", err);
+            showMessage("❌ Nie udało się zapisać.");
+          });
+      }
     });
 
     window.deleteTrip = function(id) {
       if (confirm("Czy na pewno chcesz usunąć tę wyprawę?")) {
-        fetch(`${firebaseBaseUrl}/trips/${id}.json`, { method: "DELETE" })
+        remove(ref(database, `trips/${id}`))
           .then(() => {
             showMessage("✅ Usunięto!");
             loadTrips();
@@ -298,17 +301,6 @@
           });
       }
     };
-
-    function generateId(name) {
-      return name
-        .toLowerCase()
-        .trim()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/[^a-z0-9]/g, "_")
-        .replace(/_+/g, "_")
-        .replace(/^_+|_+$/g, "");
-    }
 
     function formatDate(dateStr) {
       return dateStr ? new Date(dateStr).toLocaleDateString("pl-PL", { day: "numeric", month: "long", year: "numeric" }) : "Brak daty";
