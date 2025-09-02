@@ -32,9 +32,9 @@
       <h2 id="placeModalTitle">Dodaj miejsce</h2>
       <form id="placeForm">
         <input type="hidden" id="placeId">
+        <input type="hidden" id="originalPlaceId">
         <input type="hidden" id="placeLat">
         <input type="hidden" id="placeLng">
-        <input type="hidden" id="originalPlaceId">
 
         <label>Nazwa: <input type="text" id="placeName" required></label><br><br>
         <label>Opis: <textarea id="placeDescription" rows="2"></textarea></label><br><br>
@@ -90,9 +90,9 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js";
-    import { getDatabase, ref, get, set, remove, push, update } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js";
+    import { getDatabase, ref, get, set, remove, update } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js";
 
-    // Twoja konfiguracja Firebase
+    // Konfiguracja Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyBcRB_dec2OunBPevgemcWouCfDP6dNZV4",
       authDomain: "moj-dziennik-podrozy.firebaseapp.com",
@@ -290,11 +290,12 @@
       document.getElementById("placeModal").style.display = "flex";
     };
 
-    document.getElementById("placeForm").addEventListener("submit", function(e) {
+    document.getElementById("placeForm").addEventListener("submit", async function(e) {
       e.preventDefault();
 
-      const id = document.getElementById("placeId").value;
-      const isEdit = id !== "";
+      const placeName = document.getElementById("placeName").value;
+      const originalPlaceId = document.getElementById("originalPlaceId").value;
+      const newPlaceId = generateId(placeName);
 
       const photos = [];
       document.querySelectorAll(".photo-url").forEach((input, i) => {
@@ -307,7 +308,7 @@
       });
 
       const placeData = {
-        name: document.getElementById("placeName").value,
+        name: placeName,
         description: document.getElementById("placeDescription").value,
         image: document.getElementById("placeImage").value,
         category: document.getElementById("placeCategory").value,
@@ -317,64 +318,42 @@
         photos: photos,
       };
 
-      if (isEdit) {
-        const originalId = document.getElementById("originalPlaceId").value;
-        const newId = generateId(placeData.name);
-
-        if (originalId !== newId) {
-          get(ref(database, `trips/${tripId}/places/${originalId}`)).then((snapshot) => {
-            const oldPlace = snapshot.val();
-            if (oldPlace) {
-              set(ref(database, `trips/${tripId}/places/${newId}`), {...oldPlace, ...placeData})
-              .then(() => remove(ref(database, `trips/${tripId}/places/${originalId}`)))
-              .then(() => {
-                closePlaceModal();
-                showMessage("✅ Zmieniono nazwę i zapisano miejsce!");
-                loadTripAndPlaces();
-              });
-            }
-          }).catch(err => {
-            console.error("Błąd zmiany nazwy miejsca:", err);
-            showMessage("Nie udało się zmienić nazwy miejsca.");
-          });
-          return;
+      try {
+        if (originalPlaceId) {
+          // Edycja
+          if (originalPlaceId !== newPlaceId) {
+            // Zmiana nazwy, utwórz nowy wpis i usuń stary
+            await set(ref(database, `trips/${tripId}/places/${newPlaceId}`), placeData);
+            await remove(ref(database, `trips/${tripId}/places/${originalPlaceId}`));
+            showMessage("✅ Zmieniono nazwę i zapisano miejsce!");
+          } else {
+            // Zwykła edycja
+            await update(ref(database, `trips/${tripId}/places/${originalPlaceId}`), placeData);
+            showMessage("✅ Zapisano!");
+          }
+        } else {
+          // Dodawanie nowego miejsca
+          await set(ref(database, `trips/${tripId}/places/${newPlaceId}`), placeData);
+          showMessage("✅ Zapisano!");
         }
-        update(ref(database, `trips/${tripId}/places/${id}`), placeData)
-        .then(() => {
-          closePlaceModal();
-          showMessage("✅ Zapisano!");
-          loadTripAndPlaces();
-        })
-        .catch(err => {
-          console.error("Błąd zapisu:", err);
-          showMessage("❌ Nie udało się zapisać.");
-        });
-      } else {
-        const newPlaceRef = push(ref(database, `trips/${tripId}/places`));
-        set(newPlaceRef, placeData)
-        .then(() => {
-          closePlaceModal();
-          showMessage("✅ Zapisano!");
-          loadTripAndPlaces();
-        })
-        .catch(err => {
-          console.error("Błąd zapisu:", err);
-          showMessage("❌ Nie udało się zapisać.");
-        });
+        closePlaceModal();
+        loadTripAndPlaces();
+      } catch (err) {
+        console.error("Błąd zapisu:", err);
+        showMessage("❌ Nie udało się zapisać.");
       }
     });
 
-    window.deletePlace = function(placeId) {
+    window.deletePlace = async function(placeId) {
       if (confirm("Usunąć?")) {
-        remove(ref(database, `trips/${tripId}/places/${placeId}`))
-          .then(() => {
-            showMessage("✅ Usunięto!");
-            loadTripAndPlaces();
-          })
-          .catch(err => {
-            console.error("Błąd usuwania:", err);
-            showMessage("❌ Nie udało się usunąć.");
-          });
+        try {
+          await remove(ref(database, `trips/${tripId}/places/${placeId}`));
+          showMessage("✅ Usunięto!");
+          loadTripAndPlaces();
+        } catch (err) {
+          console.error("Błąd usuwania:", err);
+          showMessage("❌ Nie udało się usunąć.");
+        }
       }
     };
 

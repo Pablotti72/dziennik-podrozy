@@ -18,6 +18,13 @@
     </div>
   </div>
 
+  <div id="msgModal" class="msg-modal" style="display: none;">
+    <div class="msg-modal-content">
+      <p id="msgText"></p>
+      <button onclick="closeMsgModal()">OK</button>
+    </div>
+  </div>
+  
   <div class="header-container right-top">
     <div class="header-box">Nasze podróże</div>
     <div class="auth-buttons">
@@ -33,6 +40,7 @@
       <h2 id="tripModalTitle">Dodaj wyprawę</h2>
       <form id="tripForm">
         <input type="hidden" id="tripId">
+        <input type="hidden" id="originalTripId">
         <input type="hidden" id="tripLat">
         <input type="hidden" id="tripLng">
         <label>Nazwa: <input type="text" id="tripName" required></label><br><br>
@@ -47,20 +55,13 @@
     </div>
   </div>
 
-  <div id="msgModal" class="msg-modal" style="display: none;">
-    <div class="msg-modal-content">
-      <p id="msgText"></p>
-      <button onclick="closeMsgModal()">OK</button>
-    </div>
-  </div>
-
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
     import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js";
-    import { getDatabase, ref, get, set, remove, push, update } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js";
+    import { getDatabase, ref, get, set, remove, update } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js";
     
-    // Twoja konfiguracja Firebase
+    // Konfiguracja Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyBcRB_dec2OunBPevgemcWouCfDP6dNZV4",
       authDomain: "moj-dziennik-podrozy.firebaseapp.com",
@@ -224,6 +225,7 @@
     window.openTripModal = function() {
       document.getElementById("tripForm").reset();
       document.getElementById("tripId").value = "";
+      document.getElementById("originalTripId").value = ""; // Dodano oryginalny ID
       document.getElementById("tripModalTitle").textContent = "Dodaj nową wyprawę";
       document.getElementById("tripModal").style.display = "flex";
     };
@@ -233,6 +235,7 @@
             const trip = snapshot.val();
             if (trip) {
                 document.getElementById("tripId").value = id;
+                document.getElementById("originalTripId").value = id; // Zapisz oryginalny ID
                 document.getElementById("tripName").value = trip.name;
                 document.getElementById("tripDescription").value = trip.description || '';
                 document.getElementById("tripImage").value = trip.image;
@@ -246,12 +249,15 @@
         });
     };
 
-    document.getElementById("tripForm").addEventListener("submit", function(e) {
+    document.getElementById("tripForm").addEventListener("submit", async function(e) {
       e.preventDefault();
       
-      const tripId = document.getElementById("tripId").value;
+      const tripName = document.getElementById("tripName").value;
+      const originalTripId = document.getElementById("originalTripId").value;
+      const newTripId = generateId(tripName);
+
       const tripData = {
-        name: document.getElementById("tripName").value,
+        name: tripName,
         description: document.getElementById("tripDescription").value,
         image: document.getElementById("tripImage").value,
         dateFrom: document.getElementById("tripDateFrom").value,
@@ -260,48 +266,66 @@
         lng: parseFloat(document.getElementById("tripLng").value) || null
       };
 
-      if (tripId) {
-        // Update
-        update(ref(database, `trips/${tripId}`), tripData)
-          .then(() => {
-            closeTripModal();
+      try {
+        if (originalTripId) {
+          // Edycja
+          if (originalTripId !== newTripId) {
+            // Zmiana nazwy, utwórz nowy wpis i usuń stary
+            const oldTripRef = ref(database, `trips/${originalTripId}`);
+            const snapshot = await get(oldTripRef);
+            const oldTripData = snapshot.val();
+            
+            // Przenieś również miejsca z starej wyprawy do nowej
+            if (oldTripData && oldTripData.places) {
+                tripData.places = oldTripData.places;
+            }
+            
+            await set(ref(database, `trips/${newTripId}`), tripData);
+            await remove(oldTripRef);
+            showMessage("✅ Zmieniono nazwę i zapisano wyprawę!");
+          } else {
+            // Zwykła edycja
+            await update(ref(database, `trips/${originalTripId}`), tripData);
             showMessage("✅ Zapisano!");
-            loadTrips();
-          })
-          .catch(err => {
-            console.error("Błąd zapisu:", err);
-            showMessage("❌ Nie udało się zapisać.");
-          });
-      } else {
-        // Add new
-        const newTripRef = push(ref(database, 'trips'));
-        set(newTripRef, tripData)
-          .then(() => {
-            closeTripModal();
-            showMessage("✅ Zapisano!");
-            loadTrips();
-          })
-          .catch(err => {
-            console.error("Błąd zapisu:", err);
-            showMessage("❌ Nie udało się zapisać.");
-          });
+          }
+        } else {
+          // Dodawanie nowej wyprawy
+          await set(ref(database, `trips/${newTripId}`), tripData);
+          showMessage("✅ Zapisano!");
+        }
+        closeTripModal();
+        loadTrips();
+      } catch (err) {
+        console.error("Błąd zapisu:", err);
+        showMessage("❌ Nie udało się zapisać.");
       }
     });
 
-    window.deleteTrip = function(id) {
+    window.deleteTrip = async function(id) {
       if (confirm("Czy na pewno chcesz usunąć tę wyprawę?")) {
-        remove(ref(database, `trips/${id}`))
-          .then(() => {
-            showMessage("✅ Usunięto!");
-            loadTrips();
-          })
-          .catch(err => {
-            console.error("Błąd usuwania:", err);
-            showMessage("❌ Nie udało się usunąć wyprawy.");
-          });
+        try {
+          await remove(ref(database, `trips/${id}`));
+          showMessage("✅ Usunięto!");
+          loadTrips();
+        } catch (err) {
+          console.error("Błąd usuwania:", err);
+          showMessage("❌ Nie udało się usunąć wyprawy.");
+        }
       }
     };
-
+    
+    // --- Funkcje pomocnicze ---
+    function generateId(name) {
+      return name
+        .toLowerCase()
+        .trim()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]/g, "_")
+        .replace(/_+/g, "_")
+        .replace(/^_+|_+$/g, "");
+    }
+    
     function formatDate(dateStr) {
       return dateStr ? new Date(dateStr).toLocaleDateString("pl-PL", { day: "numeric", month: "long", year: "numeric" }) : "Brak daty";
     }
