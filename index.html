@@ -8,10 +8,9 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
-  
   <div id="loginModal" class="modal" style="display: none;">
     <div class="modal-content">
-      <h2>🔐 Zaloguj się</h2>
+      <h2>🔐 Dostęp do edycji</h2>
       <input type="email" id="loginEmail" placeholder="E-mail" required>
       <input type="password" id="loginPassword" placeholder="Hasło" required>
       <button onclick="handleLogin()">Zaloguj</button>
@@ -23,7 +22,7 @@
     <div class="header-box">Nasze podróże</div>
     <div class="auth-buttons">
       <button id="addTripBtn" class="add-btn" style="display: none;">➕ Dodaj wyprawę</button>
-      <button id="authBtn" class="edit-btn">Zaloguj</button>
+      <button id="editModeBtn" class="edit-btn">🔧 Tryb edycji</button>
     </div>
   </div>
 
@@ -55,11 +54,12 @@
     </div>
   </div>
 
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
     import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js";
     import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js";
-
+    
     // Twoja konfiguracja Firebase - ZASTĄP SWOIMI DANYMI
     const firebaseConfig = {
       apiKey: "YOUR_API_KEY",
@@ -76,8 +76,8 @@
     const database = getDatabase(app);
 
     const firebaseBaseUrl = "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
+    const editModeBtn = document.getElementById("editModeBtn");
     const addTripBtn = document.getElementById("addTripBtn");
-    const authBtn = document.getElementById("authBtn");
     let userRole = 'guest';
 
     const map = L.map("map");
@@ -88,6 +88,30 @@
       const snapshot = await get(adminRef);
       return snapshot.val() === true ? 'admin' : 'guest';
     }
+
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        userRole = await getUserRole(user.uid);
+        if (userRole === 'admin') {
+          editModeBtn.textContent = "✅ Zakończ edycję";
+          editModeBtn.style.background = "#4CAF50";
+          addTripBtn.style.display = "block";
+          editModeBtn.onclick = logout;
+        } else {
+          editModeBtn.textContent = "🔧 Tryb edycji";
+          editModeBtn.style.background = "#FFC107";
+          addTripBtn.style.display = "none";
+          editModeBtn.onclick = openLoginModal;
+        }
+      } else {
+        userRole = 'guest';
+        editModeBtn.textContent = "🔧 Tryb edycji";
+        editModeBtn.style.background = "#FFC107";
+        addTripBtn.style.display = "none";
+        editModeBtn.onclick = openLoginModal;
+      }
+      loadTrips();
+    });
 
     async function login(email, password) {
       try {
@@ -103,25 +127,7 @@
       signOut(auth);
     }
     
-    onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        userRole = await getUserRole(user.uid);
-        authBtn.textContent = "Wyloguj";
-        authBtn.onclick = logout;
-        if (userRole === 'admin') {
-          addTripBtn.style.display = "block";
-        } else {
-          addTripBtn.style.display = "none";
-        }
-      } else {
-        userRole = 'guest';
-        authBtn.textContent = "Zaloguj";
-        authBtn.onclick = openLoginModal;
-        addTripBtn.style.display = "none";
-      }
-      loadTrips();
-    });
-
+    // --- Ładowanie i wyświetlanie danych ---
     function loadTrips() {
         fetch(`${firebaseBaseUrl}/trips.json`)
             .then(res => res.json())
@@ -163,6 +169,7 @@
             });
     }
 
+    // --- Zapisywanie i odtwarzanie stanu mapy ---
     function saveMapState() {
         sessionStorage.setItem('mapCenterLat', map.getCenter().lat);
         sessionStorage.setItem('mapCenterLng', map.getCenter().lng);
@@ -182,7 +189,8 @@
             map.setView([52.237, 21.017], 6);
         }
     }
-    
+
+    // --- Logika edycji ---
     window.openLoginModal = function() {
       document.getElementById("loginModal").style.display = "flex";
     };
@@ -292,7 +300,7 @@
     };
 
     function generateId(name) {
-      const generated = name
+      return name
         .toLowerCase()
         .trim()
         .normalize("NFD")
@@ -300,13 +308,13 @@
         .replace(/[^a-z0-9]/g, "_")
         .replace(/_+/g, "_")
         .replace(/^_+|_+$/g, "");
-      return generated || "untitled";
     }
 
     function formatDate(dateStr) {
       return dateStr ? new Date(dateStr).toLocaleDateString("pl-PL", { day: "numeric", month: "long", year: "numeric" }) : "Brak daty";
     }
     
+    // --- Obsługa UI i modalów ---
     window.closeTripModal = function() { document.getElementById("tripModal").style.display = "none"; };
     window.showMessage = function(text) {
       document.getElementById("msgText").textContent = text;
@@ -322,6 +330,7 @@
       }
     });
 
+    loadTrips();
   </script>
 </body>
 </html>

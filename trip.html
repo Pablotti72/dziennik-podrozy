@@ -86,6 +86,7 @@
     </div>
   </div>
 
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js";
@@ -118,7 +119,7 @@
 
     const map = L.map("trip-map");
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
-
+    
     async function getUserRole(uid) {
       const adminRef = ref(database, `admins/${uid}`);
       const snapshot = await get(adminRef);
@@ -144,6 +145,7 @@
       backLink.href = `index.html`;
     }
 
+    // --- Ładowanie i wyświetlanie danych ---
     function loadTripAndPlaces() {
       document.getElementById("trip-content").innerHTML = "<p>Ładowanie wyprawy...</p>";
 
@@ -211,28 +213,28 @@
         });
     }
 
-    if (userRole === 'admin') {
-      addPlaceBtn.addEventListener("click", function () {
-        if (isAddingPlace) {
-          isAddingPlace = false;
-          this.textContent = "➕ Dodaj miejsce";
-          this.style.background = "#4CAF50";
-        } else {
-          isAddingPlace = true;
-          this.textContent = "🛑 Anuluj";
-          this.style.background = "#f44336";
-        }
-      });
+    // --- Logika edycji ---
+    
+    addPlaceBtn.addEventListener("click", function () {
+      if (isAddingPlace) {
+        isAddingPlace = false;
+        this.textContent = "➕ Dodaj miejsce";
+        this.style.background = "#4CAF50";
+      } else {
+        isAddingPlace = true;
+        this.textContent = "🛑 Anuluj";
+        this.style.background = "#f44336";
+      }
+    });
 
-      map.on("click", function (e) {
-        if (isAddingPlace) {
-          isAddingPlace = false;
-          addPlaceBtn.textContent = "➕ Dodaj miejsce";
-          addPlaceBtn.style.background = "#4CAF50";
-          openAddPlaceModal(e.latlng.lat, e.latlng.lng);
-        }
-      });
-    }
+    map.on("click", function (e) {
+      if (isAddingPlace) {
+        isAddingPlace = false;
+        document.getElementById("addPlaceBtn").textContent = "➕ Dodaj miejsce";
+        document.getElementById("addPlaceBtn").style.background = "#4CAF50";
+        openAddPlaceModal(e.latlng.lat, e.latlng.lng);
+      }
+    });
 
     window.openAddPlaceModal = function(lat, lng) {
       document.getElementById("placeForm").reset();
@@ -390,8 +392,9 @@
       }
     };
 
+    // --- Funkcje pomocnicze ---
     function generateId(name) {
-      const generated = name
+      return name
         .toLowerCase()
         .trim()
         .normalize("NFD")
@@ -399,7 +402,6 @@
         .replace(/[^a-z0-9]/g, "_")
         .replace(/_+/g, "_")
         .replace(/^_+|_+$/g, "");
-      return generated || "untitled";
     }
     function formatDate(dateStr) {
       return dateStr ? new Date(dateStr).toLocaleDateString("pl-PL", { day: "numeric", month: "long", year: "numeric" }) : "Brak daty";
@@ -418,6 +420,7 @@
     window.closeMsgModal = function() { document.getElementById("msgModal").style.display = "none"; };
     window.showMessage = function(text) { document.getElementById("msgText").textContent = text; document.getElementById("msgModal").style.display = "flex"; };
     
+    // Obsługa nowo dodanego modala
     window.showMainImageModal = function(imageUrl) {
       const modal = document.getElementById("galleryModal");
       const modalImage = document.getElementById("modalImage");
