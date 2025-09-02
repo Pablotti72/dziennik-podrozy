@@ -6,9 +6,6 @@
   <title>Dziennik podróży</title>
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 </head>
 <body>
   <div id="authModal" class="modal" style="display: none;">
@@ -18,7 +15,7 @@
       <input type="email" id="adminEmail" placeholder="Email">
       <input type="password" id="adminPassword" placeholder="Hasło">
       <button onclick="signIn()">Zaloguj</button>
-      <button onclick="closeAuthModal()" style="margin-top: 10px;">Anulaj</button>
+      <button onclick="closeAuthModal()" style="margin-top: 10px;">Anuluj</button>
     </div>
   </div>
 
@@ -62,25 +59,25 @@
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script>
-    // Konfiguracja Firebase
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+    import { getDatabase, ref, onValue, set, update, remove, push } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+
     const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_AUTH_DOMAIN",
-      databaseURL: "YOUR_DATABASE_URL",
-      projectId: "YOUR_PROJECT_ID",
-      storageBucket: "YOUR_STORAGE_BUCKET",
-      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-      appId: "YOUR_APP_ID"
+      apiKey: "AIzaSyBcRB_dec2OunBPevgemcWouCfDP6dNZV4",
+      authDomain: "moj-dziennik-podrozy.firebaseapp.com",
+      databaseURL: "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "moj-dziennik-podrozy",
+      storageBucket: "moj-dziennik-podrozy.firebasestorage.app",
+      messagingSenderId: "997572019753",
+      appId: "1:997572019753:web:0f5aa78a1c24072de3be38"
     };
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-    const auth = firebase.auth();
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
 
-    const firebaseBaseUrl = firebaseConfig.databaseURL;
-
-    // --- Stan aplikacji i UI ---
     const editModeBtn = document.getElementById("editModeBtn");
     const addTripBtn = document.getElementById("addTripBtn");
     let isEditing = sessionStorage.getItem("isEditing") === "true";
@@ -100,53 +97,46 @@
 
     editModeBtn.addEventListener("click", function() {
       if (isEditing) {
-        signOut();
+        signOut(auth).then(() => {
+          isEditing = false;
+          sessionStorage.setItem("isEditing", "false");
+          updateEditModeButton();
+          loadTrips();
+          showMessage("✅ Wylogowano pomyślnie.");
+        }).catch((error) => {
+          console.error("Błąd wylogowania:", error);
+        });
       } else {
         document.getElementById("authModal").style.display = "flex";
       }
     });
 
-    // --- Funkcje uwierzytelniania ---
     window.signIn = function() {
       const email = document.getElementById("adminEmail").value;
       const password = document.getElementById("adminPassword").value;
 
-      auth.signInWithEmailAndPassword(email, password)
+      signInWithEmailAndPassword(auth, email, password)
         .then((userCredential) => {
-          db.ref(`admins/${userCredential.user.uid}`).once('value')
-            .then(snapshot => {
-              if (snapshot.exists()) {
-                isEditing = true;
-                sessionStorage.setItem("isEditing", "true");
-                updateEditModeButton();
-                closeAuthModal();
-                loadTrips();
-                showMessage("✅ Zalogowano jako administrator!");
-              } else {
-                auth.signOut();
-                showMessage("❌ Brak uprawnień administratora.");
-              }
-            });
+          onValue(ref(db, `admins/${userCredential.user.uid}`), (snapshot) => {
+            if (snapshot.exists()) {
+              isEditing = true;
+              sessionStorage.setItem("isEditing", "true");
+              updateEditModeButton();
+              closeAuthModal();
+              loadTrips();
+              showMessage("✅ Zalogowano jako administrator!");
+            } else {
+              signOut(auth);
+              showMessage("❌ Brak uprawnień administratora.");
+            }
+          }, { onlyOnce: true });
         })
         .catch((error) => {
           showMessage(`❌ Błąd logowania: ${error.message}`);
         });
     };
 
-    window.signOut = function() {
-      auth.signOut().then(() => {
-        isEditing = false;
-        sessionStorage.setItem("isEditing", "false");
-        updateEditModeButton();
-        loadTrips();
-        showMessage("✅ Wylogowano pomyślnie.");
-      }).catch((error) => {
-        console.error("Błąd wylogowania:", error);
-      });
-    };
-
-    // --- Obsługa mapy i znaczników ---
-    const map = L.map("map").setView([52.2297, 21.0122], 6); // Domyślny widok: Warszawa
+    const map = L.map("map").setView([52.2297, 21.0122], 6);
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
@@ -189,14 +179,12 @@
     }
 
     async function loadTrips() {
-      // Usuń wszystkie istniejące markery
       for (const markerId in tripMarkers) {
         map.removeLayer(tripMarkers[markerId]);
       }
       tripMarkers = {};
 
-      const tripsRef = db.ref('trips');
-      tripsRef.once('value', (snapshot) => {
+      onValue(ref(db, 'trips'), (snapshot) => {
         const trips = snapshot.val();
         if (trips) {
           Object.keys(trips).forEach((id) => {
@@ -209,11 +197,10 @@
             }
           });
         }
-      });
+      }, { onlyOnce: true });
     }
     loadTrips();
 
-    // --- Funkcje CRUD (Create, Read, Update, Delete) ---
     const tripForm = document.getElementById("tripForm");
     const tripModal = document.getElementById("tripModal");
 
@@ -236,7 +223,7 @@
       };
 
       if (id) {
-        db.ref(`trips/${id}`).update(tripData)
+        update(ref(db, `trips/${id}`), tripData)
           .then(() => {
             showMessage("✅ Wyprawa zaktualizowana!");
             closeTripModal();
@@ -247,8 +234,8 @@
             showMessage("❌ Nie udało się zaktualizować wyprawy.");
           });
       } else {
-        const newTripRef = db.ref('trips').push();
-        newTripRef.set(tripData)
+        const newTripRef = push(ref(db, 'trips'));
+        set(newTripRef, tripData)
           .then(() => {
             showMessage("✅ Wyprawa dodana!");
             closeTripModal();
@@ -262,7 +249,7 @@
     });
 
     window.editTrip = function(id) {
-      db.ref(`trips/${id}`).once('value', (snapshot) => {
+      onValue(ref(db, `trips/${id}`), (snapshot) => {
         const trip = snapshot.val();
         if (trip) {
           document.getElementById("tripId").value = id;
@@ -274,12 +261,12 @@
           document.getElementById("tripDescription").value = trip.description;
           tripModal.style.display = "flex";
         }
-      });
+      }, { onlyOnce: true });
     };
 
     window.deleteTrip = function(id) {
       if (confirm("Czy na pewno chcesz usunąć tę wyprawę?")) {
-        db.ref(`trips/${id}`).remove()
+        remove(ref(db, `trips/${id}`))
           .then(() => {
             showMessage("✅ Usunięto!");
             loadTrips();
@@ -291,7 +278,6 @@
       }
     };
 
-    // --- Funkcje pomocnicze UI ---
     window.closeTripModal = function() { document.getElementById("tripModal").style.display = "none"; };
     window.closeAuthModal = function() { document.getElementById("authModal").style.display = "none"; };
     window.showMessage = function(text) {
