@@ -12,7 +12,7 @@
   <div class="header-container right-top">
     <div class="header-box">Wyprawa</div>
     <button id="addPlaceBtn" class="add-btn" style="display: none;">➕ Dodaj miejsce</button>
-    <a id="backLink" class="back-link" href="#">← Wróć do mapy</a>
+    <a id="backLink" class="back-link" href="index.html">← Wróć do mapy</a>
   </div>
 
   <main class="place-page">
@@ -107,7 +107,7 @@
     const backLink = document.getElementById("backLink");
     const addPlaceBtn = document.getElementById("addPlaceBtn");
     
-    backLink.href = isEditing ? `index.html` : `index.html`;
+    backLink.href = "index.html";
     addPlaceBtn.style.display = isEditing ? "block" : "none";
 
     const map = L.map("trip-map").setView([52.2297, 21.0122], 6);
@@ -120,11 +120,12 @@
         const trip = snapshot.val();
         if (trip) {
           displayTripInfo(trip);
-          loadPlaces(trip.mainLat, trip.mainLng);
+          // ✅ Używamy `lat` i `lng`
+          loadPlaces(trip.lat, trip.lng);
         } else {
           document.getElementById("trip-content").innerHTML = "Brak danych dla tej wyprawy.";
         }
-      }, { onlyOnce: true });
+      }); // Usunięto { onlyOnce: true }
     }
     loadTripData();
 
@@ -181,7 +182,7 @@
         } else if (tripLat && tripLng) {
             map.setView([tripLat, tripLng], 12);
         }
-      });
+      }); // Usunięto { onlyOnce: true }
     }
 
     const placeForm = document.getElementById("placeForm");
@@ -251,10 +252,10 @@
             showMessage("✅ Miejsce dodane!");
             closePlaceModal();
             onValue(ref(db, `trips/${tripId}`), snapshot => {
-              if (!snapshot.val().mainLat) {
+              if (!snapshot.val().lat) {
                 update(ref(db, `trips/${tripId}`), {
-                  mainLat: parseFloat(lat),
-                  mainLng: parseFloat(lng)
+                  lat: parseFloat(lat),
+                  lng: parseFloat(lng)
                 });
               }
             }, { onlyOnce: true });

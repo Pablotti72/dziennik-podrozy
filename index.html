@@ -190,14 +190,15 @@
           Object.keys(trips).forEach((id) => {
             const trip = trips[id];
             trip.id = id;
-            if (trip.mainLat && trip.mainLng) {
-              const marker = L.marker([trip.mainLat, trip.mainLng]).addTo(map);
+            // ✅ Używamy teraz `lat` i `lng`, nie `mainLat`/`mainLng`
+            if (trip.lat && trip.lng) {
+              const marker = L.marker([trip.lat, trip.lng]).addTo(map);
               marker.bindPopup(createTripPopupContent(trip));
               tripMarkers[id] = marker;
             }
           });
         }
-      }, { onlyOnce: true });
+      }); // Usunięto { onlyOnce: true }
     }
     loadTrips();
 
