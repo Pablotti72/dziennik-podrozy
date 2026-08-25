@@ -127,13 +127,11 @@
     }
 
     function collectTripPhotos(trip) {
-      const tripName = text(trip.name, "Podróż bez nazwy");
       Object.values(trip.places || {}).forEach((place) => {
         const placeName = text(place.name, "Miejsce bez nazwy");
-        const fallback = `${placeName} · ${tripName}`;
-        addPlacePhoto(place.image, placeName, fallback);
+        addPlacePhoto(place.image, placeName, "");
         (Array.isArray(place.photos) ? place.photos : []).forEach((photo) => {
-          addPlacePhoto(photo?.url, placeName, text(photo?.caption, fallback));
+          addPlacePhoto(photo?.url, placeName, text(photo?.caption, ""));
         });
       });
     }
@@ -151,7 +149,8 @@
       image.decoding = "async";
       image.addEventListener("error", () => card.remove());
       const caption = document.createElement("span");
-      caption.textContent = photo.title;
+      caption.textContent = photo.description;
+      caption.hidden = !photo.description;
       card.append(image, caption);
       return card;
     }
