@@ -1,62 +1,38 @@
-:root {
-  --gallery-ink: #20322d;
-  --gallery-muted: #64716c;
-  --gallery-paper: #f5f3ec;
-  --gallery-card: #ffffff;
-  --gallery-accent: #1c7c62;
-}
-
+:root { --gallery-ink:#20322d; --gallery-muted:#64716c; --gallery-paper:#f5f3ec; --gallery-card:#ffffff; --gallery-accent:#1c7c62; }
 body { background: var(--gallery-paper); }
-
-.gallery-header {
-  align-items: center;
-  background: rgba(255, 255, 255, .92);
-  box-shadow: 0 1px 0 rgba(32, 50, 45, .12);
-  box-sizing: border-box;
-  display: flex;
-  justify-content: space-between;
-  min-height: 64px;
-  padding: 0 5vw;
-  position: sticky;
-  top: 0;
-  z-index: 20;
-}
-
-.gallery-brand { color: var(--gallery-ink); font-size: 1.1rem; font-weight: 700; text-decoration: none; }
-.gallery-navigation { display: flex; gap: 1.25rem; }
-.gallery-navigation a { color: var(--gallery-muted); font-weight: 600; text-decoration: none; }
-.gallery-navigation a.is-active { color: var(--gallery-accent); }
-.gallery-page { box-sizing: border-box; margin: 0 auto; max-width: 1280px; padding: 4rem 5vw 5rem; }
-.gallery-intro { max-width: 640px; }
-.gallery-eyebrow { color: var(--gallery-accent); font-size: .78rem; font-weight: 800; letter-spacing: .12em; margin: 0; text-transform: uppercase; }
-.gallery-intro h1 { color: var(--gallery-ink); font-size: clamp(2.2rem, 6vw, 4.5rem); letter-spacing: -.04em; line-height: 1; margin: .5rem 0 1rem; }
-.gallery-intro p { color: var(--gallery-muted); font-size: 1.05rem; line-height: 1.6; }
-.gallery-status { color: var(--gallery-muted); margin: 2.5rem 0 1rem; }
-.travel-gallery { display: grid; gap: 1.25rem; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
-.travel-gallery-card { background: var(--gallery-card); border-radius: 16px; box-shadow: 0 8px 22px rgba(32, 50, 45, .08); overflow: hidden; }
-.travel-gallery-image-button { background: none; border: 0; cursor: zoom-in; display: block; padding: 0; width: 100%; }
-.travel-gallery-image-button img { display: block; height: 235px; object-fit: cover; transition: transform .25s ease; width: 100%; }
-.travel-gallery-image-button:hover img, .travel-gallery-image-button:focus-visible img { transform: scale(1.04); }
-.travel-gallery-image-button:focus-visible { outline: 3px solid var(--gallery-accent); outline-offset: -3px; }
-.travel-gallery-card-content { padding: 1rem 1rem 1.15rem; }
-.travel-gallery-badge { color: var(--gallery-accent); font-size: .72rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
-.travel-gallery-card h2 { color: var(--gallery-ink); font-size: 1.05rem; margin: .4rem 0; }
-.travel-gallery-card p { color: var(--gallery-muted); font-size: .88rem; margin: 0; }
-.photo-dialog { background: #12221d; border: 0; color: white; max-height: 100vh; max-width: 100vw; padding: 3.5rem 4.5rem; width: min(1080px, 100vw); }
-.photo-dialog::backdrop { background: rgba(0, 0, 0, .82); }
-.dialog-figure { margin: 0; text-align: center; }
-.dialog-figure img { display: block; height: min(70vh, 760px); margin: 0 auto; max-width: 100%; object-fit: contain; }
-.dialog-figure figcaption { margin-top: 1rem; }
-.dialog-figure strong, .dialog-figure span { display: block; }
-.dialog-figure span { color: #c7d4ce; margin-top: .35rem; }
-.dialog-close, .dialog-arrow { background: rgba(255,255,255,.14); border: 0; border-radius: 50%; color: white; cursor: pointer; font-size: 2rem; height: 44px; line-height: 1; position: absolute; width: 44px; }
-.dialog-close { right: 1rem; top: 1rem; }
-.dialog-arrow { top: 50%; transform: translateY(-50%); }
-.dialog-previous { left: 1rem; }
-.dialog-next { right: 1rem; }
-@media (max-width: 600px) {
-  .gallery-header { padding: 0 1.25rem; }
-  .gallery-page { padding: 2.5rem 1.25rem 4rem; }
-  .photo-dialog { padding: 3.75rem 1rem 1.5rem; }
-  .dialog-arrow { display: none; }
-}
+.gallery-header { align-items:center; background:rgba(255,255,255,.92); box-shadow:0 1px 0 rgba(32,50,45,.12); box-sizing:border-box; display:flex; justify-content:space-between; min-height:64px; padding:0 5vw; position:sticky; top:0; z-index:20; }
+.gallery-brand { color:var(--gallery-ink); font-size:1.1rem; font-weight:700; text-decoration:none; }
+.gallery-navigation { display:flex; gap:1.25rem; }
+.gallery-navigation a { color:var(--gallery-muted); font-weight:600; text-decoration:none; }
+.gallery-navigation a.is-active { color:var(--gallery-accent); }
+.gallery-page { box-sizing:border-box; margin:0 auto; max-width:1280px; padding:4rem 5vw 5rem; }
+.gallery-intro { max-width:700px; }
+.gallery-eyebrow { color:var(--gallery-accent); font-size:.78rem; font-weight:800; letter-spacing:.12em; margin:0; text-transform:uppercase; }
+.gallery-intro h1 { color:var(--gallery-ink); font-size:clamp(2.2rem,6vw,4.5rem); letter-spacing:-.04em; line-height:1; margin:.5rem 0 1rem; }
+.gallery-intro p { color:var(--gallery-muted); font-size:1.05rem; line-height:1.6; }
+.gallery-status { color:var(--gallery-muted); margin:2.5rem 0 1rem; }
+.back-to-trips { color:var(--gallery-accent); display:inline-block; font-weight:700; margin-bottom:2rem; text-decoration:none; }
+.travel-gallery { display:grid; gap:1.25rem; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); }
+.trip-cover-card { background:var(--gallery-card); box-shadow:0 8px 22px rgba(32,50,45,.10); color:white; display:block; overflow:hidden; position:relative; text-decoration:none; }
+.trip-cover-card img { display:block; height:330px; object-fit:cover; transition:transform .28s ease; width:100%; }
+.trip-cover-card:hover img, .trip-cover-card:focus-visible img { transform:scale(1.045); }
+.trip-cover-card:focus-visible { outline:3px solid var(--gallery-accent); outline-offset:3px; }
+.trip-cover-content { background:linear-gradient(transparent,rgba(0,0,0,.8)); bottom:0; box-sizing:border-box; left:0; padding:3.5rem 1rem 1rem; position:absolute; right:0; }
+.trip-cover-content span { font-size:.73rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+.trip-cover-content h2 { font-size:1.25rem; margin:.35rem 0 0; }
+.place-photo-card { background:var(--gallery-card); border:0; box-shadow:0 8px 22px rgba(32,50,45,.08); color:var(--gallery-ink); cursor:zoom-in; padding:0; text-align:left; }
+.place-photo-card:focus-visible { outline:3px solid var(--gallery-accent); outline-offset:3px; }
+.place-photo-card img { display:block; height:220px; object-fit:cover; width:100%; }
+.place-photo-card span { display:block; font-size:.92rem; font-weight:700; padding:.8rem .9rem; }
+.photo-dialog { background:#12221d; border:0; color:white; max-height:100vh; max-width:100vw; padding:3.5rem 4.5rem; width:min(1080px,100vw); }
+.photo-dialog::backdrop { background:rgba(0,0,0,.82); }
+.dialog-figure { margin:0; text-align:center; }
+.dialog-figure img { display:block; height:min(70vh,760px); margin:0 auto; max-width:100%; object-fit:contain; }
+.dialog-figure figcaption { margin-top:1rem; }
+.dialog-figure strong, .dialog-figure span { display:block; }
+.dialog-figure span { color:#c7d4ce; margin-top:.35rem; }
+.dialog-close, .dialog-arrow { background:rgba(255,255,255,.14); border:0; border-radius:50%; color:white; cursor:pointer; font-size:2rem; height:44px; line-height:1; position:absolute; width:44px; }
+.dialog-close { right:1rem; top:1rem; }
+.dialog-arrow { top:50%; transform:translateY(-50%); }
+.dialog-previous { left:1rem; }.dialog-next { right:1rem; }
+@media (max-width:600px) { .gallery-header { padding:0 1.25rem; }.gallery-page { padding:2.5rem 1.25rem 4rem; }.photo-dialog { padding:3.75rem 1rem 1.5rem; }.dialog-arrow { display:none; } }
