@@ -1,153 +1,203 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Galeria</title>
-    <link rel="stylesheet" href="style.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Galeria | Dziennik podróży</title>
+  <meta name="description" content="Zdjęcia z podróży i odwiedzonych miejsc." />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="gallery.css" />
 </head>
 <body>
-    <div class="header-container right-top">
-        <div class="header-box">Galeria</div>
-        <a id="backLink" class="back-link" href="index.html">← Wróć do mapy</a>
-        <button id="menuBtn" class="menu-btn"><i class="fas fa-bars"></i></button>
-    </div>
+  <header class="gallery-header">
+    <a class="gallery-brand" href="index.html">Dziennik podróży</a>
+    <nav class="gallery-navigation" aria-label="Główna nawigacja">
+      <a href="index.html">Mapa</a>
+      <a class="is-active" href="list.html" aria-current="page">Galeria</a>
+    </nav>
+  </header>
 
-    <!-- Menu boczne (identyczne jak na stronie głównej) -->
-    <div id="sideMenu" class="side-menu">
-        <button class="menu-close-btn" onclick="toggleMenu()">
-            <i class="fas fa-times"></i>
-        </button>
-        <nav>
-            <ul>
-                <li><a href="index.html">Strona główna</a></li>
-                <li><a href="list.html">Galeria</a></li>
-                <li><a href="#">Odwiedzone kraje</a></li>
-                <li><a href="#">Kategorie</a></li>
-                <li><a href="#">Wyszukiwarka</a></li>
-                <li><a href="#">Opcje sortowania</a></li>
-                <li><a href="#">Statystyki</a></li>
-            </ul>
-        </nav>
-    </div>
-    <div id="overlay" class="overlay" onclick="toggleMenu()"></div>
+  <main class="gallery-page">
+    <section class="gallery-intro" aria-labelledby="gallery-title">
+      <p class="gallery-eyebrow">Wspomnienia w kadrach</p>
+      <h1 id="gallery-title">Galeria podróży</h1>
+      <p>Okładki podróży oraz zdjęcia odwiedzonych miejsc.</p>
+    </section>
+    <p id="galleryStatus" class="gallery-status" role="status">Ładowanie zdjęć…</p>
+    <section id="galleryContent" class="travel-gallery" aria-live="polite"></section>
+  </main>
 
-    <main class="gallery-page">
-        <div id="galleryContent" class="gallery-container">
-            <p>Ładowanie zdjęć...</p>
-        </div>
-    </main>
+  <dialog id="photoDialog" class="photo-dialog" aria-labelledby="dialogTitle">
+    <button id="dialogClose" class="dialog-close" type="button" aria-label="Zamknij zdjęcie">×</button>
+    <button id="dialogPrevious" class="dialog-arrow dialog-previous" type="button" aria-label="Poprzednie zdjęcie">‹</button>
+    <figure class="dialog-figure">
+      <img id="dialogImage" src="" alt="" />
+      <figcaption>
+        <strong id="dialogTitle"></strong>
+        <span id="dialogDescription"></span>
+      </figcaption>
+    </figure>
+    <button id="dialogNext" class="dialog-arrow dialog-next" type="button" aria-label="Następne zdjęcie">›</button>
+  </dialog>
 
-    <!-- Modal do wyświetlania wiadomości -->
-    <div id="msgModal" class="msg-modal" style="display: none;">
-        <div class="msg-modal-content">
-            <p id="msgText"></p>
-            <button onclick="closeMsgModal()">OK</button>
-        </div>
-    </div>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
+    import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js";
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    const firebaseConfig = {
+      apiKey: "AIzaSyBcRB_dec2OunBPevgemcWouCfDP6dNZV4",
+      authDomain: "moj-dziennik-podrozy.firebaseapp.com",
+      databaseURL: "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "moj-dziennik-podrozy",
+      storageBucket: "moj-dziennik-podrozy.firebasestorage.app",
+      messagingSenderId: "997572019753",
+      appId: "1:997572019753:web:0f5aa78a1c24072de3be38"
+    };
 
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+    const database = getDatabase(initializeApp(firebaseConfig));
+    const gallery = document.getElementById("galleryContent");
+    const status = document.getElementById("galleryStatus");
+    const dialog = document.getElementById("photoDialog");
+    const dialogImage = document.getElementById("dialogImage");
+    const dialogTitle = document.getElementById("dialogTitle");
+    const dialogDescription = document.getElementById("dialogDescription");
+    const media = [];
+    let activePhotoIndex = 0;
 
-        let app, db, auth;
+    function safeImageUrl(value) {
+      if (typeof value !== "string" || value.trim() === "") return null;
+      try {
+        const url = new URL(value.trim(), window.location.href);
+        return ["http:", "https:"].includes(url.protocol) ? url.href : null;
+      } catch {
+        return null;
+      }
+    }
 
-        async function initFirebase() {
-            if (!Object.keys(firebaseConfig).length) {
-                showMessage("Błąd: brak konfiguracji Firebase.");
-                return;
-            }
-            try {
-                app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-                onAuthStateChanged(auth, async (user) => {
-                    if (user) {
-                        loadGallery();
-                    } else {
-                        if (initialAuthToken) {
-                            await signInWithCustomToken(auth, initialAuthToken);
-                        } else {
-                            await signInAnonymously(auth);
-                        }
-                    }
-                });
-            } catch (error) {
-                console.error("Błąd inicjalizacji Firebase:", error);
-                showMessage("Błąd podczas ładowania aplikacji.");
-            }
-        }
+    function text(value, fallback = "") {
+      return typeof value === "string" && value.trim() ? value.trim() : fallback;
+    }
 
-        window.toggleMenu = function() {
-            const body = document.body;
-            body.classList.toggle('menu-open');
-        };
+    function createMediaCard(item) {
+      const card = document.createElement("article");
+      card.className = "travel-gallery-card";
 
-        window.showMessage = function(text) {
-            document.getElementById("msgText").textContent = text;
-            document.getElementById("msgModal").style.display = "flex";
-        };
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "travel-gallery-image-button";
+      button.setAttribute("aria-label", `Powiększ zdjęcie: ${item.title}`);
+      button.addEventListener("click", () => openPhoto(media.indexOf(item)));
 
-        window.closeMsgModal = function() {
-            document.getElementById("msgModal").style.display = "none";
-        };
+      const image = document.createElement("img");
+      image.src = item.url;
+      image.alt = item.alt;
+      image.loading = "lazy";
+      image.decoding = "async";
+      image.addEventListener("error", () => card.remove());
+      button.appendChild(image);
+      card.appendChild(button);
 
-        async function loadGallery() {
-            if (!db) return;
-            const galleryContainer = document.getElementById("galleryContent");
-            galleryContainer.innerHTML = '<p>Ładowanie zdjęć...</p>';
-            
-            try {
-                const tripsSnapshot = await getDocs(collection(db, `artifacts/${appId}/public/data/trips`));
-                const trips = tripsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const content = document.createElement("div");
+      content.className = "travel-gallery-card-content";
+      const badge = document.createElement("span");
+      badge.className = "travel-gallery-badge";
+      badge.textContent = item.kind;
+      const heading = document.createElement("h2");
+      heading.textContent = item.title;
+      const detail = document.createElement("p");
+      detail.textContent = item.description;
+      content.append(badge, heading, detail);
+      card.appendChild(content);
+      return card;
+    }
 
-                const placesSnapshot = await getDocs(collection(db, `artifacts/${appId}/public/data/places`));
-                const places = placesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                
-                galleryContainer.innerHTML = '';
-                
-                if (places.length === 0) {
-                    galleryContainer.innerHTML = '<p>Brak zdjęć w galerii. Dodaj miejsca i zdjęcia w trybie edycji.</p>';
-                } else {
-                    places.forEach(place => {
-                        const trip = trips.find(t => t.id === place.tripId);
-                        if (place.photos && place.photos.length > 0) {
-                            const galleryItem = document.createElement('div');
-                            galleryItem.className = 'gallery-item';
-                            galleryItem.innerHTML = `<h3>${place.name} <br> <span class="gallery-trip-name">${trip ? `(${trip.name})` : ''}</span></h3>`;
-                            
-                            place.photos.forEach(photo => {
-                                const photoEl = document.createElement('div');
-                                photoEl.className = 'gallery-photo';
-                                photoEl.innerHTML = `<img src="${photo.url}" alt="${photo.caption || 'Zdjęcie'}">
-                                                     <p>${photo.caption || ''}</p>`;
-                                galleryItem.appendChild(photoEl);
-                            });
-                            galleryContainer.appendChild(galleryItem);
-                        }
-                    });
-                }
-            } catch (error) {
-                console.error("Błąd ładowania galerii:", error);
-                showMessage("Nie udało się załadować galerii zdjęć.");
-                galleryContainer.innerHTML = '<p>Wystąpił błąd podczas ładowania galerii.</p>';
-            }
-        }
+    function addMedia(url, title, description, kind, alt) {
+      const safeUrl = safeImageUrl(url);
+      if (!safeUrl) return;
+      media.push({ url: safeUrl, title, description, kind, alt });
+    }
 
-        document.getElementById("menuBtn").addEventListener("click", toggleMenu);
-        document.addEventListener("keydown", function(e) {
-          if (e.key === "Escape") {
-            document.body.classList.remove('menu-open');
-          }
+    function collectMedia(trips) {
+      Object.entries(trips || {}).forEach(([, trip]) => {
+        const tripName = text(trip.name, "Podróż bez nazwy");
+        addMedia(trip.image, tripName, "Okładka podróży", "Okładka podróży", `Okładka podróży: ${tripName}`);
+
+        Object.values(trip.places || {}).forEach((place) => {
+          const placeName = text(place.name, "Miejsce bez nazwy");
+          const description = `${placeName} · ${tripName}`;
+          const seenUrls = new Set();
+          const addPlacePhoto = (url, kind, caption) => {
+            const safeUrl = safeImageUrl(url);
+            if (!safeUrl || seenUrls.has(safeUrl)) return;
+            seenUrls.add(safeUrl);
+            addMedia(safeUrl, placeName, caption || description, kind, caption || `Zdjęcie miejsca ${placeName} podczas podróży ${tripName}`);
+          };
+
+          addPlacePhoto(place.image, "Zdjęcie miejsca", description);
+          (Array.isArray(place.photos) ? place.photos : []).forEach((photo) => {
+            addPlacePhoto(photo?.url, "Zdjęcie miejsca", text(photo?.caption, description));
+          });
         });
+      });
+    }
 
-        initFirebase();
-    </script>
+    function renderGallery() {
+      gallery.replaceChildren();
+      if (media.length === 0) {
+        status.textContent = "Nie ma jeszcze zdjęć do pokazania. Dodaj zdjęcie do podróży lub miejsca.";
+        return;
+      }
+      status.textContent = `Liczba zdjęć: ${media.length}`;
+      const fragment = document.createDocumentFragment();
+      media.forEach((item) => fragment.appendChild(createMediaCard(item)));
+      gallery.appendChild(fragment);
+    }
+
+    function renderDialog() {
+      const item = media[activePhotoIndex];
+      if (!item) return;
+      dialogImage.src = item.url;
+      dialogImage.alt = item.alt;
+      dialogTitle.textContent = item.title;
+      dialogDescription.textContent = item.description;
+      const showNavigation = media.length > 1;
+      document.getElementById("dialogPrevious").hidden = !showNavigation;
+      document.getElementById("dialogNext").hidden = !showNavigation;
+    }
+
+    function openPhoto(index) {
+      activePhotoIndex = index;
+      renderDialog();
+      dialog.showModal();
+    }
+
+    function changePhoto(direction) {
+      activePhotoIndex = (activePhotoIndex + direction + media.length) % media.length;
+      renderDialog();
+    }
+
+    document.getElementById("dialogClose").addEventListener("click", () => dialog.close());
+    document.getElementById("dialogPrevious").addEventListener("click", () => changePhoto(-1));
+    document.getElementById("dialogNext").addEventListener("click", () => changePhoto(1));
+    dialog.addEventListener("click", (event) => { if (event.target === dialog) dialog.close(); });
+    document.addEventListener("keydown", (event) => {
+      if (!dialog.open || media.length < 2) return;
+      if (event.key === "ArrowLeft") changePhoto(-1);
+      if (event.key === "ArrowRight") changePhoto(1);
+    });
+
+    async function loadGallery() {
+      try {
+        const snapshot = await get(ref(database, "trips"));
+        collectMedia(snapshot.val());
+        renderGallery();
+      } catch (error) {
+        console.error("Błąd ładowania galerii:", error);
+        status.textContent = "Nie udało się załadować galerii. Spróbuj odświeżyć stronę.";
+      }
+    }
+
+    loadGallery();
+  </script>
 </body>
 </html>
