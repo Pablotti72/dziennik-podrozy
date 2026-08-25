@@ -128,6 +128,101 @@
     }
     
     // --- Ładowanie i wyświetlanie danych ---
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function safePhotoUrl(value) {
+        if (typeof value !== 'string' || !value.trim()) return null;
+        try {
+            const url = new URL(value.trim(), window.location.href);
+            return ['http:', 'https:'].includes(url.protocol) ? url.href : null;
+        } catch {
+            return null;
+        }
+    }
+
+    function collectTripPhotos(trip) {
+        const result = [];
+        const seen = new Set();
+
+        // Okładka podróży
+        const cover = safePhotoUrl(trip?.image);
+        if (cover) {
+            result.push({
+                url: cover,
+                caption: trip?.name || 'Okładka podróży'
+            });
+            seen.add(cover);
+        }
+
+        // Zdjęcia miejsc należących do podróży
+        Object.values(trip?.places || {}).forEach((place) => {
+            const placeName = place?.name || 'Miejsce';
+
+            const placeImage = safePhotoUrl(place?.image);
+            if (placeImage && !seen.has(placeImage)) {
+                result.push({
+                    url: placeImage,
+                    caption: placeName
+                });
+                seen.add(placeImage);
+            }
+
+            (Array.isArray(place?.photos) ? place.photos : []).forEach((photo) => {
+                const url = safePhotoUrl(photo?.url);
+                if (url && !seen.has(url)) {
+                    result.push({
+                        url,
+                        caption: photo?.caption || placeName
+                    });
+                    seen.add(url);
+                }
+            });
+        });
+
+        return result;
+    }
+
+    function buildTripPopupContent(key, trip, isAdmin) {
+        const photos = collectTripPhotos(trip);
+        const photosHtml = photos.length
+            ? `
+                <div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 10px;">
+                    ${photos.slice(0, 8).map((photo) => `
+                        <a href="${escapeHtml(photo.url)}" target="_blank" rel="noopener noreferrer"
+                           title="${escapeHtml(photo.caption)}">
+                            <img src="${escapeHtml(photo.url)}"
+                                 alt="${escapeHtml(photo.caption)}"
+                                 style="width:64px;height:64px;object-fit:cover;border-radius:6px;display:block;">
+                        </a>
+                    `).join('')}
+                </div>
+                ${photos.length > 8 ? `<small>+ ${photos.length - 8} więcej zdjęć</small><br>` : ''}
+              `
+            : '<small>Brak zdjęć miejsc w tej podróży.</small><br>';
+
+        const adminButtons = isAdmin
+            ? `
+                <button onclick="editTrip('${escapeHtml(key)}')">✏️ Edytuj</button>
+                <button onclick="deleteTrip('${escapeHtml(key)}')">🗑️ Usuń</button>
+              `
+            : '<em>Kliknij nazwę podróży, aby zobaczyć szczegóły</em>';
+
+        return `
+            <strong><a href="trip.html?id=${encodeURIComponent(key)}" onclick="saveMapState()">${escapeHtml(trip?.name || 'Podróż')}</a></strong><br>
+            <small>${escapeHtml(trip?.description || '')}</small><br>
+            ${photosHtml}
+            ${adminButtons}
+        `;
+    }
+
+    // --- Ładowanie i wyświetlanie danych ---
     function loadTrips() {
         get(ref(database, 'trips')).then((snapshot) => {
             map.eachLayer(l => { if (l instanceof L.Marker) map.removeLayer(l); });
@@ -138,25 +233,8 @@
                     const trip = trips[key];
                     if (trip.lat && trip.lng) {
                         const marker = L.marker([trip.lat, trip.lng]).addTo(map);
-                        
-                        if (userRole === 'admin') {
-                            const popupContent = `
-                                <strong><a href="trip.html?id=${key}" onclick="saveMapState()">${trip.name}</a></strong><br>
-                                <small>${trip.description || ''}</small><br>
-                                <img src="${trip.image}" width="100"><br><br>
-                                <button onclick="editTrip('${key}')">✏️ Edytuj</button>
-                                <button onclick="deleteTrip('${key}')">🗑️ Usuń</button>
-                            `;
-                            marker.bindPopup(popupContent);
-                        } else {
-                            const popupContent = `
-                                <strong><a href="trip.html?id=${key}" onclick="saveMapState()">${trip.name}</a></strong><br>
-                                <small>${trip.description || ''}</small><br>
-                                <img src="${trip.image}" width="100"><br><br>
-                                <em>Kliknij, aby zobaczyć szczegóły</em>
-                            `;
-                            marker.bindPopup(popupContent);
-                        }
+                        const popupContent = buildTripPopupContent(key, trip, userRole === 'admin');
+                        marker.bindPopup(popupContent);
                     }
                 });
             }
