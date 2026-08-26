@@ -381,9 +381,13 @@
         .replace(/_+/g, "_")
         .replace(/^_+|_+$/g, "");
     }
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>\"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",\"":"&quot;","\'":"&#39;"}[ch]));
+    }
+
     function shortDescription(text) {
       const value = (text || "").replace(/\s+/g, " ").trim();
-      return value ? `<span class="popup-description">${value}</span>` : `<span class="popup-description">Brak opisu</span>`;
+      return value ? `<span class="popup-description">${escapeHtml(value)}</span>` : "";
     }
 
     function formatDate(dateStr) {
