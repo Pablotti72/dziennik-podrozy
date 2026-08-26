@@ -33,38 +33,41 @@ body {
 }
 
 /* --- PRZYCISKI --- */
-.add-btn {
-  background: #4CAF50;
-  color: white;
+.gallery-btn,
+.add-btn,
+.edit-btn,
+.ui-action,
+.modal-content button,
+.msg-modal-content button,
+.leaflet-popup-content button {
+  background: transparent !important;
+  color: #0645ff !important;
   border: none;
-  padding: 8px 12px;
+  padding: 8px 10px;
   font-size: 14px;
-  border-radius: 6px;
+  font-weight: 500;
+  border-radius: 8px;
   cursor: pointer;
-  transition: background 0.2s;
-  width: 100%;
-  text-align: center;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  text-decoration: none;
+  box-sizing: border-box;
 }
 
-.add-btn:hover {
-  background: #45a049;
+.gallery-btn:hover,
+.add-btn:hover,
+.edit-btn:hover,
+.ui-action:hover,
+.modal-content button:hover,
+.msg-modal-content button:hover,
+.leaflet-popup-content button:hover {
+  background: #eef4ff !important;
+  color: #0038cc !important;
 }
 
+.add-btn,
 .edit-btn {
-  background: #FFC107;
-  color: #333;
-  border: none;
-  padding: 8px 12px;
-  font-size: 14px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.2s;
   width: 100%;
   text-align: center;
-}
-
-.edit-btn:hover {
-  background: #ffb300;
 }
 
 /* --- MAPA GŁÓWNA --- */
@@ -261,31 +264,7 @@ body {
 }
 
 .leaflet-popup-content-wrapper a {
-  color: #4CAF50;
-}
-
-.leaflet-popup-content button {
-  background: #4CAF50;
-  color: white;
-  border: none;
-  padding: 6px 10px;
-  font-size: 12px;
-  border-radius: 4px;
-  cursor: pointer;
-  margin-right: 5px;
-  transition: background 0.2s;
-}
-
-.leaflet-popup-content button:hover {
-  background: #45a049;
-}
-
-.leaflet-popup-content button:nth-child(2) {
-  background: #F44336;
-}
-
-.leaflet-popup-content button:nth-child(2):hover {
-  background: #d32f2f;
+  color: #0645ff;
 }
 
 /* --- WIDOKI WYPRAW I MIEJSC --- */
