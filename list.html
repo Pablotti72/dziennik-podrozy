@@ -123,16 +123,15 @@
       return Number.isNaN(d.getTime()) ? Number.POSITIVE_INFINITY : d.getTime();
     }
 
-    function descriptionWithYear(trip) {
-      const value = text(trip?.description, "");
-      if (!value) return "";
+    function titleWithYear(trip) {
+      const value = text(trip?.name, "Wyprawa bez nazwy");
       const year = trip?.dateFrom ? new Date(trip.dateFrom).getFullYear() : null;
       return year && !/\b(19|20)\d{2}\b/.test(value) ? `${value} ${year}` : value;
     }
 
     function createTripCard(id, trip) {
       const imageUrl = getTripCover(trip);
-      const name = text(trip.name, "Wyprawa bez nazwy");
+      const name = titleWithYear(trip);
       const link = document.createElement("a");
       link.className = "trip-cover-card";
       link.href = `list.html?trip=${encodeURIComponent(id)}`;
@@ -158,7 +157,7 @@
 
       const heading = document.createElement("h2");
       heading.textContent = name;
-      const description = descriptionWithYear(trip);
+      const description = text(trip?.description, "");
       if (description) {
         const desc = document.createElement("p");
         desc.className = "trip-cover-description";
@@ -191,20 +190,23 @@
 
     function createPlaceCard(tripIdValue, placeIdValue, place) {
       const imageUrl = getPlaceCover(place);
-      if (!imageUrl) return null;
-
       const name = text(place.name, "Miejsce bez nazwy");
       const link = document.createElement("a");
       link.className = "place-cover-card";
       link.href = `list.html?trip=${encodeURIComponent(tripIdValue)}&place=${encodeURIComponent(placeIdValue)}`;
       link.setAttribute("aria-label", `Zobacz zdjęcia miejsca: ${name}`);
 
-      const image = document.createElement("img");
-      image.src = imageUrl;
-      image.alt = `Zdjęcie miejsca: ${name}`;
-      image.loading = "lazy";
-      image.decoding = "async";
-      image.addEventListener("error", () => link.remove());
+      if (imageUrl) {
+        const image = document.createElement("img");
+        image.src = imageUrl;
+        image.alt = `Zdjęcie miejsca: ${name}`;
+        image.loading = "lazy";
+        image.decoding = "async";
+        image.addEventListener("error", () => image.replaceWith(createPlacePlaceholder()));
+        link.appendChild(image);
+      } else {
+        link.appendChild(createPlacePlaceholder());
+      }
 
       const overlay = document.createElement("div");
       overlay.className = "trip-cover-content";
@@ -216,8 +218,15 @@
       heading.textContent = name;
 
       overlay.append(label, heading);
-      link.append(image, overlay);
+      link.appendChild(overlay);
       return link;
+    }
+
+    function createPlacePlaceholder() {
+      const placeholder = document.createElement("div");
+      placeholder.className = "trip-cover-placeholder place-cover-placeholder";
+      placeholder.setAttribute("aria-hidden", "true");
+      return placeholder;
     }
 
     function renderTripCovers(trips) {
