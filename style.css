@@ -512,3 +512,28 @@ body {
     flex-direction: column;
   }
 }
+
+/* Długi opis wyprawy/miejsca */
+.long-description {
+  margin: 1rem 0;
+  border: 1px solid #e1e8ef;
+  border-radius: 10px;
+  background: #fff;
+  overflow: hidden;
+}
+.long-description summary {
+  cursor: pointer;
+  list-style: none;
+  padding: .8rem 1rem;
+  color: #06f;
+  font-weight: 700;
+}
+.long-description summary::-webkit-details-marker { display: none; }
+.long-description summary::after { content: '⌄'; float: right; }
+.long-description[open] summary::after { content: '⌃'; }
+.long-description-text {
+  padding: 0 1rem 1rem;
+  line-height: 1.65;
+  color: #334155;
+  overflow-wrap: anywhere;
+}
