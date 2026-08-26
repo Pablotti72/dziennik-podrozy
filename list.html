@@ -118,6 +118,18 @@
       return null;
     }
 
+    function dateValue(value) {
+      const d = new Date(value || "");
+      return Number.isNaN(d.getTime()) ? Number.POSITIVE_INFINITY : d.getTime();
+    }
+
+    function descriptionWithYear(trip) {
+      const value = text(trip?.description, "");
+      if (!value) return "";
+      const year = trip?.dateFrom ? new Date(trip.dateFrom).getFullYear() : null;
+      return year && !/\b(19|20)\d{2}\b/.test(value) ? `${value} ${year}` : value;
+    }
+
     function createTripCard(id, trip) {
       const imageUrl = getTripCover(trip);
       const name = text(trip.name, "Wyprawa bez nazwy");
@@ -146,8 +158,15 @@
 
       const heading = document.createElement("h2");
       heading.textContent = name;
-
-      overlay.append(label, heading);
+      const description = descriptionWithYear(trip);
+      if (description) {
+        const desc = document.createElement("p");
+        desc.className = "trip-cover-description";
+        desc.textContent = description;
+        overlay.append(label, heading, desc);
+      } else {
+        overlay.append(label, heading);
+      }
       link.appendChild(overlay);
       return link;
     }
@@ -209,7 +228,7 @@
       const fragment = document.createDocumentFragment();
       let count = 0;
 
-      Object.entries(trips || {}).forEach(([id, trip]) => {
+      Object.entries(trips || {}).sort(([, a], [, b]) => dateValue(a?.dateFrom) - dateValue(b?.dateFrom)).forEach(([id, trip]) => {
         const card = createTripCard(id, trip || {});
         if (card) {
           fragment.appendChild(card);

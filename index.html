@@ -4,6 +4,9 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>GaPa Blog — Nasze podróże</title>
 <meta name="description" content="GaPa Blog — nasze podróże, miejsca i wspomnienia.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lobster&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="home.css">
 </head>
 <body>
@@ -32,7 +35,7 @@
     <a class="feature" href="list.html"><div class="feature-icon">❤️</div><h3>Wspomnienia</h3><p>Najpiękniejsze chwile z naszych podróży.</p></a>
   </section>
 
-  <section id="about" class="about"><img id="aboutImage" src="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=85" alt="GaPa Blog — O Nas"><div class="about-info"><h2>👥 O NAS</h2><p id="aboutText">Jesteśmy Gabi i Paweł – razem odkrywamy świat, zbieramy wspomnienia i dzielimy się nimi tutaj z Wami. Podróże to nasza pasja, sposób na życie i najlepsza inwestycja w piękne chwile.</p><a class="about-link" href="#about">Poznaj nas bliżej →</a></div></section>
+  <section id="about" class="about"><img id="aboutImage" src="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=85" alt="GaPa Blog — O Nas"><div class="about-info"><h2>👥 O NAS</h2><p class="about-intro"><span>Jesteśmy </span><span class="ga">Ga</span><span>bi i </span><span class="pa">Pa</span><span>weł</span></p><p id="aboutText">Razem odkrywamy świat, zbieramy wspomnienia i dzielimy się nimi tutaj z Wami. Podróże to nasza pasja, sposób na życie i najlepsza inwestycja w piękne chwile.</p><a class="about-link" href="#about">Poznaj nas bliżej →</a></div></section>
 </main>
 <footer class="home-footer">© <span id="year"></span> GaPa Blog &nbsp; | &nbsp; Nasze podróże, miejsca i wspomnienia 💙</footer>
 
@@ -62,7 +65,7 @@ function escapeHtml(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'
 function dateValue(v){const d=new Date(v||'');return Number.isNaN(d.getTime())?0:d.getTime()}
 function formatDate(from,to){const f=from?new Date(from).toLocaleDateString('pl-PL',{day:'numeric',month:'long',year:'numeric'}):'';const t=to?new Date(to).toLocaleDateString('pl-PL',{day:'numeric',month:'long',year:'numeric'}):'';return t?`${f} – ${t}`:f}
 async function isAdmin(uid){const s=await get(ref(db,`admins/${uid}`));return s.val()===true}
-async function loadSite(){const s=await get(ref(db,'siteContent/home'));const c={...defaults,...(s.val()||{})};$('hero').style.setProperty('--hero-image',`url("${c.heroImage}")`);$('aboutImage').src=c.aboutImage;$('aboutText').textContent=c.aboutText;$('heroPreview').src=c.heroImage;$('aboutPreview').src=c.aboutImage;$('heroUrl').value=c.heroImage;$('aboutUrl').value=c.aboutImage;$('aboutTextEdit').value=c.aboutText}
+async function loadSite(){const s=await get(ref(db,'siteContent/home'));const c={...defaults,...(s.val()||{})};let aboutText=c.aboutText||defaults.aboutText;aboutText=aboutText.replace(/^Jesteśmy\s+Gabi\s+i\s+Paweł\s*[–-]?\s*/i,'');$('hero').style.setProperty('--hero-image',`url("${c.heroImage}")`);$('aboutImage').src=c.aboutImage;$('aboutText').textContent=aboutText;$('heroPreview').src=c.heroImage;$('aboutPreview').src=c.aboutImage;$('heroUrl').value=c.heroImage;$('aboutUrl').value=c.aboutImage;$('aboutTextEdit').value=aboutText}
 async function loadTrips(){const s=await get(ref(db,'trips'));const data=s.val()||{};tripsCache=Object.entries(data).map(([id,t])=>({id,...t})).filter(t=>t.name).sort((a,b)=>dateValue(b.dateFrom)-dateValue(a.dateFrom));$('statTrips').textContent=tripsCache.length;let places=0,photos=0;tripsCache.forEach(t=>{const ps=Object.values(t.places||{});places+=ps.length;ps.forEach(p=>photos+=Array.isArray(p.photos)?p.photos.length:Object.keys(p.photos||{}).length)});$('statPlaces').textContent=places;$('statPhotos').textContent=photos;if(tripsCache[0]){const t=tripsCache[0];$('latestName').textContent=t.name;$('latestDate').textContent=formatDate(t.dateFrom,t.dateTo);$('latestDescription').textContent=t.description||'Zobacz szczegóły tej podróży.';$('latestImage').src=t.image||'https://placehold.co/900x600/e9eef5/52637b?text=GaPa+Blog';$('latestLink').href=`trip.html?id=${encodeURIComponent(t.id)}`}$('randomTrip').addEventListener('click',e=>{if(!tripsCache.length)return;e.preventDefault();const t=tripsCache[Math.floor(Math.random()*tripsCache.length)];location.href=`trip.html?id=${encodeURIComponent(t.id)}`})}
 function showAdmin(v){$('adminPanel').classList.toggle('is-visible',v);$('adminLoginBtn').textContent=v?'↪':'♙';$('adminLoginBtn').title=v?'Wyloguj administratora':'Logowanie administratora'}
 $('adminLoginBtn').onclick=async()=>{if($('adminPanel').classList.contains('is-visible')){await signOut(auth);return}$('loginModal').style.display='flex'};$('loginCancel').onclick=()=>{$('loginModal').style.display='none'};$('loginSubmit').onclick=async()=>{const email=$('loginEmail').value.trim(),pass=$('loginPassword').value;try{await signInWithEmailAndPassword(auth,email,pass);$('loginModal').style.display='none';$('loginStatus').textContent=''}catch(e){$('loginStatus').textContent='Nieprawidłowy login lub hasło.'}};

@@ -25,6 +25,14 @@ body {
   box-sizing: border-box;
 }
 
+.auth-buttons {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  width: 100%;
+}
+
 .header-box {
   font-size: 18px;
   font-weight: bold;
@@ -821,4 +829,13 @@ body {
   }
   .trip-page #trip-map { height: 420px !important; }
   .popup-description { width: 190px !important; max-width: 190px !important; }
+}
+
+/* Jedna linia opisu w popupach wypraw i miejsc */
+.popup-description {
+  display: block;
+  max-width: 260px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
