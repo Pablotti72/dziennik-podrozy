@@ -105,22 +105,37 @@
       }
     }
 
-    function createTripCard(id, trip) {
-      const imageUrl = safeImageUrl(trip.image);
-      if (!imageUrl) return null;
+    function getTripCover(trip) {
+      const direct = safeImageUrl(trip?.image);
+      if (direct) return direct;
 
+      for (const place of Object.values(trip?.places || {})) {
+        const placeCover = getPlaceCover(place || {});
+        if (placeCover) return placeCover;
+      }
+
+      return null;
+    }
+
+    function createTripCard(id, trip) {
+      const imageUrl = getTripCover(trip);
       const name = text(trip.name, "Wyprawa bez nazwy");
       const link = document.createElement("a");
       link.className = "trip-cover-card";
       link.href = `list.html?trip=${encodeURIComponent(id)}`;
       link.setAttribute("aria-label", `Zobacz miejsca z wyprawy: ${name}`);
 
-      const image = document.createElement("img");
-      image.src = imageUrl;
-      image.alt = `Okładka wyprawy: ${name}`;
-      image.loading = "lazy";
-      image.decoding = "async";
-      image.addEventListener("error", () => link.remove());
+      if (imageUrl) {
+        const image = document.createElement("img");
+        image.src = imageUrl;
+        image.alt = `Okładka wyprawy: ${name}`;
+        image.loading = "lazy";
+        image.decoding = "async";
+        image.addEventListener("error", () => image.replaceWith(createTripPlaceholder()));
+        link.appendChild(image);
+      } else {
+        link.appendChild(createTripPlaceholder());
+      }
 
       const overlay = document.createElement("div");
       overlay.className = "trip-cover-content";
@@ -132,8 +147,15 @@
       heading.textContent = name;
 
       overlay.append(label, heading);
-      link.append(image, overlay);
+      link.appendChild(overlay);
       return link;
+    }
+
+    function createTripPlaceholder() {
+      const placeholder = document.createElement("div");
+      placeholder.className = "trip-cover-placeholder";
+      placeholder.setAttribute("aria-hidden", "true");
+      return placeholder;
     }
 
     function getPlaceCover(place) {
