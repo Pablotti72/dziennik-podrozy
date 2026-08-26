@@ -182,7 +182,7 @@
 
         return `
             <strong><a href="trip.html?id=${encodeURIComponent(key)}" onclick="saveMapState()">${escapeHtml(trip?.name || 'Podróż')}</a></strong><br>
-            <small>${escapeHtml(trip?.description || '')}</small>
+            <small class="popup-description">${escapeHtml(trip?.description || 'Brak opisu')}</small>
             ${imageHtml}
             ${adminButtons}
         `;
