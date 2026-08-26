@@ -6,6 +6,19 @@
   <title>Dziennik podróży</title>
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <style>
+    .gallery-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      text-decoration: none;
+      cursor: pointer;
+      font: inherit;
+    }
+  </style>
 </head>
 <body>
   <div id="loginModal" class="modal" style="display: none;">
@@ -28,6 +41,7 @@
   <div class="header-container right-top">
     <div class="header-box">Nasze podróże</div>
     <div class="auth-buttons">
+      <a href="list.html" class="gallery-btn" title="Otwórz galerię" aria-label="Otwórz galerię">🖼️ Galeria</a>
       <button id="addTripBtn" class="add-btn" style="display: none;">➕ Dodaj wyprawę</button>
       <button id="editModeBtn" class="edit-btn">🔧 Tryb edycji</button>
     </div>
