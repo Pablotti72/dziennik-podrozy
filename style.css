@@ -17,13 +17,10 @@ body {
   align-items: flex-end;
   gap: 6px;
   z-index: 1000;
-  background: rgba(255, 255, 255, 0.34);
+  background: white;
   padding: 12px 16px;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.58);
-  box-shadow: 0 6px 18px rgba(19, 40, 75, 0.12);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   max-width: 280px;
   box-sizing: border-box;
 }
@@ -51,18 +48,15 @@ body {
 .modal-content button,
 .msg-modal-content button,
 .leaflet-popup-content button {
-  background: rgba(255, 255, 255, 0.22) !important;
-  color: #17355f !important;
-  border: 1px solid rgba(255, 255, 255, 0.62);
-  padding: 8px 12px;
+  background: transparent !important;
+  color: #0645ff !important;
+  border: none;
+  padding: 8px 10px;
   font-size: 14px;
-  font-weight: 700;
-  border-radius: 999px;
+  font-weight: 500;
+  border-radius: 8px;
   cursor: pointer;
-  transition: background-color 0.18s ease, color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
-  box-shadow: 0 3px 10px rgba(19, 40, 75, 0.08);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  transition: background-color 0.15s ease, color 0.15s ease;
   text-decoration: none;
   box-sizing: border-box;
 }
@@ -74,10 +68,8 @@ body {
 .modal-content button:hover,
 .msg-modal-content button:hover,
 .leaflet-popup-content button:hover {
-  background: rgba(255, 255, 255, 0.62) !important;
+  background: #eef4ff !important;
   color: #0038cc !important;
-  box-shadow: 0 5px 14px rgba(19, 40, 75, 0.13);
-  transform: translateY(-1px);
 }
 
 .add-btn,
@@ -288,21 +280,18 @@ body {
   font-size: 16px;
   font-weight: bold;
   text-decoration: none;
-  background: rgba(255, 255, 255, 0.22);
+  background: white;
   padding: 8px 12px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.62);
-  box-shadow: 0 3px 10px rgba(19, 40, 75, 0.08);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   transition: all 0.2s ease;
   display: inline-block;
   max-width: 200px;
 }
 
 .back-link:hover {
-  background: rgba(255, 255, 255, 0.62);
-  transform: translateY(-1px);
+  background: #f0f0f0;
+  transform: translateX(-3px);
 }
 
 .place-page {
@@ -849,4 +838,69 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+
+/* ===== GaPa Blog — wspólne menu jak na stronie głównej ===== */
+.site-nav {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 4vw;
+  background: linear-gradient(rgba(255,255,255,.9), rgba(255,255,255,0));
+  box-sizing: border-box;
+}
+.site-brand {
+  font-family: 'Lobster', cursive;
+  font-size: 2rem;
+  font-weight: 700;
+  text-decoration: none;
+  letter-spacing: 0;
+  color: #13284b;
+  white-space: nowrap;
+}
+.site-brand .ga { color: #1476e8; }
+.site-brand .pa { color: #2e9b45; }
+.site-nav-links {
+  display: flex;
+  gap: 28px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.site-nav-links a,
+.site-nav-links .nav-action {
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: 700;
+  font-size: 1rem;
+  text-decoration: none;
+  color: #13284b;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  box-shadow: none;
+}
+.site-nav-links a:hover,
+.site-nav-links .nav-action:hover {
+  color: #1476e8;
+  background: transparent;
+}
+.site-nav-links a[aria-current="page"] { color: #1476e8; }
+@media (max-width: 800px) {
+  .site-nav { padding: 14px 18px; align-items: flex-start; }
+  .site-brand { font-size: 1.4rem; }
+  .site-nav-links { gap: 12px; font-size: .9rem; }
+  .site-nav-links a, .site-nav-links .nav-action { font-size: .9rem; }
+}
+@media (max-width: 560px) {
+  .site-nav { position: absolute; flex-direction: column; gap: 8px; }
+  .site-nav-links { justify-content: flex-start; }
 }

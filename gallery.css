@@ -1,11 +1,6 @@
 :root { --gallery-ink:#20322d; --gallery-muted:#64716c; --gallery-paper:#f5f3ec; --gallery-card:#ffffff; --gallery-accent:#1c7c62; }
 body { background: var(--gallery-paper); }
-.gallery-header { align-items:center; background:rgba(255,255,255,.34); border-bottom:1px solid rgba(255,255,255,.58); box-shadow:0 3px 16px rgba(32,50,45,.08); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); box-sizing:border-box; display:flex; justify-content:space-between; min-height:64px; padding:0 5vw; position:sticky; top:0; z-index:20; }
-.gallery-brand { color:var(--gallery-ink); font-size:1.1rem; font-weight:700; text-decoration:none; }
-.gallery-navigation { display:flex; gap:.55rem; align-items:center; }
-.gallery-navigation a { background:rgba(255,255,255,.24); border:1px solid rgba(255,255,255,.62); border-radius:999px; box-shadow:0 3px 10px rgba(32,50,45,.08); color:var(--gallery-muted); font-weight:700; padding:.48rem .82rem; text-decoration:none; backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); transition:background-color .18s ease,color .18s ease,transform .18s ease,box-shadow .18s ease; }
-.gallery-navigation a:hover, .gallery-navigation a.is-active { background:rgba(255,255,255,.62); color:var(--gallery-accent); transform:translateY(-1px); box-shadow:0 5px 14px rgba(32,50,45,.12); }
-.gallery-page { box-sizing:border-box; margin:0 auto; max-width:1280px; padding:4rem 5vw 5rem; }
+.gallery-page { box-sizing:border-box; margin:0 auto; max-width:1280px; padding:120px 5vw 5rem; }
 .gallery-intro { max-width:700px; }
 .gallery-eyebrow { color:var(--gallery-accent); font-size:.78rem; font-weight:800; letter-spacing:.12em; margin:0; text-transform:uppercase; }
 .gallery-intro h1 { color:var(--gallery-ink); font-size:clamp(2.2rem,6vw,4.5rem); letter-spacing:-.04em; line-height:1; margin:.5rem 0 1rem; }
@@ -40,7 +35,7 @@ body { background: var(--gallery-paper); }
 .dialog-close { right:1rem; top:1rem; }
 .dialog-arrow { top:50%; transform:translateY(-50%); }
 .dialog-previous { left:1rem; }.dialog-next { right:1rem; }
-@media (max-width:600px) { .gallery-header { padding:0 1.25rem; }.gallery-page { padding:2.5rem 1.25rem 4rem; }.trip-cover-card img, .place-cover-card img { height:260px; }.photo-dialog { padding:3.75rem 1rem 1.5rem; }.dialog-arrow { display:none; } }
+@media (max-width:600px) { .gallery-page { padding:95px 1.25rem 4rem; }.trip-cover-card img, .place-cover-card img { height:260px; }.photo-dialog { padding:3.75rem 1rem 1.5rem; }.dialog-arrow { display:none; } }
 
 .trip-cover-placeholder { height:330px; background:linear-gradient(135deg,#d9e1df,#aebdb9); }
 

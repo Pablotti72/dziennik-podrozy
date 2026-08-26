@@ -7,16 +7,20 @@
   <meta name="description" content="Wybierz podróż i zobacz związane z nią zdjęcia." />
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="gallery.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lobster&display=swap" rel="stylesheet" />
 </head>
 <body>
-  <header class="gallery-header">
-    <a class="gallery-brand" href="index.html">GaPa Blog</a>
-    <nav class="gallery-navigation" aria-label="Główna nawigacja">
-      <a href="index.html">Start</a>
+  <nav class="site-nav gallery-nav" aria-label="Główna nawigacja">
+    <a class="site-brand" href="index.html"><span class="ga">Ga</span><span class="pa">Pa</span> Blog</a>
+    <div class="site-nav-links">
+      <a href="index.html">Strona główna</a>
       <a href="map.html">Mapa</a>
-      <a class="is-active" href="list.html" aria-current="page">Galeria</a>
-    </nav>
-  </header>
+      <a href="list.html" aria-current="page">Galeria</a>
+      <a href="index.html#about">O Nas</a>
+    </div>
+  </nav>
 
   <main class="gallery-page">
     <a id="backToTrips" class="back-to-trips" href="list.html" hidden>← Wszystkie podróże</a>

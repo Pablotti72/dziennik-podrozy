@@ -5,20 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>GaPa Blog — Mapa</title>
   <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lobster&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
-  <style>
-    .gallery-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 8px 12px;
-      border-radius: 8px;
-      text-decoration: none;
-      cursor: pointer;
-      font: inherit;
-    }
-  </style>
 </head>
 <body>
   <div id="loginModal" class="modal" style="display: none;">
@@ -38,15 +29,17 @@
     </div>
   </div>
   
-  <div class="header-container right-top">
-    <div class="header-box">GaPa Blog — Mapa</div>
-    <div class="auth-buttons">
-      <a href="index.html" class="gallery-btn" title="Strona główna" aria-label="Strona główna">🏠 Start</a>
-      <a href="list.html" class="gallery-btn" title="Otwórz galerię" aria-label="Otwórz galerię">🖼️ Galeria</a>
-      <button id="addTripBtn" class="add-btn" style="display: none;">➕ Dodaj wyprawę</button>
-      <button id="editModeBtn" class="edit-btn">🔧 Tryb edycji</button>
+  <nav class="site-nav map-nav" aria-label="Główna nawigacja">
+    <a class="site-brand" href="index.html"><span class="ga">Ga</span><span class="pa">Pa</span> Blog</a>
+    <div class="site-nav-links">
+      <a href="index.html">Strona główna</a>
+      <a href="map.html" aria-current="page">Mapa</a>
+      <a href="list.html">Galeria</a>
+      <a href="index.html#about">O Nas</a>
+      <button id="addTripBtn" class="nav-action" style="display: none;">➕ Dodaj wyprawę</button>
+      <button id="editModeBtn" class="nav-action">🔧 Tryb edycji</button>
     </div>
-  </div>
+  </nav>
 
   <div id="map"></div>
 
