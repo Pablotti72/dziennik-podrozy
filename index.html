@@ -161,77 +161,29 @@
         }
     }
 
-    function collectTripPhotos(trip) {
-        const result = [];
-        const seen = new Set();
-
-        // Okładka podróży
-        const cover = safePhotoUrl(trip?.image);
-        if (cover) {
-            result.push({
-                url: cover,
-                caption: trip?.name || 'Okładka podróży'
-            });
-            seen.add(cover);
-        }
-
-        // Zdjęcia miejsc należących do podróży
-        Object.values(trip?.places || {}).forEach((place) => {
-            const placeName = place?.name || 'Miejsce';
-
-            const placeImage = safePhotoUrl(place?.image);
-            if (placeImage && !seen.has(placeImage)) {
-                result.push({
-                    url: placeImage,
-                    caption: placeName
-                });
-                seen.add(placeImage);
-            }
-
-            (Array.isArray(place?.photos) ? place.photos : []).forEach((photo) => {
-                const url = safePhotoUrl(photo?.url);
-                if (url && !seen.has(url)) {
-                    result.push({
-                        url,
-                        caption: photo?.caption || placeName
-                    });
-                    seen.add(url);
-                }
-            });
-        });
-
-        return result;
-    }
-
     function buildTripPopupContent(key, trip, isAdmin) {
-        const photos = collectTripPhotos(trip);
-        const photosHtml = photos.length
+        const cover = safePhotoUrl(trip?.image);
+        const imageHtml = cover
             ? `
-                <div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 10px;">
-                    ${photos.slice(0, 8).map((photo) => `
-                        <a href="${escapeHtml(photo.url)}" target="_blank" rel="noopener noreferrer"
-                           title="${escapeHtml(photo.caption)}">
-                            <img src="${escapeHtml(photo.url)}"
-                                 alt="${escapeHtml(photo.caption)}"
-                                 style="width:64px;height:64px;object-fit:cover;border-radius:6px;display:block;">
-                        </a>
-                    `).join('')}
+                <div style="margin:10px 0 12px;">
+                    <img src="${escapeHtml(cover)}"
+                         alt="${escapeHtml(trip?.name || 'Okładka podróży')}"
+                         style="width:100%;max-width:280px;height:160px;object-fit:cover;border-radius:8px;display:block;">
                 </div>
-                ${photos.length > 8 ? `<small>+ ${photos.length - 8} więcej zdjęć</small><br>` : ''}
               `
-            : '<small>Brak zdjęć miejsc w tej podróży.</small><br>';
+            : '';
 
         const adminButtons = isAdmin
             ? `
-                <button onclick="editTrip('${escapeHtml(key)}')">✏️ Edytuj</button>
-                <button onclick="deleteTrip('${escapeHtml(key)}')">🗑️ Usuń</button>
+                <button class="ui-action" onclick="editTrip('${escapeHtml(key)}')">✏️ Edytuj</button>
+                <button class="ui-action" onclick="deleteTrip('${escapeHtml(key)}')">🗑️ Usuń</button>
               `
             : '<em>Kliknij nazwę podróży, aby zobaczyć szczegóły</em>';
 
         return `
             <strong><a href="trip.html?id=${encodeURIComponent(key)}" onclick="saveMapState()">${escapeHtml(trip?.name || 'Podróż')}</a></strong><br>
-            <small>${escapeHtml(trip?.description || '')}</small><br>
-            ${photosHtml}
+            <small>${escapeHtml(trip?.description || '')}</small>
+            ${imageHtml}
             ${adminButtons}
         `;
     }
