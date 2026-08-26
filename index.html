@@ -58,8 +58,7 @@
         <input type="hidden" id="tripLat">
         <input type="hidden" id="tripLng">
         <label>Nazwa: <input type="text" id="tripName" required></label><br><br>
-        <label>Krótki opis: <textarea id="tripDescription" rows="3"></textarea></label><br><br>
-        <label>Długi opis: <textarea id="tripLongDescription" rows="8" placeholder="Opisz szerzej przebieg wyprawy, miejsca, wydarzenia i wspomnienia..."></textarea></label><br><br>
+        <label>Pełny opis wyprawy: <textarea id="tripDescription" rows="8" placeholder="Opisz dokładnie wyprawę, co robiliście, co zobaczyliście i jakie macie wspomnienia..."></textarea></label><br><br>
         <label>Zdjęcie (URL): <input type="url" id="tripImage" required></label><br><br>
         <label>Data od: <input type="date" id="tripDateFrom" required></label><br><br>
         <label>Data do: <input type="date" id="tripDateTo"></label><br><br>
@@ -283,7 +282,6 @@
                 document.getElementById("originalTripId").value = id; // Zapisz oryginalny ID
                 document.getElementById("tripName").value = trip.name;
                 document.getElementById("tripDescription").value = trip.description || '';
-                document.getElementById("tripLongDescription").value = trip.longDescription || '';
                 document.getElementById("tripImage").value = trip.image;
                 document.getElementById("tripDateFrom").value = trip.dateFrom;
                 document.getElementById("tripDateTo").value = trip.dateTo;
@@ -305,7 +303,6 @@
       const tripData = {
         name: tripName,
         description: document.getElementById("tripDescription").value,
-        longDescription: document.getElementById("tripLongDescription").value,
         image: document.getElementById("tripImage").value,
         dateFrom: document.getElementById("tripDateFrom").value,
         dateTo: document.getElementById("tripDateTo").value,
