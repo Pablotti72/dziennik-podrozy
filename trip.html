@@ -8,23 +8,33 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
-  <aside class="header-container right-top" aria-label="Nawigacja i działania wyprawy">
-    <div class="header-box">Wyprawa</div>
-    <button id="addPlaceBtn" class="add-btn" style="display: none;">➕ Dodaj miejsce</button>
-    <a id="backLink" class="back-link" href="#">← Wróć do mapy</a>
-  </aside>
+  <main class="place-page trip-page">
+    <header class="page-header">
+      <div class="page-title-block">
+        <h1 id="tripTitle">Wyprawa</h1>
+        <p id="tripDate" class="page-date"></p>
+      </div>
+      <div class="page-actions" aria-label="Akcje wyprawy">
+        <button id="addPlaceBtn" class="ui-action add-btn" style="display: none;">➕ Dodaj miejsce</button>
+        <a id="backLink" class="ui-action back-link" href="#">← Wróć do mapy</a>
+      </div>
+    </header>
 
-  <main class="place-page">
-    <div class="trip-main-content">
-      <div id="trip-map-container">
+    <section class="trip-layout">
+      <div id="trip-map-container" class="trip-map-panel">
         <div id="trip-map"></div>
       </div>
-      <div id="trip-info-and-places">
-        <article id="trip-content">
-          <p>Ładowanie wyprawy...</p>
-        </article>
-      </div>
-    </div>
+
+      <aside class="trip-side-panel">
+        <div class="trip-main-photo">
+          <img id="tripMainImage" src="" alt="Zdjęcie wyprawy" style="display:none;">
+        </div>
+        <section class="long-description trip-description">
+          <h2>Opis wyprawy</h2>
+          <p id="tripDescription">Ładowanie wyprawy...</p>
+        </section>
+      </aside>
+    </section>
   </main>
 
   <div id="placeModal" class="modal" style="display: none;">
@@ -146,23 +156,26 @@
 
     // --- Ładowanie i wyświetlanie danych ---
     function loadTripAndPlaces() {
-      document.getElementById("trip-content").innerHTML = "<p>Ładowanie wyprawy...</p>";
+      document.getElementById("tripDescription").textContent = "Ładowanie wyprawy...";
 
       get(ref(database, `trips/${tripId}`)).then((snapshot) => {
           const trip = snapshot.val();
           if (!trip) {
-            document.getElementById("trip-content").innerHTML = "<p>❌ Wyprawa nie istnieje.</p>";
+            document.getElementById("tripDescription").textContent = "❌ Wyprawa nie istnieje.";
             return;
           }
           tripData = trip;
-          document.getElementById("trip-content").innerHTML = `
-            <h1>${trip.name}</h1>
-            <p><strong>Okres:</strong> ${formatDate(trip.dateFrom)} – ${formatDate(trip.dateTo)}</p>
-            <div class="photo-thumbnail-container">
-              <img src="${trip.image}" onclick="showMainImageModal('${trip.image}')" alt="Zdjęcie wyprawy" class="photo-thumbnail">
-            </div>
-            <section class="long-description"><h2>Opis wyprawy</h2><p>${trip.description || 'Brak opisu wyprawy.'}</p></section>
-          `;
+          document.getElementById("tripTitle").textContent = trip.name || "Wyprawa";
+          document.getElementById("tripDate").textContent = `Okres: ${formatTripPeriod(trip.dateFrom, trip.dateTo)}`;
+          const tripImage = document.getElementById("tripMainImage");
+          if (trip.image) {
+            tripImage.src = trip.image;
+            tripImage.style.display = "block";
+            tripImage.onclick = () => showMainImageModal(trip.image);
+          } else {
+            tripImage.style.display = "none";
+          }
+          document.getElementById("tripDescription").textContent = trip.description || "Brak opisu wyprawy.";
 
           map.eachLayer(l => { if (l instanceof L.Marker) map.removeLayer(l); });
           const bounds = L.latLngBounds();
@@ -180,7 +193,7 @@
               if (userRole === 'admin') {
                   popupContent = `
                       <strong><a href="place.html?tripId=${tripId}&placeId=${p.id}">${p.name}</a></strong><br>
-                      ${p.description || ''}<br>
+                      ${shortDescription(p.description)}
                       <img src="${p.image}" width="100"><br>
                       <small>${p.category} • ${formatDate(p.date)}</small><br><br>
                       <button onclick="editPlace('${p.id}')">✏️ Edytuj</button>
@@ -189,7 +202,7 @@
               } else {
                   popupContent = `
                       <strong><a href="place.html?tripId=${tripId}&placeId=${p.id}">${p.name}</a></strong><br>
-                      ${p.description || ''}<br>
+                      ${shortDescription(p.description)}
                       <img src="${p.image}" width="100"><br>
                       <small>${p.category} • ${formatDate(p.date)}</small><br><br>
                       <em>Kliknij, aby zobaczyć szczegóły</em>
@@ -207,7 +220,7 @@
         })
         .catch(err => {
           console.error("Błąd ładowania wyprawy:", err);
-          document.getElementById("trip-content").innerHTML = "<p>❌ Nie udało się załadować wyprawy.</p>";
+          document.getElementById("tripDescription").textContent = "❌ Nie udało się załadować wyprawy.";
         });
     }
 
@@ -368,8 +381,20 @@
         .replace(/_+/g, "_")
         .replace(/^_+|_+$/g, "");
     }
+    function shortDescription(text) {
+      const value = (text || "").replace(/\s+/g, " ").trim();
+      return value ? `<span class="popup-description">${value}</span>` : `<span class="popup-description">Brak opisu</span>`;
+    }
+
     function formatDate(dateStr) {
       return dateStr ? new Date(dateStr).toLocaleDateString("pl-PL", { day: "numeric", month: "long", year: "numeric" }) : "Brak daty";
+    }
+
+    function formatTripPeriod(dateFrom, dateTo) {
+      if (!dateFrom) return "Brak daty";
+      const from = formatDate(dateFrom);
+      if (!dateTo) return from;
+      return `${from} – ${formatDate(dateTo)}`;
     }
     window.addPhotoField = function() {
       const container = document.getElementById("photos-container");
