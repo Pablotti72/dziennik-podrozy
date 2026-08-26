@@ -22,7 +22,7 @@
     <section class="gallery-intro" aria-labelledby="galleryTitle">
       <p id="galleryEyebrow" class="gallery-eyebrow">Wspomnienia w kadrach</p>
       <h1 id="galleryTitle">Podróże</h1>
-      <p id="galleryDescription">Wybierz podróż, aby zobaczyć zdjęcia odwiedzonych miejsc.</p>
+      <p id="galleryDescription">Wybierz wyprawę, aby przejść do odwiedzonych miejsc.</p>
     </section>
     <p id="galleryStatus" class="gallery-status" role="status">Ładowanie podróży…</p>
     <section id="galleryContent" class="travel-gallery" aria-live="polite"></section>
@@ -43,7 +43,7 @@
     import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js";
 
     const firebaseConfig = {
-      apiKey: "AIzaSyBcRB_dec2OunBPevgemcWouCfDP6dNZV4",
+      apiKey: "AIzaSyBcRB_dec2O2unBPevgemcWouCfDP6dNZV4",
       authDomain: "moj-dziennik-podrozy.firebaseapp.com",
       databaseURL: "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app",
       projectId: "moj-dziennik-podrozy",
@@ -55,12 +55,21 @@
     const database = getDatabase(initializeApp(firebaseConfig));
     const gallery = document.getElementById("galleryContent");
     const status = document.getElementById("galleryStatus");
+    const backToTrips = document.getElementById("backToTrips");
+    const galleryEyebrow = document.getElementById("galleryEyebrow");
+    const galleryTitle = document.getElementById("galleryTitle");
+    const galleryDescription = document.getElementById("galleryDescription");
+
     const dialog = document.getElementById("photoDialog");
     const dialogImage = document.getElementById("dialogImage");
     const dialogTitle = document.getElementById("dialogTitle");
     const dialogDescription = document.getElementById("dialogDescription");
-    const tripId = new URLSearchParams(window.location.search).get("trip");
-    const photos = [];
+
+    const params = new URLSearchParams(window.location.search);
+    const tripId = params.get("trip");
+    const placeId = params.get("place");
+
+    let photos = [];
     let activePhotoIndex = 0;
 
     function safeImageUrl(value) {
@@ -68,7 +77,9 @@
       try {
         const url = new URL(value.trim(), window.location.href);
         return ["http:", "https:"].includes(url.protocol) ? url.href : null;
-      } catch { return null; }
+      } catch {
+        return null;
+      }
     }
 
     function text(value, fallback = "") {
@@ -80,59 +91,165 @@
       status.textContent = message;
     }
 
+    function setHeader(eyebrow, title, description, backHref = null, backText = "← Wszystkie wyprawy") {
+      galleryEyebrow.textContent = eyebrow;
+      galleryTitle.textContent = title;
+      galleryDescription.textContent = description;
+
+      if (backHref) {
+        backToTrips.hidden = false;
+        backToTrips.href = backHref;
+        backToTrips.textContent = backText;
+      } else {
+        backToTrips.hidden = true;
+      }
+    }
+
     function createTripCard(id, trip) {
       const imageUrl = safeImageUrl(trip.image);
       if (!imageUrl) return null;
-      const name = text(trip.name, "Podróż bez nazwy");
+
+      const name = text(trip.name, "Wyprawa bez nazwy");
       const link = document.createElement("a");
       link.className = "trip-cover-card";
       link.href = `list.html?trip=${encodeURIComponent(id)}`;
-      link.setAttribute("aria-label", `Zobacz zdjęcia z podróży: ${name}`);
+      link.setAttribute("aria-label", `Zobacz miejsca z wyprawy: ${name}`);
 
       const image = document.createElement("img");
       image.src = imageUrl;
-      image.alt = `Okładka podróży: ${name}`;
+      image.alt = `Okładka wyprawy: ${name}`;
       image.loading = "lazy";
       image.decoding = "async";
       image.addEventListener("error", () => link.remove());
 
       const overlay = document.createElement("div");
       overlay.className = "trip-cover-content";
+
       const label = document.createElement("span");
-      label.textContent = "Otwórz podróż";
+      label.textContent = "Wyprawa";
+
       const heading = document.createElement("h2");
       heading.textContent = name;
+
+      overlay.append(label, heading);
+      link.append(image, overlay);
+      return link;
+    }
+
+    function getPlaceCover(place) {
+      const direct = safeImageUrl(place.image);
+      if (direct) return direct;
+
+      const firstPhoto = Array.isArray(place.photos)
+        ? place.photos.find(photo => safeImageUrl(photo?.url))
+        : null;
+
+      return firstPhoto ? safeImageUrl(firstPhoto.url) : null;
+    }
+
+    function createPlaceCard(tripIdValue, placeIdValue, place) {
+      const imageUrl = getPlaceCover(place);
+      if (!imageUrl) return null;
+
+      const name = text(place.name, "Miejsce bez nazwy");
+      const link = document.createElement("a");
+      link.className = "place-cover-card";
+      link.href = `list.html?trip=${encodeURIComponent(tripIdValue)}&place=${encodeURIComponent(placeIdValue)}`;
+      link.setAttribute("aria-label", `Zobacz zdjęcia miejsca: ${name}`);
+
+      const image = document.createElement("img");
+      image.src = imageUrl;
+      image.alt = `Zdjęcie miejsca: ${name}`;
+      image.loading = "lazy";
+      image.decoding = "async";
+      image.addEventListener("error", () => link.remove());
+
+      const overlay = document.createElement("div");
+      overlay.className = "trip-cover-content";
+
+      const label = document.createElement("span");
+      label.textContent = "Miejsce";
+
+      const heading = document.createElement("h2");
+      heading.textContent = name;
+
       overlay.append(label, heading);
       link.append(image, overlay);
       return link;
     }
 
     function renderTripCovers(trips) {
+      setHeader("Wspomnienia w kadrach", "Wyprawy",
+        "Wybierz wyprawę, aby przejść do odwiedzonych miejsc.");
+
       gallery.replaceChildren();
       const fragment = document.createDocumentFragment();
       let count = 0;
+
       Object.entries(trips || {}).forEach(([id, trip]) => {
         const card = createTripCard(id, trip || {});
-        if (card) { fragment.appendChild(card); count += 1; }
+        if (card) {
+          fragment.appendChild(card);
+          count += 1;
+        }
       });
-      if (count === 0) return createEmptyState("Nie ma jeszcze podróży z okładkami do pokazania.");
-      status.textContent = `Wybierz jedną z ${count} podróży.`;
+
+      if (count === 0) {
+        createEmptyState("Nie ma jeszcze wypraw z okładkami do pokazania.");
+        return;
+      }
+
+      status.textContent = `Liczba wypraw: ${count}`;
       gallery.appendChild(fragment);
     }
 
-    function addPlacePhoto(url, title, description) {
-      const safeUrl = safeImageUrl(url);
-      if (!safeUrl || photos.some((photo) => photo.url === safeUrl)) return;
-      photos.push({ url: safeUrl, title, description, alt: description || `Zdjęcie miejsca: ${title}` });
+    function renderPlaceCovers(trip) {
+      const name = text(trip.name, "Wyprawa bez nazwy");
+
+      setHeader("Galeria wyprawy", name,
+        "Wybierz miejsce, aby zobaczyć zdjęcia z tego miejsca.",
+        "list.html", "← Wszystkie wyprawy");
+
+      gallery.replaceChildren();
+      const fragment = document.createDocumentFragment();
+      let count = 0;
+
+      Object.entries(trip.places || {}).forEach(([id, place]) => {
+        const card = createPlaceCard(tripId, id, place || {});
+        if (card) {
+          fragment.appendChild(card);
+          count += 1;
+        }
+      });
+
+      if (count === 0) {
+        createEmptyState("Ta wyprawa nie ma jeszcze miejsc ze zdjęciami.");
+        return;
+      }
+
+      status.textContent = `Liczba miejsc: ${count}`;
+      gallery.appendChild(fragment);
     }
 
-    function collectTripPhotos(trip) {
-      Object.values(trip.places || {}).forEach((place) => {
-        const placeName = text(place.name, "Miejsce bez nazwy");
-        addPlacePhoto(place.image, placeName, "");
-        (Array.isArray(place.photos) ? place.photos : []).forEach((photo) => {
-          addPlacePhoto(photo?.url, placeName, text(photo?.caption, ""));
-        });
+    function addPhoto(url, placeName, caption) {
+      const safeUrl = safeImageUrl(url);
+      if (!safeUrl || photos.some(photo => photo.url === safeUrl)) return;
+
+      photos.push({
+        url: safeUrl,
+        title: placeName,
+        description: text(caption, ""),
+        alt: text(caption, `Zdjęcie miejsca: ${placeName}`)
+      });
+    }
+
+    function collectPlacePhotos(place) {
+      const placeName = text(place.name, "Miejsce bez nazwy");
+
+      // Główne zdjęcie miejsca jest pierwsze, a następnie zdjęcia zapisane w galerii.
+      addPhoto(place.image, placeName, "");
+      (Array.isArray(place.photos) ? place.photos : []).forEach(photo => {
+        addPhoto(photo?.url, placeName, photo?.caption);
       });
     }
 
@@ -142,70 +259,116 @@
       card.className = "place-photo-card";
       card.setAttribute("aria-label", `Powiększ zdjęcie: ${photo.title}`);
       card.addEventListener("click", () => openPhoto(index));
+
       const image = document.createElement("img");
       image.src = photo.url;
       image.alt = photo.alt;
       image.loading = "lazy";
       image.decoding = "async";
       image.addEventListener("error", () => card.remove());
+
       const caption = document.createElement("span");
       caption.textContent = photo.description;
       caption.hidden = !photo.description;
+
       card.append(image, caption);
       return card;
     }
 
-    function renderTripPhotos(trip) {
-      const name = text(trip.name, "Podróż bez nazwy");
-      document.getElementById("backToTrips").hidden = false;
-      document.getElementById("galleryEyebrow").textContent = "Galeria podróży";
-      document.getElementById("galleryTitle").textContent = name;
-      document.getElementById("galleryDescription").textContent = "Zdjęcia miejsc odwiedzonych podczas tej podróży.";
+    function renderPlacePhotos(trip, place) {
+      const tripName = text(trip.name, "Wyprawa bez nazwy");
+      const placeName = text(place.name, "Miejsce bez nazwy");
+
+      setHeader("Galeria miejsca", placeName,
+        `Zdjęcia z miejsca w ramach wyprawy: ${tripName}.`,
+        `list.html?trip=${encodeURIComponent(tripId)}`, "← Wróć do miejsc");
+
       gallery.replaceChildren();
-      if (photos.length === 0) return createEmptyState("Ta podróż nie ma jeszcze zdjęć miejsc.");
+
+      if (photos.length === 0) {
+        createEmptyState("To miejsce nie ma jeszcze zdjęć.");
+        return;
+      }
+
       status.textContent = `Liczba zdjęć: ${photos.length}`;
       const fragment = document.createDocumentFragment();
-      photos.forEach((photo, index) => fragment.appendChild(createPhotoCard(photo, index)));
+      photos.forEach((photo, index) => {
+        fragment.appendChild(createPhotoCard(photo, index));
+      });
       gallery.appendChild(fragment);
     }
 
     function renderDialog() {
       const photo = photos[activePhotoIndex];
       if (!photo) return;
+
       dialogImage.src = photo.url;
       dialogImage.alt = photo.alt;
       dialogTitle.textContent = photo.title;
       dialogDescription.textContent = photo.description;
+
       const showArrows = photos.length > 1;
       document.getElementById("dialogPrevious").hidden = !showArrows;
       document.getElementById("dialogNext").hidden = !showArrows;
     }
 
-    function openPhoto(index) { activePhotoIndex = index; renderDialog(); dialog.showModal(); }
-    function changePhoto(direction) { activePhotoIndex = (activePhotoIndex + direction + photos.length) % photos.length; renderDialog(); }
+    function openPhoto(index) {
+      activePhotoIndex = index;
+      renderDialog();
+      dialog.showModal();
+    }
+
+    function changePhoto(direction) {
+      if (!photos.length) return;
+      activePhotoIndex = (activePhotoIndex + direction + photos.length) % photos.length;
+      renderDialog();
+    }
 
     document.getElementById("dialogClose").addEventListener("click", () => dialog.close());
     document.getElementById("dialogPrevious").addEventListener("click", () => changePhoto(-1));
     document.getElementById("dialogNext").addEventListener("click", () => changePhoto(1));
-    dialog.addEventListener("click", (event) => { if (event.target === dialog) dialog.close(); });
-    document.addEventListener("keydown", (event) => {
+
+    dialog.addEventListener("click", event => {
+      if (event.target === dialog) dialog.close();
+    });
+
+    document.addEventListener("keydown", event => {
       if (!dialog.open || photos.length < 2) return;
       if (event.key === "ArrowLeft") changePhoto(-1);
       if (event.key === "ArrowRight") changePhoto(1);
+      if (event.key === "Escape") dialog.close();
     });
 
     async function loadGallery() {
       try {
-        if (tripId) {
-          const snapshot = await get(ref(database, `trips/${tripId}`));
-          const trip = snapshot.val();
-          if (!trip) return createEmptyState("Nie znaleziono tej podróży.");
-          collectTripPhotos(trip);
-          renderTripPhotos(trip);
-        } else {
+        if (!tripId) {
           const snapshot = await get(ref(database, "trips"));
           renderTripCovers(snapshot.val());
+          return;
         }
+
+        const tripSnapshot = await get(ref(database, `trips/${tripId}`));
+        const trip = tripSnapshot.val();
+
+        if (!trip) {
+          createEmptyState("Nie znaleziono tej wyprawy.");
+          return;
+        }
+
+        if (!placeId) {
+          renderPlaceCovers(trip);
+          return;
+        }
+
+        const place = trip.places?.[placeId];
+
+        if (!place) {
+          createEmptyState("Nie znaleziono tego miejsca.");
+          return;
+        }
+
+        collectPlacePhotos(place);
+        renderPlacePhotos(trip, place);
       } catch (error) {
         console.error("Błąd ładowania galerii:", error);
         createEmptyState("Nie udało się załadować galerii. Spróbuj odświeżyć stronę.");
