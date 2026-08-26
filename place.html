@@ -9,17 +9,33 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" />
 </head>
 <body>
-  <div class="header-container right-top">
-    <div class="header-box">Miejsce</div>
-    <a id="backLink" class="back-link" href="#">← Wróć do wyprawy</a>
-  </div>
+  <main class="place-page place-detail-page">
+    <header class="page-header">
+      <div class="page-title-block">
+        <h1 id="placeTitle">Miejsce</h1>
+        <p id="placeDate" class="page-date"></p>
+      </div>
+      <div class="page-actions" aria-label="Akcje miejsca">
+        <a id="backLink" class="ui-action back-link" href="#">← Wróć do wyprawy</a>
+      </div>
+    </header>
 
-  <main class="place-page">
-    <article id="place-content">
-      <p>Ładowanie miejsca...</p>
-    </article>
-    <div id="place-map"></div>
-    <div id="place-photos" class="photo-gallery"></div>
+    <section class="place-main-grid">
+      <div class="place-main-photo">
+        <img id="placeMainImage" src="" alt="Zdjęcie główne miejsca">
+      </div>
+      <section class="long-description place-description">
+        <h2>Opis miejsca</h2>
+        <p id="placeDescriptionText">Ładowanie miejsca...</p>
+      </section>
+    </section>
+
+    <section class="place-gallery-section">
+      <h2>Galeria zdjęć</h2>
+      <div id="place-photos" class="photo-gallery"></div>
+    </section>
+
+    <div id="place-map" style="display:none;"></div>
   </main>
 
   <div id="msgModal" class="msg-modal" style="display: none">
@@ -66,40 +82,21 @@
         .then((res) => res.json())
         .then((place) => {
           if (!place) {
-            document.getElementById("place-content").innerHTML =
-              "<p class='no-content-message'>❌ Nie udało się załadować miejsca.</p>";
+            document.getElementById("placeDescriptionText").textContent = "❌ Nie udało się załadować miejsca.";
             return;
           }
 
           photosData = place.photos || [];
 
-          const contentElement = document.getElementById("place-content");
-          contentElement.innerHTML = `
-            <h1>${place.name}</h1>
-            <div class="main-image-container">
-              ${
-                place.image
-                  ? `<img src="${place.image}" alt="${place.name}" class="main-image"
-                      onerror="this.onerror=null;this.src='https://placehold.co/400x300/e0e0e0/555555?text=Brak+zdjęcia';" />`
-                  : `<img src="https://placehold.co/400x300/e0e0e0/555555?text=Brak+zdjęcia" alt="Brak zdjęcia" class="main-image" />`
-              }
-              <section class="long-description"><h2>Opis miejsca</h2><p>${place.description || "Brak opisu miejsca."}</p></section>
-            </div>
-            <p><strong>Kategoria:</strong> ${getCategoryLabel(place.category)}</p>
-            <p><strong>Data:</strong> ${formatDate(place.date)}</p>
-          `;
+          document.getElementById("placeTitle").textContent = place.name || "Miejsce";
+          document.getElementById("placeDate").textContent = `Data: ${formatDate(place.date)}`;
+          const mainImage = document.getElementById("placeMainImage");
+          mainImage.src = place.image || "https://placehold.co/800x600/e0e0e0/555555?text=Brak+zdjęcia";
+          mainImage.alt = place.name || "Zdjęcie miejsca";
+          document.getElementById("placeDescriptionText").textContent = place.description || "Brak opisu miejsca.";
 
-          const mapContainer = document.getElementById("place-map");
-          if (place.lat && place.lng) {
-            mapContainer.style.display = "block";
-            const map = L.map(mapContainer).setView([place.lat, place.lng], 14);
-            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-              attribution: "© OpenStreetMap contributors",
-            }).addTo(map);
-            L.marker([place.lat, place.lng]).addTo(map);
-          } else {
-            mapContainer.style.display = "none";
-          }
+          // Mapa miejsca pozostaje dostępna w danych, ale nie jest wyświetlana w tym układzie strony.
+          document.getElementById("place-map").style.display = "none";
 
           const galleryElement = document.getElementById("place-photos");
           galleryElement.innerHTML = "";
@@ -117,8 +114,7 @@
         })
         .catch((err) => {
           console.error("Błąd ładowania miejsca:", err);
-          document.getElementById("place-content").innerHTML =
-            "<p>❌ Nie udało się załadować miejsca.</p>";
+          document.getElementById("placeDescriptionText").textContent = "❌ Nie udało się załadować miejsca.";
         });
     }
 
