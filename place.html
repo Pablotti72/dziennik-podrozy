@@ -83,7 +83,7 @@
                       onerror="this.onerror=null;this.src='https://placehold.co/400x300/e0e0e0/555555?text=Brak+zdjęcia';" />`
                   : `<img src="https://placehold.co/400x300/e0e0e0/555555?text=Brak+zdjęcia" alt="Brak zdjęcia" class="main-image" />`
               }
-              <p>${place.description || "Brak opisu."}</p>
+              <section class="long-description"><h2>Opis miejsca</h2><p>${place.description || "Brak opisu miejsca."}</p></section>
             </div>
             <p><strong>Kategoria:</strong> ${getCategoryLabel(place.category)}</p>
             <p><strong>Data:</strong> ${formatDate(place.date)}</p>
@@ -149,15 +149,6 @@
         modalCaption.textContent =
           photosData[currentPhotoIndex].caption || "Brak opisu";
       }
-    }
-
-    function escapeHtml(value) {
-      return String(value ?? '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
     }
 
     function formatDate(dateStr) {
