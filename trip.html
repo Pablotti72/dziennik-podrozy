@@ -8,11 +8,11 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
-  <div class="header-container right-top">
+  <aside class="header-container right-top" aria-label="Nawigacja i działania wyprawy">
     <div class="header-box">Wyprawa</div>
     <button id="addPlaceBtn" class="add-btn" style="display: none;">➕ Dodaj miejsce</button>
     <a id="backLink" class="back-link" href="#">← Wróć do mapy</a>
-  </div>
+  </aside>
 
   <main class="place-page">
     <div class="trip-main-content">
@@ -37,8 +37,7 @@
         <input type="hidden" id="placeLng">
 
         <label>Nazwa: <input type="text" id="placeName" required></label><br><br>
-        <label>Krótki opis: <textarea id="placeDescription" rows="2"></textarea></label><br><br>
-        <label>Długi opis miejsca: <textarea id="placeLongDescription" rows="7" placeholder="Opisz szerzej, co tam robiliście, co zobaczyliście i jakie macie wspomnienia..."></textarea></label><br><br>
+        <label>Pełny opis miejsca: <textarea id="placeDescription" rows="8" placeholder="Opisz dokładnie miejsce, co tam robiliście, co zobaczyliście i jakie macie wspomnienia..."></textarea></label><br><br>
         <label>Zdjęcie (URL): <input type="url" id="placeImage" required></label><br><br>
         <label>Kategoria:
           <select id="placeCategory">
@@ -63,7 +62,7 @@
             <label>Komentarz: <input type="text" class="photo-caption" placeholder="Opis zdjęcia"></label><br><br>
           </div>
         </div>
-        <button class="ui-action" type="button" onclick="addPhotoField()">➕ Dodaj zdjęcie</button><br><br>
+        <button type="button" onclick="addPhotoField()">➕ Dodaj zdjęcie</button><br><br>
 
         <button type="submit">Zapisz</button>
         <button type="button" onclick="closePlaceModal()">Anuluj</button>
@@ -162,13 +161,7 @@
             <div class="photo-thumbnail-container">
               <img src="${trip.image}" onclick="showMainImageModal('${trip.image}')" alt="Zdjęcie wyprawy" class="photo-thumbnail">
             </div>
-            <p>${trip.description || ''}</p>
-            ${trip.longDescription ? `
-              <details class="long-description">
-                <summary>📖 Pokaż pełny opis wyprawy</summary>
-                <div class="long-description-text">${escapeHtml(trip.longDescription).replace(/\n/g, '<br>')}</div>
-              </details>
-            ` : ''}
+            <section class="long-description"><h2>Opis wyprawy</h2><p>${trip.description || 'Brak opisu wyprawy.'}</p></section>
           `;
 
           map.eachLayer(l => { if (l instanceof L.Marker) map.removeLayer(l); });
@@ -190,8 +183,8 @@
                       ${p.description || ''}<br>
                       <img src="${p.image}" width="100"><br>
                       <small>${p.category} • ${formatDate(p.date)}</small><br><br>
-                      <button class="ui-action" onclick="editPlace('${p.id}')">✏️ Edytuj</button>
-                      <button class="ui-action" onclick="deletePlace('${p.id}')">🗑️ Usuń</button>
+                      <button onclick="editPlace('${p.id}')">✏️ Edytuj</button>
+                      <button onclick="deletePlace('${p.id}')">🗑️ Usuń</button>
                   `;
               } else {
                   popupContent = `
@@ -265,7 +258,6 @@
       const p = tripData.places[id];
       document.getElementById("placeName").value = p.name;
       document.getElementById("placeDescription").value = p.description || '';
-      document.getElementById("placeLongDescription").value = p.longDescription || '';
       document.getElementById("placeImage").value = p.image;
       document.getElementById("placeCategory").value = p.category;
       document.getElementById("placeDate").value = p.date || '';
@@ -318,7 +310,6 @@
       const placeData = {
         name: placeName,
         description: document.getElementById("placeDescription").value,
-        longDescription: document.getElementById("placeLongDescription").value,
         image: document.getElementById("placeImage").value,
         category: document.getElementById("placeCategory").value,
         date: document.getElementById("placeDate").value,
@@ -367,14 +358,6 @@
     };
 
     // --- Funkcje pomocnicze ---
-    function escapeHtml(value) {
-      return String(value ?? '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-    }
     function generateId(name) {
       return name
         .toLowerCase()
