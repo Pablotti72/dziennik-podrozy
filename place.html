@@ -142,8 +142,9 @@
       if (photosData[currentPhotoIndex]) {
         modalImage.src = photosData[currentPhotoIndex].url;
         modalImage.alt = photosData[currentPhotoIndex].caption;
-        modalCaption.textContent =
-          photosData[currentPhotoIndex].caption || "Brak opisu";
+        const caption = (photosData[currentPhotoIndex].caption || "").trim();
+        modalCaption.textContent = caption;
+        modalCaption.hidden = !caption;
       }
     }
 
