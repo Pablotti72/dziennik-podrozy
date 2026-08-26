@@ -107,7 +107,7 @@
             item.innerHTML = `
               <img src="${photo.url}" alt="${photo.caption}" class="place-image"
                 onerror="this.onerror=null;this.src='https://placehold.co/150x150/e0e0e0/555555?text=Brak+zdjęcia';" />
-              <div class="photo-caption">${photo.caption || "Brak opisu"}</div>
+              ${photo.caption ? `<div class="photo-caption">${photo.caption}</div>` : ""}
             `;
             galleryElement.appendChild(item);
           });
