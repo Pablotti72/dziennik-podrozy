@@ -246,8 +246,7 @@
     function collectPlacePhotos(place) {
       const placeName = text(place.name, "Miejsce bez nazwy");
 
-      // Główne zdjęcie miejsca jest pierwsze, a następnie zdjęcia zapisane w galerii.
-      addPhoto(place.image, placeName, "");
+      // Etap 3 pokazuje wyłącznie zdjęcia zapisane w galerii miejsca.
       (Array.isArray(place.photos) ? place.photos : []).forEach(photo => {
         addPhoto(photo?.url, placeName, photo?.caption);
       });
