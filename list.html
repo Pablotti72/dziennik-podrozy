@@ -237,7 +237,7 @@
 
       photos.push({
         url: safeUrl,
-        title: placeName,
+        title: "",
         description: text(caption, ""),
         alt: text(caption, `Zdjęcie miejsca: ${placeName}`)
       });
@@ -303,8 +303,10 @@
 
       dialogImage.src = photo.url;
       dialogImage.alt = photo.alt;
-      dialogTitle.textContent = photo.title;
-      dialogDescription.textContent = photo.description;
+      dialogTitle.textContent = photo.description;
+      dialogTitle.hidden = !photo.description;
+      dialogDescription.textContent = "";
+      dialogDescription.hidden = true;
 
       const showArrows = photos.length > 1;
       document.getElementById("dialogPrevious").hidden = !showArrows;
