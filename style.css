@@ -568,4 +568,189 @@ body {
     text-align: left;
   }
 }
-\n\n/* ===== NOWY UKŁAD STRON WYPRAWY I MIEJSCA ===== */\n.place-page {\n  max-width: 1400px;\n  margin: 24px auto;\n  padding: 28px;\n  box-sizing: border-box;\n}\n\n.page-header {\n  display: flex;\n  justify-content: space-between;\n  align-items: flex-start;\n  gap: 24px;\n  padding-bottom: 18px;\n  margin-bottom: 22px;\n  border-bottom: 2px solid #4CAF50;\n}\n\n.page-title-block h1 {\n  margin: 0;\n  color: #2c3e50;\n  border: 0;\n  padding: 0;\n  font-size: clamp(2rem, 4vw, 3rem);\n  line-height: 1.1;\n}\n\n.page-date {\n  margin: 10px 0 0 !important;\n  color: #555;\n  font-size: 1.05rem;\n}\n\n.page-actions {\n  display: flex;\n  align-items: center;\n  justify-content: flex-end;\n  gap: 8px;\n  flex-wrap: wrap;\n}\n\n.page-actions .ui-action {\n  white-space: nowrap;\n}\n\n.trip-layout,\n.place-main-grid {\n  display: grid;\n  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);\n  gap: 18px;\n  align-items: stretch;\n}\n\n.trip-map-panel,\n.place-main-photo,\n.trip-main-photo {\n  min-width: 0;\n}\n\n#trip-map {\n  width: 100%;\n  height: 680px;\n  margin: 0;\n  border-radius: 10px;\n}\n\n.trip-side-panel {\n  display: flex;\n  flex-direction: column;\n  gap: 18px;\n  min-width: 0;\n}\n\n.trip-main-photo,\n.place-main-photo {\n  overflow: hidden;\n  border-radius: 10px;\n  background: #f0f0f0;\n  min-height: 300px;\n}\n\n.trip-main-photo img,\n.place-main-photo img {\n  width: 100%;\n  height: 100%;\n  min-height: 300px;\n  object-fit: cover;\n  display: block;\n  cursor: pointer;\n}\n\n.trip-description {\n  flex: 1;\n  margin: 0;\n}\n\n.long-description {\n  margin: 0;\n  padding: 20px;\n  background: #fff;\n  border-radius: 10px;\n  box-shadow: 0 2px 10px rgba(0,0,0,.06);\n  line-height: 1.7;\n  overflow-wrap: anywhere;\n}\n\n.long-description h2,\n.place-gallery-section h2 {\n  margin: 0 0 12px;\n  color: #2c3e50;\n  font-size: 1.25rem;\n}\n\n.long-description p {\n  margin: 0;\n  white-space: pre-line;\n}\n\n.place-gallery-section {\n  margin-top: 22px;\n}\n\n.place-gallery-section .photo-gallery {\n  margin-top: 12px;\n  padding: 0;\n  box-shadow: none;\n}\n\n.place-gallery-section .photo-item img.place-image {\n  height: 120px;\n}\n\n.popup-description {\n  display: block;\n  width: 220px;\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n  margin: 4px 0 6px;\n}\n\n/* Popup nie pokazuje długiego opisu ani rozwijania. */\n.leaflet-popup-content {\n  max-width: 260px;\n}\n\n@media (max-width: 800px) {\n  .place-page {\n    margin: 10px;\n    padding: 16px;\n  }\n\n  .page-header {\n    flex-direction: column;\n    align-items: stretch;\n  }\n\n  .page-actions {\n    justify-content: flex-start;\n  }\n\n  .trip-layout,\n  .place-main-grid {\n    grid-template-columns: 1fr;\n  }\n\n  #trip-map {\n    height: 420px;\n  }\n\n  .trip-main-photo,\n  .place-main-photo {\n    min-height: 260px;\n  }\n\n  .trip-main-photo img,\n  .place-main-photo img {\n    min-height: 260px;\n  }\n\n  .popup-description {\n    width: 190px;\n  }\n}\n
+
+
+/* ===== NOWY UKŁAD STRON WYPRAWY I MIEJSCA ===== */
+.place-page {
+  max-width: 1400px;
+  margin: 24px auto;
+  padding: 28px;
+  box-sizing: border-box;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  padding-bottom: 18px;
+  margin-bottom: 22px;
+  border-bottom: 2px solid #4CAF50;
+}
+
+.page-title-block h1 {
+  margin: 0;
+  color: #2c3e50;
+  border: 0;
+  padding: 0;
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1.1;
+}
+
+.page-date {
+  margin: 10px 0 0 !important;
+  color: #555;
+  font-size: 1.05rem;
+}
+
+.page-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.page-actions .ui-action {
+  white-space: nowrap;
+}
+
+.trip-layout,
+.place-main-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+  gap: 18px;
+  align-items: stretch;
+}
+
+.trip-map-panel,
+.place-main-photo,
+.trip-main-photo {
+  min-width: 0;
+}
+
+#trip-map {
+  width: 100%;
+  height: 680px;
+  margin: 0;
+  border-radius: 10px;
+}
+
+.trip-side-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+
+.trip-main-photo,
+.place-main-photo {
+  overflow: hidden;
+  border-radius: 10px;
+  background: #f0f0f0;
+  min-height: 300px;
+}
+
+.trip-main-photo img,
+.place-main-photo img {
+  width: 100%;
+  height: 100%;
+  min-height: 300px;
+  object-fit: cover;
+  display: block;
+  cursor: pointer;
+}
+
+.trip-description {
+  flex: 1;
+  margin: 0;
+}
+
+.long-description {
+  margin: 0;
+  padding: 20px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0,0,0,.06);
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.long-description h2,
+.place-gallery-section h2 {
+  margin: 0 0 12px;
+  color: #2c3e50;
+  font-size: 1.25rem;
+}
+
+.long-description p {
+  margin: 0;
+  white-space: pre-line;
+}
+
+.place-gallery-section {
+  margin-top: 22px;
+}
+
+.place-gallery-section .photo-gallery {
+  margin-top: 12px;
+  padding: 0;
+  box-shadow: none;
+}
+
+.place-gallery-section .photo-item img.place-image {
+  height: 120px;
+}
+
+.popup-description {
+  display: block;
+  width: 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 4px 0 6px;
+}
+
+/* Popup nie pokazuje długiego opisu ani rozwijania. */
+.leaflet-popup-content {
+  max-width: 260px;
+}
+
+@media (max-width: 800px) {
+  .place-page {
+    margin: 10px;
+    padding: 16px;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .page-actions {
+    justify-content: flex-start;
+  }
+
+  .trip-layout,
+  .place-main-grid {
+    grid-template-columns: 1fr;
+  }
+
+  #trip-map {
+    height: 420px;
+  }
+
+  .trip-main-photo,
+  .place-main-photo {
+    min-height: 260px;
+  }
+
+  .trip-main-photo img,
+  .place-main-photo img {
+    min-height: 260px;
+  }
+
+  .popup-description {
+    width: 190px;
+  }
+}
