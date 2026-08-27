@@ -67,7 +67,7 @@
 <div id="loginModal" class="login-modal"><div class="login-box"><h2>🔐 Logowanie administratora</h2><input id="loginEmail" type="email" placeholder="E-mail"><input id="loginPassword" type="password" placeholder="Hasło"><button id="loginSubmit">Zaloguj</button><button id="loginCancel" class="cancel">Anuluj</button><p id="loginStatus"></p></div></div>
 
 <script type="module">
-import { normalizeCountryCodes, countryRecord, KNOWN_TRIP_COUNTRIES } from "./country-utils.js";
+import { normalizeCountryCodes, countryRecord, countryFlagUrl, KNOWN_TRIP_COUNTRIES } from "./country-utils.js";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
 import { getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js";
 import { getDatabase,ref,get,set,update } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js";
@@ -136,12 +136,13 @@ function renderCountryChooser(){
   let body='<p class="empty-search">Brak zapisanych krajów.</p>';
   if(countries.length){
     body='<div class="choice-grid country-grid">'+countries.map(c=>{
-      const flag=c.flag||'';
       const name=escapeHtml(c.name||c.code);
       const code=escapeHtml(c.code);
       const count=c.trips.length;
-      const countLabel=count===1?'wyprawa':'wypraw';
-      return '<button class="choice-card country-choice" type="button" data-country="'+code+'"><span class="country-flag">'+flag+'</span><strong>'+name+'</strong><span>'+count+' '+countLabel+'</span></button>';
+      const countLabel=count===1?'wyprawa':(count>=2&&count<=4?'wyprawy':'wypraw');
+      const flagUrl=countryFlagUrl(c.code);
+      const style=flagUrl ? ` style="--country-flag:url('${flagUrl}')"` : '';
+      return `<button class="choice-card country-choice" type="button" data-country="${code}"${style}><span class="country-content"><strong>${name}</strong><span>${count} ${countLabel}</span></span></button>`;
     }).join('')+'</div>';
   }
   showSearchResults('🌍 Wybierz kraj',body);
@@ -149,7 +150,7 @@ function renderCountryChooser(){
     const code=b.dataset.country;
     const found=countries.find(x=>x.code===code);
     if(!found)return;
-    const title=(found.flag||'🌍')+' '+escapeHtml(found.name||found.code);
+    const title=escapeHtml(found.name||found.code);
     const cards=found.trips.map(t=>tripCard(t)).join('');
     showSearchResults(title,'<div class="trip-thumb-grid">'+cards+'</div>');
   });

@@ -106,3 +106,87 @@
   .stats{grid-template-columns:1fr}
   .stats .stat{min-height:72px}
 }
+
+/* Kraje — flaga jako tło kafelka, zgodnie z zaakceptowanym wzorem */
+.country-grid{
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:10px;
+}
+.country-choice{
+  position:relative;
+  min-height:88px;
+  padding:0;
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,.28);
+  border-radius:10px;
+  color:#fff;
+  background:#5d6670;
+  background-image:var(--country-flag);
+  background-size:cover;
+  background-position:center;
+  box-shadow:0 5px 14px rgba(19,40,75,.16);
+  text-align:center;
+  transition:transform .18s ease,box-shadow .18s ease,filter .18s ease;
+}
+.country-choice:hover{
+  transform:translateY(-2px);
+  box-shadow:0 9px 20px rgba(19,40,75,.24);
+  filter:saturate(1.08);
+  border-color:rgba(255,255,255,.6);
+  background-color:#5d6670;
+}
+.country-choice:focus-visible{
+  outline:3px solid var(--gapa-blue);
+  outline-offset:2px;
+}
+.country-choice::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(180deg,rgba(0,0,0,.18),rgba(0,0,0,.48));
+  z-index:0;
+}
+.country-overlay{
+  position:absolute;
+  inset:0;
+  background:rgba(0,0,0,.08);
+  z-index:1;
+}
+.country-content{
+  position:relative;
+  z-index:2;
+  min-height:88px;
+  padding:12px 8px;
+  display:flex!important;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  gap:3px;
+  color:#fff!important;
+  text-shadow:0 1px 4px rgba(0,0,0,.75);
+}
+.country-content strong{
+  display:block;
+  margin:0;
+  color:#fff!important;
+  font-size:1rem;
+  line-height:1.1;
+  font-weight:800;
+}
+.country-content span{
+  display:block;
+  margin:0;
+  color:#fff!important;
+  font-size:.72rem;
+  line-height:1.1;
+  font-weight:700;
+}
+.country-flag{display:none!important}
+@media(max-width:900px){
+  .country-grid{grid-template-columns:repeat(3,minmax(0,1fr));}
+}
+@media(max-width:600px){
+  .country-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .country-choice,.country-content{min-height:82px;}
+  .country-content strong{font-size:.95rem;}
+}

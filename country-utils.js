@@ -22,7 +22,8 @@ export function normalizeCountries(value) {
 }
 export function countryName(code) { return COUNTRY_NAMES_PL[String(code||'').toLowerCase()] || String(code||'').toUpperCase(); }
 export function countryFlag(code) { return COUNTRY_FLAGS[String(code||'').toLowerCase()] || '🌍'; }
-export function countryRecord(code) { const c=String(code||'').toLowerCase(); return {code:c,name:countryName(c),flag:countryFlag(c)}; }
+export function countryFlagUrl(code) { const c=String(code||'').trim().toLowerCase(); return /^[a-z]{2}$/.test(c) ? `https://flagcdn.com/w640/${c}.png` : ''; }
+export function countryRecord(code) { const c=String(code||'').toLowerCase(); return {code:c,name:countryName(c),flag:countryFlag(c),flagUrl:countryFlagUrl(c)}; }
 
 let lastRequestAt = 0;
 async function throttle() {
