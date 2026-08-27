@@ -1,79 +1,203 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Szczegóły Miejsca - GaPa Blog</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Miejsce</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" />
 </head>
 <body>
-    <header>
-        <nav class="nav-container">
-            <a href="#" id="backToTripLink" class="btn-back">← Powrót do wyprawy</a>
-            <h1 id="placeTitle">Ładowanie...</h1>
-        </nav>
+  <main class="place-page place-detail-page">
+    <header class="page-header">
+      <div class="page-title-block">
+        <h1 id="placeTitle">Miejsce</h1>
+        <p id="placeDate" class="page-date"></p>
+      </div>
+      <div class="page-actions" aria-label="Akcje miejsca">
+        <a id="backLink" class="ui-action back-link" href="#">← Wróć do wyprawy</a>
+      </div>
     </header>
 
-    <main class="place-container">
-        <section class="place-info">
-            <p id="placeDescription"></p>
-        </section>
+    <section class="place-main-grid">
+      <div class="place-main-photo">
+        <img id="placeMainImage" src="" alt="Zdjęcie główne miejsca">
+      </div>
+      <section class="long-description place-description">
+        <h2>Opis miejsca</h2>
+        <p id="placeDescriptionText">Ładowanie miejsca...</p>
+      </section>
+    </section>
 
-        <section class="gallery-section">
-            <h2>Galeria zdjęć</h2>
-            <div id="photoGallery" class="gallery-grid"></div>
-        </section>
-    </main>
+    <section class="place-gallery-section">
+      <h2>Galeria zdjęć</h2>
+      <div id="place-photos" class="photo-gallery"></div>
+    </section>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-        import { firebaseConfig } from "./firebase-config.js";
+    <div id="place-map" style="display:none;"></div>
+  </main>
 
-        const app = initializeApp(firebaseConfig);
-        const database = getDatabase(app);
+  <div id="msgModal" class="msg-modal" style="display: none">
+    <div class="msg-modal-content">
+      <p id="msgText"></p>
+      <button onclick="closeMsgModal()">OK</button>
+    </div>
+  </div>
 
-        const urlParams = new URLSearchParams(window.location.search);
-        const placeId = urlParams.get('id');
-        const tripId = urlParams.get('tripId');
+  <div id="galleryModal" class="gallery-modal" style="display: none">
+    <span class="gallery-close-btn" onclick="closeGalleryModal()">&times;</span>
+    <button class="gallery-nav-btn gallery-prev" onclick="changePhoto(-1)">&#10094;</button>
+    <div class="gallery-content">
+      <div class="gallery-image-container">
+        <img id="modalImage" src="" alt="Powiększone zdjęcie" />
+        <p id="modalCaption"></p>
+      </div>
+    </div>
+    <button class="gallery-nav-btn gallery-next" onclick="changePhoto(1)">&#10095;</button>
+  </div>
 
-        const backButton = document.getElementById('backToTripLink');
-        if (tripId) {
-            backButton.href = `trip.html?id=${tripId}`;
-        } else {
-            backButton.href = "map.html";
-        }
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const firebaseBaseUrl =
+      "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
 
-        function escapeHtml(str) {
-            return String(str || '').replace(/[&<>"']/g, m => ({
-                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-            })[m]);
-        }
+    const urlParams = new URLSearchParams(window.location.search);
+    const tripId = urlParams.get("tripId");
+    const placeId = urlParams.get("placeId");
 
-        if (placeId) {
-            get(ref(database, `places/${placeId}`)).then((snapshot) => {
-                const placeData = snapshot.val();
-                if (placeData) {
-                    document.getElementById("placeTitle").textContent = placeData.name;
-                    document.getElementById("placeDescription").textContent = placeData.description || "Brak opisu.";
+    const backLink = document.getElementById("backLink");
+    if (tripId) {
+      backLink.href = `trip.html?id=${tripId}`;
+    } else {
+      backLink.href = "map.html";
+    }
 
-                    const gallery = document.getElementById("photoGallery");
-                    gallery.innerHTML = "";
+    let photosData = [];
+    let currentPhotoIndex = 0;
 
-                    if (placeData.photos && Array.isArray(placeData.photos)) {
-                        placeData.photos.forEach((url) => {
-                            const img = document.createElement("img");
-                            img.src = url;
-                            img.alt = placeData.name;
-                            img.className = "gallery-img";
-                            gallery.appendChild(img);
-                        });
-                    }
-                }
-            }).catch((error) => {
-                console.error("Błąd ładowania miejsca:", error);
-            });
-        }
-    </script>
+    function loadPlace() {
+      const placeUrl = `${firebaseBaseUrl}/trips/${tripId}/places/${placeId}.json`;
+      fetch(placeUrl)
+        .then((res) => res.json())
+        .then((place) => {
+          if (!place) {
+            document.getElementById("placeDescriptionText").textContent = "❌ Nie udało się załadować miejsca.";
+            return;
+          }
+
+          photosData = place.photos || [];
+
+          document.getElementById("placeTitle").textContent = place.name || "Miejsce";
+          document.getElementById("placeDate").textContent = `Data: ${formatDate(place.date)}`;
+          const mainImage = document.getElementById("placeMainImage");
+          mainImage.src = place.image || "https://placehold.co/800x600/e0e0e0/555555?text=Brak+zdjęcia";
+          mainImage.alt = place.name || "Zdjęcie miejsca";
+          document.getElementById("placeDescriptionText").textContent = place.description || "Brak opisu miejsca.";
+
+          // Mapa miejsca pozostaje dostępna w danych, ale nie jest wyświetlana w tym układzie strony.
+          document.getElementById("place-map").style.display = "none";
+
+          const galleryElement = document.getElementById("place-photos");
+          galleryElement.innerHTML = "";
+          photosData.forEach((photo, index) => {
+            const item = document.createElement("div");
+            item.className = "photo-item";
+            item.onclick = () => showGallery(index);
+            item.innerHTML = `
+              <img src="${photo.url}" alt="${photo.caption}" class="place-image"
+                onerror="this.onerror=null;this.src='https://placehold.co/150x150/e0e0e0/555555?text=Brak+zdjęcia';" />
+              ${photo.caption ? `<div class="photo-caption">${photo.caption}</div>` : ""}
+            `;
+            galleryElement.appendChild(item);
+          });
+        })
+        .catch((err) => {
+          console.error("Błąd ładowania miejsca:", err);
+          document.getElementById("placeDescriptionText").textContent = "❌ Nie udało się załadować miejsca.";
+        });
+    }
+
+    window.showGallery = function (startIndex) {
+      currentPhotoIndex = startIndex;
+      updateModalPhoto();
+      document.getElementById("galleryModal").style.display = "flex";
+    };
+
+    window.closeGalleryModal = function () {
+      document.getElementById("galleryModal").style.display = "none";
+    };
+
+    window.changePhoto = function (direction) {
+      let newIndex = currentPhotoIndex + direction;
+      if (newIndex < 0) newIndex = photosData.length - 1;
+      else if (newIndex >= photosData.length) newIndex = 0;
+      currentPhotoIndex = newIndex;
+      updateModalPhoto();
+    };
+
+    function updateModalPhoto() {
+      const modalImage = document.getElementById("modalImage");
+      const modalCaption = document.getElementById("modalCaption");
+      if (photosData[currentPhotoIndex]) {
+        modalImage.src = photosData[currentPhotoIndex].url;
+        modalImage.alt = photosData[currentPhotoIndex].caption;
+        const caption = (photosData[currentPhotoIndex].caption || "").trim();
+        modalCaption.textContent = caption;
+        modalCaption.hidden = !caption;
+      }
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return "Brak daty";
+      const date = new Date(dateStr);
+      return date.toLocaleDateString("pl-PL", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      });
+    }
+
+    function getCategoryLabel(category) {
+      const categories = {
+        miasto: "🏙️ Miasto",
+        park: "🌳 Park",
+        zabytek: "🏛️ Zabytek",
+        muzeum: "🖼️ Muzeum",
+        hotel: "🏨 Hotel",
+        szczyt: "⛰️ Szczyt",
+        restauracja: "🍽️ Restauracja",
+        miejsce_widokowe: "🌄 Miejsce widokowe",
+        atrakcja_turystyczna: "🎯 Atrakcja turystyczna",
+        inny: "🔧 Inny",
+      };
+      return categories[category] || category;
+    }
+
+    window.showMessage = function (text) {
+      document.getElementById("msgText").textContent = text;
+      document.getElementById("msgModal").style.display = "flex";
+    };
+
+    window.closeMsgModal = function () {
+      document.getElementById("msgModal").style.display = "none";
+    };
+
+    document.addEventListener("keydown", function (e) {
+      if (
+        document.getElementById("galleryModal").style.display === "flex" &&
+        photosData.length > 1
+      ) {
+        if (e.key === "ArrowLeft") changePhoto(-1);
+        else if (e.key === "ArrowRight") changePhoto(1);
+      }
+      if (e.key === "Escape") {
+        closeGalleryModal();
+        closeMsgModal();
+      }
+    });
+
+    loadPlace();
+  </script>
 </body>
 </html>
