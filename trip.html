@@ -1,100 +1,438 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Szczegóły Wyprawy - GaPa Blog</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Wyprawa</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 </head>
 <body>
-    <header>
-        <nav class="nav-container">
-            <a href="map.html" id="backToMapLink" class="btn-back">← Powrót do mapy</a>
-            <h1 id="tripTitle">Ładowanie...</h1>
-        </nav>
+  <main class="place-page trip-page">
+    <header class="page-header">
+      <div class="page-title-block">
+        <h1 id="tripTitle">Wyprawa</h1>
+        <p id="tripDate" class="page-date"></p>
+      </div>
+      <div class="page-actions" aria-label="Akcje wyprawy">
+        <button id="addPlaceBtn" class="ui-action add-btn" style="display: none;">➕ Dodaj miejsce</button>
+        <a id="backLink" class="ui-action back-link" href="map.html">← Wróć do mapy</a>
+      </div>
     </header>
 
-    <main class="trip-container">
-        <section class="trip-info">
-            <p id="tripDescription"></p>
+    <section class="trip-layout">
+      <div id="trip-map-container" class="trip-map-panel">
+        <div id="trip-map"></div>
+      </div>
+
+      <aside class="trip-side-panel">
+        <div class="trip-main-photo">
+          <img id="tripMainImage" src="" alt="Zdjęcie wyprawy" style="display:none;">
+        </div>
+        <section class="long-description trip-description">
+          <h2>Opis wyprawy</h2>
+          <p id="tripDescription">Ładowanie wyprawy...</p>
         </section>
+      </aside>
+    </section>
+  </main>
 
-        <section class="map-section">
-            <div id="trip-map" style="height: 350px;"></div>
-        </section>
+  <div id="placeModal" class="modal" style="display: none;">
+    <div class="modal-content scrollable-modal">
+      <h2 id="placeModalTitle">Dodaj miejsce</h2>
+      <form id="placeForm">
+        <input type="hidden" id="placeId">
+        <input type="hidden" id="originalPlaceId">
+        <input type="hidden" id="placeLat">
+        <input type="hidden" id="placeLng">
 
-        <section class="places-section">
-            <h2>Odwiedzone Miejsca</h2>
-            <div id="placesList" class="places-grid"></div>
-        </section>
-    </main>
+        <label>Nazwa: <input type="text" id="placeName" required></label><br><br>
+        <label>Pełny opis miejsca: <textarea id="placeDescription" rows="8" placeholder="Opisz dokładnie miejsce, co tam robiliście, co zobaczyliście i jakie macie wspomnienia..."></textarea></label><br><br>
+        <label>Zdjęcie (URL): <input type="url" id="placeImage" required></label><br><br>
+        <label>Kategoria:
+          <select id="placeCategory">
+            <option value="miasto">🏙️ Miasto</option>
+            <option value="park">🌳 Park</option>
+            <option value="zabytek">🏛️ Zabytek</option>
+            <option value="muzeum">🖼️ Muzeum</option>
+            <option value="hotel">🏨 Hotel</option>
+            <option value="szczyt">⛰️ Szczyt</option>
+            <option value="restauracja">🍽️ Restauracja</option>
+            <option value="miejsce_widokowe">🌄 Miejsce widokowe</option>
+            <option value="atrakcja_turystyczna">🎯 Atrakcja turystyczna</option>
+            <option value="inny">🔧 Inny</option>
+          </select>
+        </label><br><br>
+        <label>Data wizyty: <input type="date" id="placeDate" required></label><br><br>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-        import { firebaseConfig } from "./firebase-config.js";
+        <h3>Galeria zdjęć</h3>
+        <div id="photos-container">
+          <div class="photo-item">
+            <label>Zdjęcie URL: <input type="url" class="photo-url" placeholder="https://..."></label><br>
+            <label>Komentarz: <input type="text" class="photo-caption" placeholder="Opis zdjęcia"></label><br><br>
+          </div>
+        </div>
+        <button type="button" onclick="addPhotoField()">➕ Dodaj zdjęcie</button><br><br>
 
-        const app = initializeApp(firebaseConfig);
-        const database = getDatabase(app);
+        <button type="submit">Zapisz</button>
+        <button type="button" onclick="closePlaceModal()">Anuluj</button>
+      </form>
+    </div>
+  </div>
 
-        const urlParams = new URLSearchParams(window.location.search);
-        const tripId = urlParams.get('id');
+  <div id="msgModal" class="msg-modal" style="display: none;">
+    <div class="msg-modal-content">
+      <p id="msgText"></p>
+      <button onclick="closeMsgModal()">OK</button>
+    </div>
+  </div>
 
-        const map = L.map('trip-map').setView([52.237, 21.017], 6);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors'
-        }).addTo(map);
+  <div id="galleryModal" class="gallery-modal" style="display: none">
+    <span class="gallery-close-btn" onclick="closeGalleryModal()">&times;</span>
+    <div class="gallery-content">
+      <div class="gallery-image-container">
+        <img id="modalImage" src="" alt="Powiększone zdjęcie" />
+      </div>
+    </div>
+  </div>
 
-        const backLink = document.getElementById('backToMapLink');
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js";
+    import { getDatabase, ref, get, set, remove, update } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js";
+    import { firebaseConfig } from "./firebase-config.js";
 
-        function escapeHtml(str) {
-            return String(str || '').replace(/[&<>"']/g, m => ({
-                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-            })[m]);
-        }
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const database = getDatabase(app);
 
-        if (tripId) {
-            get(ref(database, `trips/${tripId}`)).then((snapshot) => {
-                const tripData = snapshot.val();
-                if (tripData) {
-                    document.getElementById("tripTitle").textContent = tripData.name;
-                    document.getElementById("tripDescription").textContent = tripData.description || "Brak opisu.";
+    const urlParams = new URLSearchParams(window.location.search);
+    const tripId = urlParams.get("id");
+    const backLink = document.getElementById("backLink");
+    const addPlaceBtn = document.getElementById("addPlaceBtn");
+    
+    let tripData = null;
+    let isAddingPlace = false;
+    let userRole = 'guest';
 
-                    if (tripData.lat && tripData.lng) {
-                        backLink.href = `map.html?lat=${tripData.lat}&lng=${tripData.lng}`;
-                        
-                        map.setView([tripData.lat, tripData.lng], 12);
-                        L.marker([tripData.lat, tripData.lng])
-                         .addTo(map)
-                         .bindPopup(`<b>${escapeHtml(tripData.name)}</b>`)
-                         .openPopup();
-                    } else {
-                        backLink.href = "map.html";
-                    }
+    const map = L.map("trip-map");
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+    
+    async function getUserRole(uid) {
+      const adminRef = ref(database, `admins/${uid}`);
+      const snapshot = await get(adminRef);
+      return snapshot.val() === true ? 'admin' : 'guest';
+    }
 
-                    if (tripData.places) {
-                        const placesList = document.getElementById("placesList");
-                        placesList.innerHTML = "";
-                        Object.entries(tripData.places).forEach(([placeId, place]) => {
-                            const card = document.createElement("div");
-                            card.className = "place-card";
-                            card.innerHTML = `
-                                <h3>${escapeHtml(place.name)}</h3>
-                                <a href="place.html?id=${placeId}&tripId=${tripId}" class="btn-secondary">Zobacz miejsce</a>
-                            `;
-                            placesList.appendChild(card);
-                        });
-                    }
-                }
-            }).catch((error) => {
-                console.error("Błąd ładowania wyprawy:", error);
-                backLink.href = "map.html";
-            });
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            userRole = await getUserRole(user.uid);
+            if (userRole === 'admin') {
+                addPlaceBtn.style.display = "block";
+            } else {
+                addPlaceBtn.style.display = "none";
+            }
         } else {
-            backLink.href = "map.html";
+            userRole = 'guest';
+            addPlaceBtn.style.display = "none";
         }
-    </script>
+        loadTripAndPlaces();
+    });
+
+    // --- Ładowanie i wyświetlanie danych ---
+    function loadTripAndPlaces() {
+      document.getElementById("tripDescription").textContent = "Ładowanie wyprawy...";
+
+      get(ref(database, `trips/${tripId}`)).then((snapshot) => {
+          const trip = snapshot.val();
+          if (!trip) {
+            document.getElementById("tripDescription").textContent = "❌ Wyprawa nie istnieje.";
+            return;
+          }
+          tripData = trip;
+
+          // Ustawianie płynnego linku powrotu na dokładne koordynaty wyprawy
+          if (trip.lat && trip.lng) {
+              backLink.href = `map.html?lat=${trip.lat}&lng=${trip.lng}`;
+          } else {
+              backLink.href = "map.html";
+          }
+
+          document.getElementById("tripTitle").textContent = trip.name || "Wyprawa";
+          document.getElementById("tripDate").textContent = `Okres: ${formatTripPeriod(trip.dateFrom, trip.dateTo)}`;
+          const tripImage = document.getElementById("tripMainImage");
+          if (trip.image) {
+            tripImage.src = trip.image;
+            tripImage.style.display = "block";
+            tripImage.onclick = () => showMainImageModal(trip.image);
+          } else {
+            tripImage.style.display = "none";
+          }
+          document.getElementById("tripDescription").textContent = formatDescriptionWithYear(trip.description, trip.dateFrom) || "Brak opisu wyprawy.";
+
+          map.eachLayer(l => { if (l instanceof L.Marker) map.removeLayer(l); });
+          const bounds = L.latLngBounds();
+          let hasMarkers = false;
+
+          if (trip.places) {
+            const placesArray = Object.keys(trip.places).map(key => ({...trip.places[key], id: key}));
+            placesArray.forEach(p => {
+              if (!p.lat || !p.lng) return;
+              hasMarkers = true;
+              const m = L.marker([p.lat, p.lng]).addTo(map);
+              bounds.extend([p.lat, p.lng]);
+
+              let popupContent;
+              if (userRole === 'admin') {
+                  popupContent = `
+                      <strong><a href="place.html?tripId=${tripId}&placeId=${p.id}">${p.name}</a></strong><br>
+                      ${shortDescription(p.description)}
+                      <img src="${p.image}" width="100"><br>
+                      <small>${p.category} • ${formatDate(p.date)}</small><br><br>
+                      <button onclick="editPlace('${p.id}')">✏️ Edytuj</button>
+                      <button onclick="deletePlace('${p.id}')">🗑️ Usuń</button>
+                  `;
+              } else {
+                  popupContent = `
+                      <strong><a href="place.html?tripId=${tripId}&placeId=${p.id}">${p.name}</a></strong><br>
+                      ${shortDescription(p.description)}
+                      <img src="${p.image}" width="100"><br>
+                      <small>${p.category} • ${formatDate(p.date)}</small><br><br>
+                      <em>Kliknij, aby zobaczyć szczegóły</em>
+                  `;
+              }
+              m.bindPopup(popupContent);
+            });
+          }
+
+          if (hasMarkers) {
+              map.fitBounds(bounds, { padding: [50, 50] });
+          } else if (trip.lat && trip.lng) {
+              map.setView([trip.lat, trip.lng], 10);
+          }
+        })
+        .catch(err => {
+          console.error("Błąd ładowania wyprawy:", err);
+          document.getElementById("tripDescription").textContent = "❌ Nie udało się załadować wyprawy.";
+        });
+    }
+
+    // --- Logika edycji ---
+    
+    addPlaceBtn.addEventListener("click", function () {
+      if (isAddingPlace) {
+        isAddingPlace = false;
+        this.textContent = "➕ Dodaj miejsce";
+        this.style.background = "#4CAF50";
+      } else {
+        isAddingPlace = true;
+        this.textContent = "🛑 Anuluj";
+        this.style.background = "#f44336";
+      }
+    });
+
+    map.on("click", function (e) {
+      if (isAddingPlace) {
+        isAddingPlace = false;
+        document.getElementById("addPlaceBtn").textContent = "➕ Dodaj miejsce";
+        document.getElementById("addPlaceBtn").style.background = "#4CAF50";
+        openAddPlaceModal(e.latlng.lat, e.latlng.lng);
+      }
+    });
+
+    window.openAddPlaceModal = function(lat, lng) {
+      document.getElementById("placeForm").reset();
+      document.getElementById("placeId").value = "";
+      document.getElementById("originalPlaceId").value = "";
+      document.getElementById("photos-container").innerHTML = `
+        <div class="photo-item">
+          <label>Zdjęcie URL: <input type="url" class="photo-url" placeholder="https://..."></label><br>
+          <label>Komentarz: <input type="text" class="photo-caption" placeholder="Opis zdjęcia"></label><br><br>
+        </div>
+      `;
+      document.getElementById("placeLat").value = lat;
+      document.getElementById("placeLng").value = lng;
+      document.getElementById("placeModalTitle").textContent = "Dodaj nowe miejsce";
+      document.getElementById("placeModal").style.display = "flex";
+    };
+
+    window.editPlace = function(id) {
+      if (!tripData || !tripData.places || !tripData.places[id]) {
+        showMessage("❌ Nie udało się załadować miejsca.");
+        return;
+      }
+      const p = tripData.places[id];
+      document.getElementById("placeName").value = p.name;
+      document.getElementById("placeDescription").value = p.description || '';
+      document.getElementById("placeImage").value = p.image;
+      document.getElementById("placeCategory").value = p.category;
+      document.getElementById("placeDate").value = p.date || '';
+      document.getElementById("placeLat").value = p.lat;
+      document.getElementById("placeLng").value = p.lng;
+      document.getElementById("placeId").value = id;
+      document.getElementById("originalPlaceId").value = id;
+
+      const container = document.getElementById("photos-container");
+      container.innerHTML = "";
+      if (p.photos && p.photos.length > 0) {
+        p.photos.forEach(photo => {
+          const item = document.createElement("div");
+          item.className = "photo-item";
+          item.innerHTML = `
+            <label>Zdjęcie URL: <input type="url" class="photo-url" value="${photo.url || ''}" placeholder="https://..."></label><br>
+            <label>Komentarz: <input type="text" class="photo-caption" value="${photo.caption || ''}" placeholder="Opis zdjęcia"></label><br><br>
+          `;
+          container.appendChild(item);
+        });
+      } else {
+        container.innerHTML = `
+          <div class="photo-item">
+            <label>Zdjęcie URL: <input type="url" class="photo-url" placeholder="https://..."></label><br>
+            <label>Komentarz: <input type="text" class="photo-caption" placeholder="Opis zdjęcia"></label><br><br>
+          </div>
+        `;
+      }
+      document.getElementById("placeModalTitle").textContent = "Edytuj miejsce";
+      document.getElementById("placeModal").style.display = "flex";
+    };
+
+    document.getElementById("placeForm").addEventListener("submit", async function(e) {
+      e.preventDefault();
+
+      const placeName = document.getElementById("placeName").value;
+      const originalPlaceId = document.getElementById("originalPlaceId").value;
+      const newPlaceId = generateId(placeName);
+
+      const photos = [];
+      document.querySelectorAll(".photo-url").forEach((input, i) => {
+        if (input.value.trim() !== "") {
+          photos.push({
+            url: input.value.trim(),
+            caption: document.querySelectorAll(".photo-caption")[i]?.value.trim() || ""
+          });
+        }
+      });
+
+      const placeData = {
+        name: placeName,
+        description: document.getElementById("placeDescription").value,
+        image: document.getElementById("placeImage").value,
+        category: document.getElementById("placeCategory").value,
+        date: document.getElementById("placeDate").value,
+        lat: parseFloat(document.getElementById("placeLat").value),
+        lng: parseFloat(document.getElementById("placeLng").value),
+        photos: photos,
+      };
+
+      try {
+        if (originalPlaceId) {
+          if (originalPlaceId !== newPlaceId) {
+            await set(ref(database, `trips/${tripId}/places/${newPlaceId}`), placeData);
+            await remove(ref(database, `trips/${tripId}/places/${originalPlaceId}`));
+            showMessage("✅ Zmieniono nazwę i zapisano miejsce!");
+          } else {
+            await update(ref(database, `trips/${tripId}/places/${originalPlaceId}`), placeData);
+            showMessage("✅ Zapisano!");
+          }
+        } else {
+          await set(ref(database, `trips/${tripId}/places/${newPlaceId}`), placeData);
+          showMessage("✅ Zapisano!");
+        }
+        closePlaceModal();
+        loadTripAndPlaces();
+      } catch (err) {
+        console.error("Błąd zapisu:", err);
+        showMessage("❌ Nie udało się zapisać.");
+      }
+    });
+
+    window.deletePlace = async function(placeId) {
+      if (confirm("Usunąć?")) {
+        try {
+          await remove(ref(database, `trips/${tripId}/places/${placeId}`));
+          showMessage("✅ Usunięto!");
+          loadTripAndPlaces();
+        } catch (err) {
+          console.error("Błąd usuwania:", err);
+          showMessage("❌ Nie udało się usunąć.");
+        }
+      }
+    };
+
+    // --- Funkcje pomocnicze ---
+    function generateId(name) {
+      return name
+        .toLowerCase()
+        .trim()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]/g, "_")
+        .replace(/_+/g, "_")
+        .replace(/^_+|_+$/g, "");
+    }
+    function escapeHtml(value) {      return String(value ?? "").replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","\'":"&#39;"}[ch]));
+    }
+
+    function formatDescriptionWithYear(description, dateFrom) {
+      const value = (description || "").trim();
+      if (!value) return "";
+      const yearMatch = value.match(/\b(19|20)\d{2}\b/);
+      const year = dateFrom ? new Date(dateFrom).getFullYear() : null;
+      return year && !yearMatch ? `${value} ${year}` : value;
+    }
+
+    function shortDescription(text) {
+      const value = (text || "").replace(/\s+/g, " ").trim();
+      return value ? `<span class="popup-description">${escapeHtml(value)}</span>` : "";
+    }
+
+    function formatDate(dateStr) {
+      return dateStr ? new Date(dateStr).toLocaleDateString("pl-PL", { day: "numeric", month: "long", year: "numeric" }) : "Brak daty";
+    }
+
+    function formatTripPeriod(dateFrom, dateTo) {
+      if (!dateFrom) return "Brak daty";
+      const from = formatDate(dateFrom);
+      if (!dateTo) return from;
+      return `${from} – ${formatDate(dateTo)}`;
+    }
+    window.addPhotoField = function() {
+      const container = document.getElementById("photos-container");
+      const item = document.createElement("div");
+      item.className = "photo-item";
+      item.innerHTML = `
+        <label>Zdjęcie URL: <input type="url" class="photo-url" placeholder="https://..."></label><br>
+        <label>Komentarz: <input type="text" class="photo-caption" placeholder="Opis zdjęcia"></label><br><br>
+      `;
+      container.appendChild(item);
+    };
+    window.closePlaceModal = function() { document.getElementById("placeModal").style.display = "none"; };
+    window.closeMsgModal = function() { document.getElementById("msgModal").style.display = "none"; };
+    window.showMessage = function(text) { document.getElementById("msgText").textContent = text; document.getElementById("msgModal").style.display = "flex"; };
+    
+    window.showMainImageModal = function(imageUrl) {
+      const modal = document.getElementById("galleryModal");
+      const modalImage = document.getElementById("modalImage");
+      modalImage.src = imageUrl;
+      modal.style.display = "flex";
+    };
+    
+    window.closeGalleryModal = function() {
+      document.getElementById("galleryModal").style.display = "none";
+    };
+
+    document.addEventListener("keydown", function(e) {
+      if (e.key === "Escape") {
+        document.getElementById("placeModal").style.display = "none";
+        document.getElementById("msgModal").style.display = "none";
+        document.getElementById("galleryModal").style.display = "none";
+        const addBtn = document.getElementById("addPlaceBtn");
+        if (addBtn && addBtn.textContent === "🛑 Anuluj") {
+          addBtn.click();
+        }
+      }
+    });
+  </script>
 </body>
 </html>
