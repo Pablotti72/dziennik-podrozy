@@ -16,7 +16,7 @@
       </div>
       <div class="page-actions" aria-label="Akcje wyprawy">
         <button id="addPlaceBtn" class="ui-action add-btn" style="display: none;">➕ Dodaj miejsce</button>
-        <a id="backLink" class="ui-action back-link" href="map.html">← Wróć do mapy</a>
+        <a id="backLink" class="ui-action back-link" href="map.html?returnFromTrip=1">← Wróć do mapy</a>
       </div>
     </header>
 
@@ -151,7 +151,7 @@
     });
 
     if (tripId) {
-      backLink.href = `map.html`;
+      backLink.href = `map.html?returnFromTrip=1`;
     }
 
     // --- Ładowanie i wyświetlanie danych ---

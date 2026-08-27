@@ -217,17 +217,31 @@
     }
 
     function restoreMapState() {
+        const params = new URLSearchParams(window.location.search);
+        const returningFromTrip = params.get('returnFromTrip') === '1';
+
+        if (!returningFromTrip) {
+            map.setView([52.237, 21.017], 6);
+            return;
+        }
+
         const savedLat = sessionStorage.getItem('mapCenterLat');
         const savedLng = sessionStorage.getItem('mapCenterLng');
         const savedZoom = sessionStorage.getItem('mapZoom');
+
         if (savedLat && savedLng && savedZoom) {
-            map.setView([parseFloat(savedLat), parseFloat(savedLng)], parseInt(savedZoom));
-            sessionStorage.removeItem('mapCenterLat');
-            sessionStorage.removeItem('mapCenterLng');
-            sessionStorage.removeItem('mapZoom');
+            map.setView([parseFloat(savedLat), parseFloat(savedLng)], parseInt(savedZoom, 10));
         } else {
             map.setView([52.237, 21.017], 6);
         }
+
+        // Clear the saved state only after it has been consumed by the return-to-map action.
+        sessionStorage.removeItem('mapCenterLat');
+        sessionStorage.removeItem('mapCenterLng');
+        sessionStorage.removeItem('mapZoom');
+
+        // Clean the URL without reloading the map.
+        window.history.replaceState({}, document.title, 'map.html');
     }
 
     // --- Logika edycji ---
@@ -388,7 +402,7 @@
       }
     });
 
-    loadTrips();
+    
   </script>
 </body>
 </html>
