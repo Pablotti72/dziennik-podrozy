@@ -118,6 +118,7 @@
     const database = getDatabase(app);
 
     const urlParams = new URLSearchParams(window.location.search);
+    const returnParams = new URLSearchParams(window.location.search);
     const tripId = urlParams.get("id");
     const backLink = document.getElementById("backLink");
     const addPlaceBtn = document.getElementById("addPlaceBtn");
@@ -151,7 +152,12 @@
     });
 
     if (tripId) {
-      backLink.href = `map.html?returnFromTrip=1`;
+      const q = new URLSearchParams();
+      ["returnLat", "returnLng", "returnZoom"].forEach(k => {
+        const v = returnParams.get(k);
+        if (v !== null && v !== "") q.set(k, v);
+      });
+      backLink.href = `map.html?${q.toString()}`;
     }
 
     // --- Ładowanie i wyświetlanie danych ---
@@ -192,7 +198,7 @@
               let popupContent;
               if (userRole === 'admin') {
                   popupContent = `
-                      <strong><a href="place.html?tripId=${tripId}&placeId=${p.id}">${p.name}</a></strong><br>
+                      <strong><a href="place.html?tripId=${encodeURIComponent(tripId)}&placeId=${encodeURIComponent(p.id)}&returnLat=${encodeURIComponent(returnParams.get("returnLat") || "")}&returnLng=${encodeURIComponent(returnParams.get("returnLng") || "")}&returnZoom=${encodeURIComponent(returnParams.get("returnZoom") || "")}">${p.name}</a></strong><br>
                       ${shortDescription(p.description)}
                       <img src="${p.image}" width="100"><br>
                       <small>${p.category} • ${formatDate(p.date)}</small><br><br>
@@ -201,7 +207,7 @@
                   `;
               } else {
                   popupContent = `
-                      <strong><a href="place.html?tripId=${tripId}&placeId=${p.id}">${p.name}</a></strong><br>
+                      <strong><a href="place.html?tripId=${encodeURIComponent(tripId)}&placeId=${encodeURIComponent(p.id)}&returnLat=${encodeURIComponent(returnParams.get("returnLat") || "")}&returnLng=${encodeURIComponent(returnParams.get("returnLng") || "")}&returnZoom=${encodeURIComponent(returnParams.get("returnZoom") || "")}">${p.name}</a></strong><br>
                       ${shortDescription(p.description)}
                       <img src="${p.image}" width="100"><br>
                       <small>${p.category} • ${formatDate(p.date)}</small><br><br>

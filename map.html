@@ -139,6 +139,18 @@
       signOut(auth);
     }
     
+    function openTripFromMap(event, tripId) {
+        event.preventDefault();
+        const q = new URLSearchParams({
+            id: tripId,
+            returnLat: String(map.getCenter().lat),
+            returnLng: String(map.getCenter().lng),
+            returnZoom: String(map.getZoom())
+        });
+        window.location.href = `trip.html?${q.toString()}`;
+        return false;
+    }
+
     // --- Ładowanie i wyświetlanie danych ---
     function escapeHtml(value) {
         return String(value ?? '')
@@ -179,7 +191,7 @@
             : '<em>Kliknij nazwę podróży, aby zobaczyć szczegóły</em>';
 
         return `
-            <strong><a href="trip.html?id=${encodeURIComponent(key)}" onclick="saveMapState('${encodeURIComponent(key)}')">${escapeHtml(trip?.name || 'Podróż')}</a></strong><br>
+            <strong><a href="trip.html?id=${encodeURIComponent(key)}" onclick="return openTripFromMap(event, '${encodeURIComponent(key)}');">${escapeHtml(trip?.name || 'Podróż')}</a></strong><br>
             ${trip?.description ? `<small class="popup-description">${escapeHtml(trip.description)}</small>` : ''}
             ${imageHtml}
             ${adminButtons}
@@ -209,44 +221,18 @@
         });
     }
 
-    // --- Zapisywanie i odtwarzanie stanu mapy ---
-    function saveMapState(tripId) {
-        sessionStorage.setItem('gapaMapReturn', JSON.stringify({
-            tripId: String(tripId),
-            lat: map.getCenter().lat,
-            lng: map.getCenter().lng,
-            zoom: map.getZoom()
-        }));
-    }
-
-    let mapStateRestored = false;
-
+    // --- Powrót do mapy po wyprawie ---
     function restoreMapState() {
         const params = new URLSearchParams(window.location.search);
-        const returningFromTrip = params.get('returnFromTrip') === '1';
+        const lat = Number(params.get("returnLat"));
+        const lng = Number(params.get("returnLng"));
+        const zoom = Number(params.get("returnZoom"));
 
-        if (!returningFromTrip) {
-            map.setView([52.237, 21.017], 6);
-            return;
-        }
-
-        let saved = null;
-        try {
-            saved = JSON.parse(sessionStorage.getItem('gapaMapReturn') || 'null');
-        } catch (e) {
-            console.warn('Nie udało się odczytać zapisanego stanu mapy:', e);
-        }
-
-        if (saved && Number.isFinite(Number(saved.lat)) &&
-            Number.isFinite(Number(saved.lng)) &&
-            Number.isFinite(Number(saved.zoom))) {
-            map.setView([Number(saved.lat), Number(saved.lng)], Number(saved.zoom));
+        if (Number.isFinite(lat) && Number.isFinite(lng) && Number.isFinite(zoom)) {
+            map.setView([lat, lng], zoom);
         } else {
             map.setView([52.237, 21.017], 6);
         }
-
-        sessionStorage.removeItem('gapaMapReturn');
-        window.history.replaceState({}, document.title, 'map.html');
     }
 
     // --- Logika edycji ---
