@@ -53,6 +53,7 @@
         <input type="hidden" id="tripLng">
         <label>Nazwa: <input type="text" id="tripName" required></label><br><br>
         <label>Pełny opis wyprawy: <textarea id="tripDescription" rows="8" placeholder="Opisz dokładnie wyprawę, co robiliście, co zobaczyliście i jakie macie wspomnienia..."></textarea></label><br><br>
+        <label>Kraje: <input type="text" id="tripCountry" placeholder="Wykrywane automatycznie" readonly></label><br><br>
         <label>Zdjęcie (URL): <input type="url" id="tripImage" required></label><br><br>
         <label>Data od: <input type="date" id="tripDateFrom" required></label><br><br>
         <label>Data do: <input type="date" id="tripDateTo"></label><br><br>
@@ -65,6 +66,7 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script type="module">
+    import { detectCountriesFromTrip, normalizeCountryCodes, countryName, KNOWN_TRIP_COUNTRIES } from "./country-utils.js";
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
     import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js";
     import { getDatabase, ref, get, set, remove, update } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js";
@@ -205,11 +207,27 @@
         }
     }
 
+async function migrateMissingTripCountries(trips) {
+        if (!trips) return;
+        for (const [id, trip] of Object.entries(trips)) {
+            const existing = normalizeCountryCodes(trip?.countries || trip?.country || []);
+            if (existing.length) continue;
+            const known = KNOWN_TRIP_COUNTRIES[id] || [];
+            if (known.length) { await update(ref(database, `trips/${id}`), { countries: known }); continue; }
+            if (!trip?.lat || !trip?.lng) continue;
+            try {
+                const detected = await detectCountriesFromTrip(trip);
+                if (detected.length) await update(ref(database, `trips/${id}`), { countries: detected });
+            } catch (e) { console.warn(`Nie udało się ustalić kraju dla ${id}:`, e); }
+        }
+    }
+
 function loadTrips() {
         get(ref(database, 'trips')).then(async (snapshot) => {
             map.eachLayer(l => { if (l instanceof L.Marker) map.removeLayer(l); });
 
             const trips = snapshot.val();
+            migrateMissingTripCountries(trips);
             if (trips) {
                 Object.keys(trips).forEach(key => {
                     const trip = trips[key];
@@ -299,6 +317,7 @@ function loadTrips() {
                 document.getElementById("originalTripId").value = id; // Zapisz oryginalny ID
                 document.getElementById("tripName").value = trip.name;
                 document.getElementById("tripDescription").value = trip.description || '';
+                document.getElementById("tripCountry").value = normalizeCountryCodes(trip.countries || trip.country || KNOWN_TRIP_COUNTRIES[id] || []).map(countryName).join(', ');
                 document.getElementById("tripImage").value = trip.image;
                 document.getElementById("tripDateFrom").value = trip.dateFrom;
                 document.getElementById("tripDateTo").value = trip.dateTo;
@@ -328,6 +347,16 @@ function loadTrips() {
       };
 
       try {
+        let detectedCountries = [];
+        let locationChanged = true;
+        if (originalTripId) {
+          const existingSnapshot = await get(ref(database, `trips/${originalTripId}`));
+          const existingTrip = existingSnapshot.val();
+          detectedCountries = normalizeCountryCodes(existingTrip?.countries || existingTrip?.country || []);
+          locationChanged = Number(existingTrip?.lat) !== Number(tripData.lat) || Number(existingTrip?.lng) !== Number(tripData.lng);
+        }
+        if (!detectedCountries.length || locationChanged) detectedCountries = await detectCountriesFromTrip(tripData);
+        tripData.countries = detectedCountries;
         if (originalTripId) {
           // Edycja
           if (originalTripId !== newTripId) {

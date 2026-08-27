@@ -99,6 +99,7 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script type="module">
+    import { detectCountryCode, normalizeCountryCodes, KNOWN_TRIP_COUNTRIES } from "./country-utils.js";
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js";
     import { getDatabase, ref, get, set, remove, update } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js";
@@ -120,6 +121,7 @@
 
     const urlParams = new URLSearchParams(window.location.search);
     const tripId = urlParams.get("id");
+    const categoryFilter = urlParams.get("category");
     const backLink = document.getElementById("backLink");
     const addPlaceBtn = document.getElementById("addPlaceBtn");
     
@@ -183,7 +185,13 @@
           let hasMarkers = false;
 
           if (trip.places) {
-            const placesArray = Object.keys(trip.places).map(key => ({...trip.places[key], id: key}));
+            let placesArray = Object.keys(trip.places).map(key => ({...trip.places[key], id: key}));
+            if (categoryFilter) {
+              placesArray = placesArray.filter(p => p.category === categoryFilter);
+              const filterLabel = getCategoryLabel(categoryFilter);
+              document.getElementById("tripTitle").textContent = `${trip.name || "Wyprawa"} — ${filterLabel}`;
+              document.getElementById("tripDescription").textContent = `Widok miejsc z kategorii: ${filterLabel}.`;
+            }
             placesArray.forEach(p => {
               if (!p.lat || !p.lng) return;
               hasMarkers = true;
@@ -215,8 +223,10 @@
 
           if (hasMarkers) {
               map.fitBounds(bounds, { padding: [50, 50] });
-          } else if (trip.lat && trip.lng) {
+          } else if (!categoryFilter && trip.lat && trip.lng) {
               map.setView([trip.lat, trip.lng], 10);
+          } else if (categoryFilter) {
+              document.getElementById("tripDescription").textContent = `Brak miejsc w kategorii ${getCategoryLabel(categoryFilter)} w tej wyprawie.`;
           }
         })
         .catch(err => {
@@ -321,14 +331,29 @@
         }
       });
 
+      const placeLat = parseFloat(document.getElementById("placeLat").value);
+      const placeLng = parseFloat(document.getElementById("placeLng").value);
+      let placeCountryCode = null;
+      const oldPlace = originalPlaceId ? tripData?.places?.[originalPlaceId] : null;
+      if (Number.isFinite(placeLat) && Number.isFinite(placeLng)) {
+        const unchangedCoords = oldPlace && Number(oldPlace.lat) === placeLat && Number(oldPlace.lng) === placeLng;
+        try {
+          placeCountryCode = unchangedCoords ? (oldPlace.countryCode || null) : await detectCountryCode(placeLat, placeLng);
+        } catch (countryError) {
+          console.warn("Nie udało się wykryć kraju miejsca:", countryError);
+          placeCountryCode = oldPlace?.countryCode || null;
+        }
+      }
+
       const placeData = {
         name: placeName,
         description: document.getElementById("placeDescription").value,
         image: document.getElementById("placeImage").value,
         category: document.getElementById("placeCategory").value,
         date: document.getElementById("placeDate").value,
-        lat: parseFloat(document.getElementById("placeLat").value),
-        lng: parseFloat(document.getElementById("placeLng").value),
+        lat: placeLat,
+        lng: placeLng,
+        countryCode: placeCountryCode,
         photos: photos,
       };
 
@@ -350,6 +375,7 @@
           await set(ref(database, `trips/${tripId}/places/${newPlaceId}`), placeData);
           showMessage("✅ Zapisano!");
         }
+        await refreshTripCountriesFromPlaces();
         closePlaceModal();
         loadTripAndPlaces();
       } catch (err) {
@@ -358,10 +384,20 @@
       }
     });
 
+    async function refreshTripCountriesFromPlaces() {
+      const snap = await get(ref(database, `trips/${tripId}`));
+      const trip = snap.val();
+      if (!trip) return;
+      const codes = new Set(normalizeCountryCodes(trip.countries || trip.country || KNOWN_TRIP_COUNTRIES[tripId] || []));
+      Object.values(trip.places || {}).forEach(p => { if (p?.countryCode) codes.add(String(p.countryCode).toLowerCase()); });
+      await update(ref(database, `trips/${tripId}`), { countries: [...codes] });
+    }
+
     window.deletePlace = async function(placeId) {
       if (confirm("Usunąć?")) {
         try {
           await remove(ref(database, `trips/${tripId}/places/${placeId}`));
+          await refreshTripCountriesFromPlaces();
           showMessage("✅ Usunięto!");
           loadTripAndPlaces();
         } catch (err) {
@@ -396,6 +432,15 @@
     function shortDescription(text) {
       const value = (text || "").replace(/\s+/g, " ").trim();
       return value ? `<span class="popup-description">${escapeHtml(value)}</span>` : "";
+    }
+
+    function getCategoryLabel(category) {
+      const categories = {
+        miasto: "🏙️ Miasto", park: "🌳 Park", plaza: "🏖️ Plaża", zabytek: "🏛️ Zabytek",
+        muzeum: "🖼️ Muzeum", hotel: "🏨 Hotel", szczyt: "⛰️ Szczyt", restauracja: "🍽️ Restauracja",
+        miejsce_widokowe: "🌄 Miejsce widokowe", atrakcja_turystyczna: "🎯 Atrakcja turystyczna", inny: "🔧 Inny"
+      };
+      return categories[category] || category || "🔧 Inny";
     }
 
     function formatDate(dateStr) {

@@ -23,10 +23,25 @@
     <article class="primary-card"><div class="primary-icon">📷</div><h2>GALERIA</h2><p>Zobacz nasze zdjęcia</p><a class="gallery-cta" href="list.html">Otwórz galerię →</a></article>
   </section>
 
-  <h2 class="section-title">🧳 OSTATNIA PODRÓŻ</h2>
-  <section id="latestTrip" class="latest"><div><img id="latestImage" src="https://placehold.co/900x600/e9eef5/52637b?text=GaPa+Blog" alt="Ostatnia podróż"></div><div class="latest-info"><h2 id="latestName">Ładowanie…</h2><p id="latestDate"></p><p id="latestDescription">Pobieram dane z pamiętnika podróży…</p><a id="latestLink" class="latest-link" href="list.html">Zobacz podróż →</a></div></section>
+  <h2 class="section-title">🧳 OSTATNIE WYPRAWY</h2>
+  <section id="latestTrips" class="latest-trips" aria-label="Ostatnie wyprawy"></section>
 
-  <section class="stats" aria-label="Statystyki"><div class="stat"><strong id="statTrips">–</strong><span>podróży</span></div><div class="stat"><strong id="statPlaces">–</strong><span>miejsc</span></div><div class="stat"><strong id="statPhotos">–</strong><span>zdjęć</span></div></section>
+  <section class="stats" aria-label="Statystyki">
+    <div class="stat"><span class="stat-icon">✈️</span><strong id="statTrips">–</strong><span>podróże</span></div>
+    <button class="stat" type="button"><span class="stat-icon">📍</span><strong id="statPlaces">–</strong><span>miejsca</span></button>
+    <button class="stat stat-clickable" id="statCountriesBtn" type="button"><span class="stat-icon">🌍</span><strong id="statCountries">–</strong><span>kraje</span></button>
+    <button class="stat" type="button"><span class="stat-icon">📷</span><strong id="statPhotos">–</strong><span>zdjęcia</span></button>
+  </section>
+
+  <section class="search-section" aria-labelledby="searchTitle">
+    <h2 id="searchTitle" class="section-title">🔎 WYSZUKAJ PODRÓŻ</h2>
+    <div class="search-tiles">
+      <button class="search-tile" type="button" data-search="year"><span class="search-tile-icon">📅</span><span class="search-tile-title">Rok</span><span class="search-tile-text">Znajdź wyprawy z wybranego roku</span></button>
+      <button class="search-tile" type="button" data-search="category"><span class="search-tile-icon">🏷️</span><span class="search-tile-title">Kategoria</span><span class="search-tile-text">Odkryj miejsca według kategorii</span></button>
+      <button class="search-tile" type="button" data-search="country"><span class="search-tile-icon">🌍</span><span class="search-tile-title">Kraj</span><span class="search-tile-text">Zobacz odwiedzone kraje i wyprawy</span></button>
+    </div>
+    <div id="searchResults" class="search-results" hidden></div>
+  </section>
 
   <section class="feature-grid">
     <a class="feature" href="list.html"><div class="feature-icon">🌍</div><h3>Odwiedzone miejsca</h3><p>Zobacz listę miejsc, które odwiedziliśmy.</p></a>
@@ -52,6 +67,7 @@
 <div id="loginModal" class="login-modal"><div class="login-box"><h2>🔐 Logowanie administratora</h2><input id="loginEmail" type="email" placeholder="E-mail"><input id="loginPassword" type="password" placeholder="Hasło"><button id="loginSubmit">Zaloguj</button><button id="loginCancel" class="cancel">Anuluj</button><p id="loginStatus"></p></div></div>
 
 <script type="module">
+import { normalizeCountryCodes, countryRecord, KNOWN_TRIP_COUNTRIES } from "./country-utils.js";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
 import { getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js";
 import { getDatabase,ref,get,set,update } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js";
@@ -66,7 +82,64 @@ function dateValue(v){const d=new Date(v||'');return Number.isNaN(d.getTime())?0
 function formatDate(from,to){const f=from?new Date(from).toLocaleDateString('pl-PL',{day:'numeric',month:'long',year:'numeric'}):'';const t=to?new Date(to).toLocaleDateString('pl-PL',{day:'numeric',month:'long',year:'numeric'}):'';return t?`${f} – ${t}`:f}
 async function isAdmin(uid){const s=await get(ref(db,`admins/${uid}`));return s.val()===true}
 async function loadSite(){const s=await get(ref(db,'siteContent/home'));const c={...defaults,...(s.val()||{})};let aboutText=c.aboutText||defaults.aboutText;aboutText=aboutText.replace(/^Jesteśmy\s+Gabi\s+i\s+Paweł\s*[–-]?\s*/i,'');$('hero').style.setProperty('--hero-image',`url("${c.heroImage}")`);$('aboutImage').src=c.aboutImage;$('aboutText').textContent=aboutText;$('heroPreview').src=c.heroImage;$('aboutPreview').src=c.aboutImage;$('heroUrl').value=c.heroImage;$('aboutUrl').value=c.aboutImage;$('aboutTextEdit').value=aboutText}
-async function loadTrips(){const s=await get(ref(db,'trips'));const data=s.val()||{};tripsCache=Object.entries(data).map(([id,t])=>({id,...t})).filter(t=>t.name).sort((a,b)=>dateValue(b.dateFrom)-dateValue(a.dateFrom));$('statTrips').textContent=tripsCache.length;let places=0,photos=0;tripsCache.forEach(t=>{const ps=Object.values(t.places||{});places+=ps.length;ps.forEach(p=>photos+=Array.isArray(p.photos)?p.photos.length:Object.keys(p.photos||{}).length)});$('statPlaces').textContent=places;$('statPhotos').textContent=photos;if(tripsCache[0]){const t=tripsCache[0];$('latestName').textContent=t.name;$('latestDate').textContent=formatDate(t.dateFrom,t.dateTo);$('latestDescription').textContent=t.description||'Zobacz szczegóły tej podróży.';$('latestImage').src=t.image||'https://placehold.co/900x600/e9eef5/52637b?text=GaPa+Blog';$('latestLink').href=`trip.html?id=${encodeURIComponent(t.id)}`}$('randomTrip').addEventListener('click',e=>{if(!tripsCache.length)return;e.preventDefault();const t=tripsCache[Math.floor(Math.random()*tripsCache.length)];location.href=`trip.html?id=${encodeURIComponent(t.id)}`})}
+async function loadTrips(){
+  const s=await get(ref(db,'trips'));
+  const data=s.val()||{};
+  tripsCache=Object.entries(data).map(([id,t])=>({id,...t})).filter(t=>t.name).sort((a,b)=>dateValue(b.dateFrom)-dateValue(a.dateFrom));
+
+  $('statTrips').textContent=tripsCache.length;
+  let places=0,photos=0;
+  tripsCache.forEach(t=>{
+    const ps=Object.values(t.places||{});
+    places+=ps.length;
+    ps.forEach(p=>photos+=Array.isArray(p.photos)?p.photos.length:Object.keys(p.photos||{}).length);
+  });
+  $('statPlaces').textContent=places;
+  $('statPhotos').textContent=photos;
+  const countries=getCountryRecords(tripsCache);
+  $('statCountries').textContent=countries.length;
+  renderLatestTrips();
+  bindSearch();
+}
+
+function getTripYear(t){
+  const d=t.dateFrom||t.dateTo;
+  if(!d)return '';
+  const y=new Date(d).getFullYear();
+  return Number.isFinite(y)?String(y):'';
+}
+function getTripCountries(t){ return normalizeCountryCodes(t.countries || t.countryCodes || t.country || t.countryName || KNOWN_TRIP_COUNTRIES[t.id] || []); }
+function getTripPlaces(t){return Object.values(t.places||{}).filter(Boolean)}
+function categoryLabel(category){ const labels={miasto:"🏙️ Miasto",park:"🌳 Park",plaza:"🏖️ Plaża",zabytek:"🏛️ Zabytek",muzeum:"🖼️ Muzeum",hotel:"🏨 Hotel",szczyt:"⛰️ Szczyt",restauracja:"🍽️ Restauracja",miejsce_widokowe:"🌄 Miejsce widokowe",atrakcja_turystyczna:"🎯 Atrakcja turystyczna",inny:"🔧 Inny"}; return labels[category]||category||"🔧 Inny"; }
+function getCategories(){ const map=new Map(); tripsCache.forEach(t=>getTripPlaces(t).forEach(p=>{if(p.category)map.set(p.category,categoryLabel(p.category))})); return [...map.entries()].sort((a,b)=>a[1].localeCompare(b[1],"pl")); }
+function getCountryRecords(trips){ const map=new Map(); trips.forEach(t=>getTripCountries(t).forEach(code=>{if(!map.has(code))map.set(code,[]);map.get(code).push(t)})); return [...map.entries()].map(([code,trips])=>({code,...countryRecord(code),trips})).sort((a,b)=>a.name.localeCompare(b.name,"pl")); }
+function tripCard(t,extra=''){
+  return `<a class="trip-thumb" href="trip.html?id=${encodeURIComponent(t.id)}${extra}" aria-label="${escapeHtml(t.name)}"><img src="${escapeHtml(t.image||'https://placehold.co/600x400/e9eef5/52637b?text=GaPa+Blog')}" alt="${escapeHtml(t.name)}"><span class="trip-thumb-overlay"><strong>${escapeHtml(t.name)}</strong><small>${escapeHtml(formatDate(t.dateFrom,t.dateTo))}</small></span></a>`;
+}
+function renderLatestTrips(){
+  const box=$('latestTrips');
+  box.innerHTML=tripsCache.slice(0,4).map(t=>tripCard(t)).join('')||'<p class="empty-search">Brak wypraw.</p>';
+}
+function showSearchResults(title,body){const box=$('searchResults');box.hidden=false;box.innerHTML=`<div class="search-results-head"><h3>${title}</h3><button type="button" id="closeSearch">×</button></div><div class="search-results-body">${body}</div>`;document.getElementById('closeSearch').onclick=()=>{box.hidden=true;box.innerHTML=''};box.scrollIntoView({behavior:'smooth',block:'nearest'});}
+function renderYearChooser(){
+  const years=[...new Set(tripsCache.map(getTripYear).filter(Boolean))].sort((a,b)=>b-a);
+  showSearchResults('📅 Wybierz rok',years.length?`<div class="choice-grid">${years.map(y=>`<button class="choice-card" type="button" data-year="${y}"><strong>${y}</strong><span>${tripsCache.filter(t=>getTripYear(t)===y).length} wypraw</span></button>`).join('')}</div>`:'<p class="empty-search">Brak zapisanych lat.</p>');
+  document.querySelectorAll('[data-year]').forEach(b=>b.onclick=()=>{const y=b.dataset.year;showSearchResults(`📅 Wyprawy z ${y}`,`<div class="trip-thumb-grid">${tripsCache.filter(t=>getTripYear(t)===y).map(t=>tripCard(t)).join('')}</div>`)});
+}
+function renderCategoryChooser(){
+  const cats=getCategories();
+  showSearchResults('🏷️ Wybierz kategorię',cats.length?`<div class="choice-grid">${cats.map(([key,label])=>{const count=tripsCache.reduce((n,t)=>n+getTripPlaces(t).filter(p=>p.category===key).length,0);return `<button class="choice-card" type="button" data-category="${escapeHtml(key)}"><strong>${label}</strong><span>${count} ${count===1?'miejsce':'miejsc'}</span></button>`}).join('')}</div>`:'<p class="empty-search">Brak kategorii w zapisanych miejscach.</p>');
+  document.querySelectorAll('[data-category]').forEach(b=>b.onclick=()=>{const cat=b.dataset.category;const matching=tripsCache.map(t=>({t,count:getTripPlaces(t).filter(p=>p.category===cat).length})).filter(x=>x.count>0);showSearchResults(`${categoryLabel(cat)}`,`<div class="trip-thumb-grid">${matching.map(({t,count})=>`<div class="trip-result-wrap">${tripCard(t,`&category=${encodeURIComponent(cat)}`)}<span class="category-count">${count} ${count===1?'miejsce':'miejsca'}</span></div>`).join('')}</div>`)});
+}
+function renderCountryChooser(){
+  const countries=getCountryRecords(tripsCache);
+  showSearchResults("🌍 Wybierz kraj",countries.length?`<div class="choice-grid country-grid">${countries.map(c=>`<button class="choice-card country-choice" type="button" data-country="${escapeHtml(c.code)}"><span class="country-flag">${c.flag}</span><strong>${escapeHtml(c.name)}</strong><span>${c.trips.length} ${c.trips.length===1?"wyprawa":"wypraw"}</span></button>`).join("")}</div>`:"<p class="empty-search">Brak zapisanych krajów.</p>");
+  document.querySelectorAll("[data-country]").forEach(b=>b.onclick=()=>{const code=b.dataset.country;const found=countries.find(x=>x.code===code);if(!found)return;showSearchResults(`${found.flag} ${escapeHtml(found.name)}`,`<div class="trip-thumb-grid">${found.trips.map(t=>tripCard(t)).join("")}</div>`)});
+}
+function bindSearch(){
+  document.querySelectorAll("[data-search]").forEach(b=>{b.onclick=()=>{const type=b.dataset.search;if(type==="year")renderYearChooser();if(type==="category")renderCategoryChooser();if(type==="country")renderCountryChooser();}});
+  $("statCountriesBtn").onclick=renderCountryChooser;
+}
 function showAdmin(v){$('adminPanel').classList.toggle('is-visible',v);$('adminLoginBtn').textContent=v?'↪':'♙';$('adminLoginBtn').title=v?'Wyloguj administratora':'Logowanie administratora'}
 $('adminLoginBtn').onclick=async()=>{if($('adminPanel').classList.contains('is-visible')){await signOut(auth);return}$('loginModal').style.display='flex'};$('loginCancel').onclick=()=>{$('loginModal').style.display='none'};$('loginSubmit').onclick=async()=>{const email=$('loginEmail').value.trim(),pass=$('loginPassword').value;try{await signInWithEmailAndPassword(auth,email,pass);$('loginModal').style.display='none';$('loginStatus').textContent=''}catch(e){$('loginStatus').textContent='Nieprawidłowy login lub hasło.'}};
 async function saveSetting(key,value){await update(ref(db,'siteContent/home'),{[key]:value});await loadSite();$('adminStatus').textContent='✅ Zapisano.';setTimeout(()=>$('adminStatus').textContent='',2500)}
