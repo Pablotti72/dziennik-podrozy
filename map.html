@@ -216,7 +216,12 @@
         sessionStorage.setItem('mapZoom', map.getZoom());
     }
 
+    let mapStateRestored = false;
+
     function restoreMapState() {
+        if (mapStateRestored) return;
+        mapStateRestored = true;
+
         const params = new URLSearchParams(window.location.search);
         const returningFromTrip = params.get('returnFromTrip') === '1';
 
