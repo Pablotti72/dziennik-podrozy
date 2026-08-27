@@ -210,7 +210,7 @@
     }
 
     // --- Zapisywanie i odtwarzanie stanu mapy ---
-    function saveMapState() {
+    window.saveMapState = function saveMapState() {
         sessionStorage.setItem('mapCenterLat', map.getCenter().lat);
         sessionStorage.setItem('mapCenterLng', map.getCenter().lng);
         sessionStorage.setItem('mapZoom', map.getZoom());
