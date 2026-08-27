@@ -179,7 +179,7 @@
             : '<em>Kliknij nazwę podróży, aby zobaczyć szczegóły</em>';
 
         return `
-            <strong><a href="trip.html?id=${encodeURIComponent(key)}" onclick="saveMapState()">${escapeHtml(trip?.name || 'Podróż')}</a></strong><br>
+            <strong><a href="trip.html?id=${encodeURIComponent(key)}" onclick="saveMapState('${encodeURIComponent(key)}')">${escapeHtml(trip?.name || 'Podróż')}</a></strong><br>
             ${trip?.description ? `<small class="popup-description">${escapeHtml(trip.description)}</small>` : ''}
             ${imageHtml}
             ${adminButtons}
@@ -210,18 +210,18 @@
     }
 
     // --- Zapisywanie i odtwarzanie stanu mapy ---
-    function saveMapState() {
-        sessionStorage.setItem('mapCenterLat', map.getCenter().lat);
-        sessionStorage.setItem('mapCenterLng', map.getCenter().lng);
-        sessionStorage.setItem('mapZoom', map.getZoom());
+    function saveMapState(tripId) {
+        sessionStorage.setItem('gapaMapReturn', JSON.stringify({
+            tripId: String(tripId),
+            lat: map.getCenter().lat,
+            lng: map.getCenter().lng,
+            zoom: map.getZoom()
+        }));
     }
 
     let mapStateRestored = false;
 
     function restoreMapState() {
-        if (mapStateRestored) return;
-        mapStateRestored = true;
-
         const params = new URLSearchParams(window.location.search);
         const returningFromTrip = params.get('returnFromTrip') === '1';
 
@@ -230,22 +230,22 @@
             return;
         }
 
-        const savedLat = sessionStorage.getItem('mapCenterLat');
-        const savedLng = sessionStorage.getItem('mapCenterLng');
-        const savedZoom = sessionStorage.getItem('mapZoom');
+        let saved = null;
+        try {
+            saved = JSON.parse(sessionStorage.getItem('gapaMapReturn') || 'null');
+        } catch (e) {
+            console.warn('Nie udało się odczytać zapisanego stanu mapy:', e);
+        }
 
-        if (savedLat && savedLng && savedZoom) {
-            map.setView([parseFloat(savedLat), parseFloat(savedLng)], parseInt(savedZoom, 10));
+        if (saved && Number.isFinite(Number(saved.lat)) &&
+            Number.isFinite(Number(saved.lng)) &&
+            Number.isFinite(Number(saved.zoom))) {
+            map.setView([Number(saved.lat), Number(saved.lng)], Number(saved.zoom));
         } else {
             map.setView([52.237, 21.017], 6);
         }
 
-        // Clear the saved state only after it has been consumed by the return-to-map action.
-        sessionStorage.removeItem('mapCenterLat');
-        sessionStorage.removeItem('mapCenterLng');
-        sessionStorage.removeItem('mapZoom');
-
-        // Clean the URL without reloading the map.
+        sessionStorage.removeItem('gapaMapReturn');
         window.history.replaceState({}, document.title, 'map.html');
     }
 
