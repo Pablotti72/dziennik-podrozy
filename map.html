@@ -37,7 +37,7 @@
       <a href="list.html">Galeria</a>
       <a href="index.html#about">O Nas</a>
       <button id="addTripBtn" class="nav-action" style="display: none;">➕ Dodaj wyprawę</button>
-      <button id="editModeBtn" class="nav-action">🔧 Tryb edycji</button>
+      <button id="editModeBtn" class="admin-login map-admin-login" title="Logowanie administratora" aria-label="Logowanie administratora">♙</button>
     </div>
   </nav>
 
@@ -101,20 +101,24 @@
       if (user) {
         userRole = await getUserRole(user.uid);
         if (userRole === 'admin') {
-          editModeBtn.textContent = "✅ Zakończ edycję";
-          editModeBtn.style.background = "#4CAF50";
-          addTripBtn.style.display = "block";
+          editModeBtn.textContent = "↪";
+          editModeBtn.title = "Wyloguj administratora";
+          editModeBtn.setAttribute("aria-label", "Wyloguj administratora");
+          addTripBtn.style.display = "inline-block";
           editModeBtn.onclick = logout;
         } else {
-          editModeBtn.textContent = "🔧 Tryb edycji";
-          editModeBtn.style.background = "#FFC107";
+          userRole = 'guest';
+          editModeBtn.textContent = "♙";
+          editModeBtn.title = "Logowanie administratora";
+          editModeBtn.setAttribute("aria-label", "Logowanie administratora");
           addTripBtn.style.display = "none";
           editModeBtn.onclick = openLoginModal;
         }
       } else {
         userRole = 'guest';
-        editModeBtn.textContent = "🔧 Tryb edycji";
-        editModeBtn.style.background = "#FFC107";
+        editModeBtn.textContent = "♙";
+        editModeBtn.title = "Logowanie administratora";
+        editModeBtn.setAttribute("aria-label", "Logowanie administratora");
         addTripBtn.style.display = "none";
         editModeBtn.onclick = openLoginModal;
       }
