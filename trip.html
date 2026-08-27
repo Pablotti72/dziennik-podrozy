@@ -16,7 +16,7 @@
       </div>
       <div class="page-actions" aria-label="Akcje wyprawy">
         <button id="addPlaceBtn" class="ui-action add-btn" style="display: none;">➕ Dodaj miejsce</button>
-        <a id="backLink" class="ui-action back-link" href="map.html?returnFromTrip=1">← Wróć do mapy</a>
+        <a id="backLink" class="ui-action back-link" href="map.html">← Wróć do mapy</a>
       </div>
     </header>
 
@@ -118,7 +118,6 @@
     const database = getDatabase(app);
 
     const urlParams = new URLSearchParams(window.location.search);
-    const returnParams = new URLSearchParams(window.location.search);
     const tripId = urlParams.get("id");
     const backLink = document.getElementById("backLink");
     const addPlaceBtn = document.getElementById("addPlaceBtn");
@@ -152,12 +151,7 @@
     });
 
     if (tripId) {
-      const q = new URLSearchParams();
-      ["returnLat", "returnLng", "returnZoom"].forEach(k => {
-        const v = returnParams.get(k);
-        if (v !== null && v !== "") q.set(k, v);
-      });
-      backLink.href = `map.html${q.toString() ? "?" + q.toString() : ""}`;
+      backLink.href = `map.html`;
     }
 
     // --- Ładowanie i wyświetlanie danych ---
@@ -198,7 +192,7 @@
               let popupContent;
               if (userRole === 'admin') {
                   popupContent = `
-                      <strong><a href="place.html?tripId=${encodeURIComponent(tripId)}&placeId=${encodeURIComponent(p.id)}&returnLat=${encodeURIComponent(returnParams.get("returnLat") || "")}&returnLng=${encodeURIComponent(returnParams.get("returnLng") || "")}&returnZoom=${encodeURIComponent(returnParams.get("returnZoom") || "")}">${p.name}</a></strong><br>
+                      <strong><a href="place.html?tripId=${tripId}&placeId=${p.id}">${p.name}</a></strong><br>
                       ${shortDescription(p.description)}
                       <img src="${p.image}" width="100"><br>
                       <small>${p.category} • ${formatDate(p.date)}</small><br><br>
@@ -207,7 +201,7 @@
                   `;
               } else {
                   popupContent = `
-                      <strong><a href="place.html?tripId=${encodeURIComponent(tripId)}&placeId=${encodeURIComponent(p.id)}&returnLat=${encodeURIComponent(returnParams.get("returnLat") || "")}&returnLng=${encodeURIComponent(returnParams.get("returnLng") || "")}&returnZoom=${encodeURIComponent(returnParams.get("returnZoom") || "")}">${p.name}</a></strong><br>
+                      <strong><a href="place.html?tripId=${tripId}&placeId=${p.id}">${p.name}</a></strong><br>
                       ${shortDescription(p.description)}
                       <img src="${p.image}" width="100"><br>
                       <small>${p.category} • ${formatDate(p.date)}</small><br><br>

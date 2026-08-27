@@ -89,10 +89,7 @@
     let userRole = 'guest';
 
     const map = L.map("map");
-    
-    readRequestedReturnView();
-    applyInitialMapView();
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
     async function getUserRole(uid) {
       const adminRef = ref(database, `admins/${uid}`);
@@ -182,7 +179,7 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
             : '<em>Kliknij nazwę podróży, aby zobaczyć szczegóły</em>';
 
         return `
-            <strong><a href="trip.html?id=${encodeURIComponent(key)}" onclick="return openTripFromMap(event, '${encodeURIComponent(key)}');">${escapeHtml(trip?.name || 'Podróż')}</a></strong><br>
+            <strong><a href="trip.html?id=${encodeURIComponent(key)}" onclick="saveMapState()">${escapeHtml(trip?.name || 'Podróż')}</a></strong><br>
             ${trip?.description ? `<small class="popup-description">${escapeHtml(trip.description)}</small>` : ''}
             ${imageHtml}
             ${adminButtons}
@@ -190,40 +187,7 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
     }
 
     // --- Ładowanie i wyświetlanie danych ---
-        let requestedReturnView = null;
-
-    function readRequestedReturnView() {
-        const params = new URLSearchParams(window.location.search);
-        const lat = Number(params.get('returnLat'));
-        const lng = Number(params.get('returnLng'));
-        const zoom = Number(params.get('returnZoom'));
-        requestedReturnView =
-            Number.isFinite(lat) && Number.isFinite(lng) && Number.isFinite(zoom)
-            ? { lat, lng, zoom }
-            : null;
-    }
-
-    function applyInitialMapView() {
-        if (requestedReturnView) {
-            map.setView([requestedReturnView.lat, requestedReturnView.lng],
-                        requestedReturnView.zoom, {animate:false});
-        } else {
-            map.setView([52.237, 21.017], 6, {animate:false});
-        }
-    }
-
-    function openTripFromMap(event, tripId) {
-        event.preventDefault();
-        const q = new URLSearchParams();
-        q.set('id', tripId);
-        q.set('returnLat', String(map.getCenter().lat));
-        q.set('returnLng', String(map.getCenter().lng));
-        q.set('returnZoom', String(map.getZoom()));
-        window.location.assign(`trip.html?${q.toString()}`);
-        return false;
-    }
-
-function loadTrips() {
+    function loadTrips() {
         get(ref(database, 'trips')).then((snapshot) => {
             map.eachLayer(l => { if (l instanceof L.Marker) map.removeLayer(l); });
 
@@ -238,10 +202,32 @@ function loadTrips() {
                     }
                 });
             }
-}).catch(err => {
+            restoreMapState();
+        }).catch(err => {
             console.error("Błąd ładowania wypraw:", err);
             showMessage("❌ Nie udało się załadować listy wypraw.");
         });
+    }
+
+    // --- Zapisywanie i odtwarzanie stanu mapy ---
+    function saveMapState() {
+        sessionStorage.setItem('mapCenterLat', map.getCenter().lat);
+        sessionStorage.setItem('mapCenterLng', map.getCenter().lng);
+        sessionStorage.setItem('mapZoom', map.getZoom());
+    }
+
+    function restoreMapState() {
+        const savedLat = sessionStorage.getItem('mapCenterLat');
+        const savedLng = sessionStorage.getItem('mapCenterLng');
+        const savedZoom = sessionStorage.getItem('mapZoom');
+        if (savedLat && savedLng && savedZoom) {
+            map.setView([parseFloat(savedLat), parseFloat(savedLng)], parseInt(savedZoom));
+            sessionStorage.removeItem('mapCenterLat');
+            sessionStorage.removeItem('mapCenterLng');
+            sessionStorage.removeItem('mapZoom');
+        } else {
+            map.setView([52.237, 21.017], 6);
+        }
     }
 
     // --- Logika edycji ---
@@ -402,7 +388,7 @@ function loadTrips() {
       }
     });
 
-    
+    loadTrips();
   </script>
 </body>
 </html>

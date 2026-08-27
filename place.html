@@ -63,18 +63,12 @@
       "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app";
 
     const urlParams = new URLSearchParams(window.location.search);
-    const returnParams = new URLSearchParams(window.location.search);
     const tripId = urlParams.get("tripId");
     const placeId = urlParams.get("placeId");
 
     const backLink = document.getElementById("backLink");
     if (tripId) {
-      const q = new URLSearchParams();
-      ["returnLat", "returnLng", "returnZoom"].forEach(k => {
-        const v = returnParams.get(k);
-        if (v !== null && v !== "") q.set(k, v);
-      });
-      backLink.href = `trip.html?id=${encodeURIComponent(tripId)}${q.toString() ? "&" + q.toString() : ""}`;
+      backLink.href = `trip.html?id=${tripId}`;
     } else {
       backLink.href = "map.html";
     }
