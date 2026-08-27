@@ -198,7 +198,7 @@
             const trip = snapshot.val();
 
             if (trip && Number.isFinite(Number(trip.lat)) && Number.isFinite(Number(trip.lng))) {
-                map.setView([Number(trip.lat), Number(trip.lng)], 8, { animate: false });
+                map.setView([Number(trip.lat), Number(trip.lng)], 7, { animate: false });
             }
         } catch (error) {
             console.error("Nie udało się ustawić mapy na wyprawie:", error);
