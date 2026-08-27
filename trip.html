@@ -157,7 +157,7 @@
         const v = returnParams.get(k);
         if (v !== null && v !== "") q.set(k, v);
       });
-      backLink.href = `map.html?${q.toString()}`;
+      backLink.href = `map.html${q.toString() ? "?" + q.toString() : ""}`;
     }
 
     // --- Ładowanie i wyświetlanie danych ---

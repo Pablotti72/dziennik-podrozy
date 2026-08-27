@@ -89,7 +89,10 @@
     let userRole = 'guest';
 
     const map = L.map("map");
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+    
+    readRequestedReturnView();
+    applyInitialMapView();
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
     async function getUserRole(uid) {
       const adminRef = ref(database, `admins/${uid}`);
@@ -139,18 +142,6 @@
       signOut(auth);
     }
     
-    function openTripFromMap(event, tripId) {
-        event.preventDefault();
-        const q = new URLSearchParams({
-            id: tripId,
-            returnLat: String(map.getCenter().lat),
-            returnLng: String(map.getCenter().lng),
-            returnZoom: String(map.getZoom())
-        });
-        window.location.href = `trip.html?${q.toString()}`;
-        return false;
-    }
-
     // --- Ładowanie i wyświetlanie danych ---
     function escapeHtml(value) {
         return String(value ?? '')
@@ -199,7 +190,40 @@
     }
 
     // --- Ładowanie i wyświetlanie danych ---
-    function loadTrips() {
+        let requestedReturnView = null;
+
+    function readRequestedReturnView() {
+        const params = new URLSearchParams(window.location.search);
+        const lat = Number(params.get('returnLat'));
+        const lng = Number(params.get('returnLng'));
+        const zoom = Number(params.get('returnZoom'));
+        requestedReturnView =
+            Number.isFinite(lat) && Number.isFinite(lng) && Number.isFinite(zoom)
+            ? { lat, lng, zoom }
+            : null;
+    }
+
+    function applyInitialMapView() {
+        if (requestedReturnView) {
+            map.setView([requestedReturnView.lat, requestedReturnView.lng],
+                        requestedReturnView.zoom, {animate:false});
+        } else {
+            map.setView([52.237, 21.017], 6, {animate:false});
+        }
+    }
+
+    function openTripFromMap(event, tripId) {
+        event.preventDefault();
+        const q = new URLSearchParams();
+        q.set('id', tripId);
+        q.set('returnLat', String(map.getCenter().lat));
+        q.set('returnLng', String(map.getCenter().lng));
+        q.set('returnZoom', String(map.getZoom()));
+        window.location.assign(`trip.html?${q.toString()}`);
+        return false;
+    }
+
+function loadTrips() {
         get(ref(database, 'trips')).then((snapshot) => {
             map.eachLayer(l => { if (l instanceof L.Marker) map.removeLayer(l); });
 
@@ -214,25 +238,10 @@
                     }
                 });
             }
-            restoreMapState();
-        }).catch(err => {
+}).catch(err => {
             console.error("Błąd ładowania wypraw:", err);
             showMessage("❌ Nie udało się załadować listy wypraw.");
         });
-    }
-
-    // --- Powrót do mapy po wyprawie ---
-    function restoreMapState() {
-        const params = new URLSearchParams(window.location.search);
-        const lat = Number(params.get("returnLat"));
-        const lng = Number(params.get("returnLng"));
-        const zoom = Number(params.get("returnZoom"));
-
-        if (Number.isFinite(lat) && Number.isFinite(lng) && Number.isFinite(zoom)) {
-            map.setView([lat, lng], zoom);
-        } else {
-            map.setView([52.237, 21.017], 6);
-        }
     }
 
     // --- Logika edycji ---
