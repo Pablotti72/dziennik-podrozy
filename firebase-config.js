@@ -1,9 +1,9 @@
 export const firebaseConfig = {
-    apiKey: "TWÓJ_API_KEY",
-    authDomain: "TWÓJ_PROJECT_ID.firebaseapp.com",
-    databaseURL: "https://TWÓJ_PROJECT_ID-default-rtdb.firebaseio.com",
-    projectId: "TWÓJ_PROJECT_ID",
-    storageBucket: "TWÓJ_PROJECT_ID.appspot.com",
-    messagingSenderId: "TWÓJ_SENDER_ID",
-    appId: "TWÓJ_APP_ID"
+  apiKey: "AIzaSyBcRB_dec2OunBPevgemcWouCfDP6dNZV4",
+  authDomain: "moj-dziennik-podrozy.firebaseapp.com",
+  databaseURL: "https://moj-dziennik-podrozy-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "moj-dziennik-podrozy",
+  storageBucket: "moj-dziennik-podrozy.firebasestorage.app",
+  messagingSenderId: "997572019753",
+  appId: "1:997572019753:web:0f5aa78a1c24072de3be38"
 };
