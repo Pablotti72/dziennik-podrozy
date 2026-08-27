@@ -133,8 +133,26 @@ function renderCategoryChooser(){
 }
 function renderCountryChooser(){
   const countries=getCountryRecords(tripsCache);
-  showSearchResults("🌍 Wybierz kraj",countries.length?`<div class="choice-grid country-grid">${countries.map(c=>`<button class="choice-card country-choice" type="button" data-country="${escapeHtml(c.code)}"><span class="country-flag">${c.flag}</span><strong>${escapeHtml(c.name)}</strong><span>${c.trips.length} ${c.trips.length===1?"wyprawa":"wypraw"}</span></button>`).join("")}</div>`:"<p class="empty-search">Brak zapisanych krajów.</p>");
-  document.querySelectorAll("[data-country]").forEach(b=>b.onclick=()=>{const code=b.dataset.country;const found=countries.find(x=>x.code===code);if(!found)return;showSearchResults(`${found.flag} ${escapeHtml(found.name)}`,`<div class="trip-thumb-grid">${found.trips.map(t=>tripCard(t)).join("")}</div>`)});
+  let body='<p class="empty-search">Brak zapisanych krajów.</p>';
+  if(countries.length){
+    body='<div class="choice-grid country-grid">'+countries.map(c=>{
+      const flag=c.flag||'';
+      const name=escapeHtml(c.name||c.code);
+      const code=escapeHtml(c.code);
+      const count=c.trips.length;
+      const countLabel=count===1?'wyprawa':'wypraw';
+      return '<button class="choice-card country-choice" type="button" data-country="'+code+'"><span class="country-flag">'+flag+'</span><strong>'+name+'</strong><span>'+count+' '+countLabel+'</span></button>';
+    }).join('')+'</div>';
+  }
+  showSearchResults('🌍 Wybierz kraj',body);
+  document.querySelectorAll('[data-country]').forEach(b=>b.onclick=()=>{
+    const code=b.dataset.country;
+    const found=countries.find(x=>x.code===code);
+    if(!found)return;
+    const title=(found.flag||'🌍')+' '+escapeHtml(found.name||found.code);
+    const cards=found.trips.map(t=>tripCard(t)).join('');
+    showSearchResults(title,'<div class="trip-thumb-grid">'+cards+'</div>');
+  });
 }
 function bindSearch(){
   document.querySelectorAll("[data-search]").forEach(b=>{b.onclick=()=>{const type=b.dataset.search;if(type==="year")renderYearChooser();if(type==="category")renderCategoryChooser();if(type==="country")renderCountryChooser();}});
