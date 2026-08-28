@@ -53,7 +53,6 @@
         <input type="hidden" id="tripLng">
         <label>Nazwa: <input type="text" id="tripName" required></label><br><br>
         <label>Pełny opis wyprawy: <textarea id="tripDescription" rows="8" placeholder="Opisz dokładnie wyprawę, co robiliście, co zobaczyliście i jakie macie wspomnienia..."></textarea></label><br><br>
-        <label>Kraje: <input type="text" id="tripCountry" placeholder="Wykrywane automatycznie" readonly></label><br><br>
         <label>Zdjęcie (URL): <input type="url" id="tripImage" required></label><br><br>
         <label>Data od: <input type="date" id="tripDateFrom" required></label><br><br>
         <label>Data do: <input type="date" id="tripDateTo"></label><br><br>
@@ -66,7 +65,6 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script type="module">
-    import { detectCountriesFromTrip, normalizeCountryCodes, countryName, KNOWN_TRIP_COUNTRIES } from "./country-utils.js";
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
     import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js";
     import { getDatabase, ref, get, set, remove, update } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js";
@@ -91,12 +89,12 @@
     let userRole = 'guest';
 
     const map = L.map("map");
-    const MAPTILER_KEY = "EjqeSoSxOwUIHRfUyvHr";
-    L.tileLayer(`https://api.maptiler.com/maps/streets-v4/{z}/{x}/{y}.png?key=${MAPTILER_KEY}`, {
+    const mapTilerKey = "EjqeSoSxOwUIHRfUyvHr";
+    L.tileLayer(`https://api.maptiler.com/maps/streets-v4/{z}/{x}/{y}.png?key=${mapTilerKey}`, {
       tileSize: 512,
       zoomOffset: -1,
       minZoom: 1,
-      attribution: '<a href="https://www.maptiler.com/copyright/" target="_blank" rel="noopener">&copy; MapTiler</a> <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">&copy; OpenStreetMap contributors</a>',
+      attribution: '&copy; <a href="https://www.maptiler.com/copyright/">MapTiler</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>',
       crossOrigin: true
     }).addTo(map);
 
@@ -196,45 +194,11 @@
     }
 
     // --- Ładowanie i wyświetlanie danych ---
-    
-    async function centerMapOnReturnedTrip() {
-        const params = new URLSearchParams(window.location.search);
-        const returnTripId = params.get("trip");
-        if (!returnTripId) return;
-
-        try {
-            const snapshot = await get(ref(database, `trips/${returnTripId}`));
-            const trip = snapshot.val();
-
-            if (trip && Number.isFinite(Number(trip.lat)) && Number.isFinite(Number(trip.lng))) {
-                map.setView([Number(trip.lat), Number(trip.lng)], 6, { animate: false });
-            }
-        } catch (error) {
-            console.error("Nie udało się ustawić mapy na wyprawie:", error);
-        }
-    }
-
-async function migrateMissingTripCountries(trips) {
-        if (!trips) return;
-        for (const [id, trip] of Object.entries(trips)) {
-            const existing = normalizeCountryCodes(trip?.countries || trip?.country || []);
-            if (existing.length) continue;
-            const known = KNOWN_TRIP_COUNTRIES[id] || [];
-            if (known.length) { await update(ref(database, `trips/${id}`), { countries: known }); continue; }
-            if (!trip?.lat || !trip?.lng) continue;
-            try {
-                const detected = await detectCountriesFromTrip(trip);
-                if (detected.length) await update(ref(database, `trips/${id}`), { countries: detected });
-            } catch (e) { console.warn(`Nie udało się ustalić kraju dla ${id}:`, e); }
-        }
-    }
-
-function loadTrips() {
-        get(ref(database, 'trips')).then(async (snapshot) => {
+    function loadTrips() {
+        get(ref(database, 'trips')).then((snapshot) => {
             map.eachLayer(l => { if (l instanceof L.Marker) map.removeLayer(l); });
 
             const trips = snapshot.val();
-            migrateMissingTripCountries(trips);
             if (trips) {
                 Object.keys(trips).forEach(key => {
                     const trip = trips[key];
@@ -246,7 +210,6 @@ function loadTrips() {
                 });
             }
             restoreMapState();
-            await centerMapOnReturnedTrip();
         }).catch(err => {
             console.error("Błąd ładowania wypraw:", err);
             showMessage("❌ Nie udało się załadować listy wypraw.");
@@ -324,7 +287,6 @@ function loadTrips() {
                 document.getElementById("originalTripId").value = id; // Zapisz oryginalny ID
                 document.getElementById("tripName").value = trip.name;
                 document.getElementById("tripDescription").value = trip.description || '';
-                document.getElementById("tripCountry").value = normalizeCountryCodes(trip.countries || trip.country || KNOWN_TRIP_COUNTRIES[id] || []).map(countryName).join(', ');
                 document.getElementById("tripImage").value = trip.image;
                 document.getElementById("tripDateFrom").value = trip.dateFrom;
                 document.getElementById("tripDateTo").value = trip.dateTo;
@@ -354,16 +316,6 @@ function loadTrips() {
       };
 
       try {
-        let detectedCountries = [];
-        let locationChanged = true;
-        if (originalTripId) {
-          const existingSnapshot = await get(ref(database, `trips/${originalTripId}`));
-          const existingTrip = existingSnapshot.val();
-          detectedCountries = normalizeCountryCodes(existingTrip?.countries || existingTrip?.country || []);
-          locationChanged = Number(existingTrip?.lat) !== Number(tripData.lat) || Number(existingTrip?.lng) !== Number(tripData.lng);
-        }
-        if (!detectedCountries.length || locationChanged) detectedCountries = await detectCountriesFromTrip(tripData);
-        tripData.countries = detectedCountries;
         if (originalTripId) {
           // Edycja
           if (originalTripId !== newTripId) {
