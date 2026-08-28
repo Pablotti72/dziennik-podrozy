@@ -400,8 +400,8 @@
   text-align:center;
 }
 .asym-right .primary-card::after{background:linear-gradient(180deg,rgba(255,255,255,.68),rgba(255,255,255,.52))}
-.asym-right .map-card::before{background-image:url('https://images.unsplash.com/photo-1524666041070-9f9a6f2a6c88?auto=format&fit=crop&w=900&q=85')}
-.asym-right .gallery-card::before{background-image:url('https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=900&q=85')}
+.asym-right .map-card::before{background-image:url('assets/map-selected.png')}
+.asym-right .gallery-card::before{background-image:url('assets/gallery-selected.png')}
 .asym-right .primary-icon{font-size:1.65rem;margin-bottom:0}
 .asym-right .primary-card h2{font-size:1.05rem;margin:5px 0 2px}
 .asym-right .primary-card p{font-size:.68rem;margin:0 0 9px}
@@ -482,3 +482,11 @@
   .search-tile-title{font-size:.9rem}
   .search-tile-text{font-size:.62rem}
 }
+
+
+/* FINAL — dokładnie wybrane grafiki: Mapa 2 + Galeria 3 */
+.asym-right .primary-card::before{background-size:100% 100%;background-repeat:no-repeat;background-position:center}
+.asym-right .primary-card::after{display:none}
+.asym-right .primary-card > *{opacity:0;pointer-events:none}
+.asym-right .primary-card > a{position:absolute;inset:0;z-index:5;opacity:0;pointer-events:auto}
+.asym-right .primary-card:focus-within{outline:3px solid rgba(24,119,242,.65);outline-offset:2px}
