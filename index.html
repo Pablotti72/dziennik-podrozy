@@ -42,19 +42,17 @@
   <section class="search-section" aria-labelledby="searchTitle">
     <h2 id="searchTitle" class="section-title">🔎 WYSZUKAJ PODRÓŻ</h2>
     <div class="search-tiles">
-      <button class="search-tile" type="button" data-search="year"><span class="search-tile-icon">📅</span><span class="search-tile-title">Rok</span><span class="search-tile-text">Znajdź wyprawy z wybranego roku</span></button>
-      <button class="search-tile" type="button" data-search="category"><span class="search-tile-icon">🏷️</span><span class="search-tile-title">Kategoria</span><span class="search-tile-text">Odkryj miejsca według kategorii</span></button>
-      <button class="search-tile" type="button" data-search="country"><span class="search-tile-icon">🌍</span><span class="search-tile-title">Kraj</span><span class="search-tile-text">Zobacz odwiedzone kraje i wyprawy</span></button>
+      <button class="search-tile search-year" type="button" data-search="year"><span class="search-tile-icon">📅</span><span class="search-tile-title">Rok</span><span class="search-tile-text">Znajdź wyprawy z wybranego roku</span></button>
+      <button class="search-tile search-category" type="button" data-search="category"><span class="search-tile-icon">🏷️</span><span class="search-tile-title">Kategoria</span><span class="search-tile-text">Odkryj miejsca według kategorii</span></button>
+      <button class="search-tile search-country" type="button" data-search="country"><span class="search-tile-icon">🌍</span><span class="search-tile-title">Kraj</span><span class="search-tile-text">Zobacz odwiedzone kraje i wyprawy</span></button>
+      <button class="search-tile search-visited" type="button" data-search="visited"><span class="search-tile-icon">📍</span><span class="search-tile-title">Odwiedzone miejsca</span><span class="search-tile-text">Zobacz listę miejsc, które odwiedziliśmy</span></button>
+      <button class="search-tile search-random" id="randomTrip" type="button"><span class="search-tile-icon">🔀</span><span class="search-tile-title">Losowa podróż</span><span class="search-tile-text">Wybierz losową wyprawę</span></button>
+      <button class="search-tile search-favorites" type="button" data-search="favorites"><span class="search-tile-icon">⭐</span><span class="search-tile-title">Nasze ulubione</span><span class="search-tile-text">Nasze ulubione miejsca i wyprawy</span></button>
+      <button class="search-tile search-memories" type="button" data-search="memories"><span class="search-tile-icon">❤️</span><span class="search-tile-title">Wspomnienia</span><span class="search-tile-text">Najpiękniejsze chwile z naszych podróży</span></button>
     </div>
     <div id="searchResults" class="search-results" hidden></div>
   </section>
 
-  <section class="feature-grid">
-    <a class="feature" href="list.html"><div class="feature-icon">🌍</div><h3>Odwiedzone miejsca</h3><p>Zobacz listę miejsc, które odwiedziliśmy.</p></a>
-    <a id="randomTrip" class="feature" href="list.html"><div class="feature-icon">🧭</div><h3>Losowa podróż</h3><p>Niech los wybierze następną podróż pełną wspomnień.</p></a>
-    <a class="feature" href="list.html"><div class="feature-icon">⭐</div><h3>Nasze ulubione</h3><p>W przyszłości wybierzemy tu miejsca, do których chcemy wracać.</p></a>
-    <a class="feature" href="list.html"><div class="feature-icon">❤️</div><h3>Wspomnienia</h3><p>Najpiękniejsze chwile z naszych podróży.</p></a>
-  </section>
 
   <section id="about" class="about"><img id="aboutImage" src="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=85" alt="GaPa Blog — O Nas"><div class="about-info"><h2>👥 O NAS</h2><p class="about-intro"><span>Jesteśmy </span><span class="ga">Ga</span><span>bi i </span><span class="pa">Pa</span><span>weł</span></p><p id="aboutText">Razem odkrywamy świat, zbieramy wspomnienia i dzielimy się nimi tutaj z Wami. Podróże to nasza pasja, sposób na życie i najlepsza inwestycja w piękne chwile.</p><a class="about-link" href="#about">Poznaj nas bliżej →</a></div></section>
 </main>
@@ -162,7 +160,8 @@ function renderCountryChooser(){
   });
 }
 function bindSearch(){
-  document.querySelectorAll("[data-search]").forEach(b=>{b.onclick=()=>{const type=b.dataset.search;if(type==="year")renderYearChooser();if(type==="category")renderCategoryChooser();if(type==="country")renderCountryChooser();}});
+  document.querySelectorAll("[data-search]").forEach(b=>{b.onclick=()=>{const type=b.dataset.search;if(type==="year")renderYearChooser();if(type==="category")renderCategoryChooser();if(type==="country")renderCountryChooser();if(type==="visited")location.href="list.html";if(type==="favorites")location.href="list.html";if(type==="memories")location.href="list.html";}});
+  $("randomTrip").onclick=()=>{if(!tripsCache.length)return;const t=tripsCache[Math.floor(Math.random()*tripsCache.length)];location.href=`trip.html?id=${encodeURIComponent(t.id)}`};
   $("statCountriesBtn").onclick=renderCountryChooser;
 }
 function showAdmin(v){$('adminPanel').classList.toggle('is-visible',v);$('adminLoginBtn').textContent=v?'↪':'♙';$('adminLoginBtn').title=v?'Wyloguj administratora':'Logowanie administratora'}
