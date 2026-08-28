@@ -91,7 +91,14 @@
     let userRole = 'guest';
 
     const map = L.map("map");
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+    const MAPTILER_KEY = "EjqeSoSxOwUIHRfUyvHr";
+    L.tileLayer(`https://api.maptiler.com/maps/streets-v4/{z}/{x}/{y}.png?key=${MAPTILER_KEY}`, {
+      tileSize: 512,
+      zoomOffset: -1,
+      minZoom: 1,
+      attribution: '<a href="https://www.maptiler.com/copyright/" target="_blank" rel="noopener">&copy; MapTiler</a> <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">&copy; OpenStreetMap contributors</a>',
+      crossOrigin: true
+    }).addTo(map);
 
     async function getUserRole(uid) {
       const adminRef = ref(database, `admins/${uid}`);
