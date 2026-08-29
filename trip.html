@@ -466,6 +466,11 @@
       updateGallerySelectionCount();
     }
     function appendPhotoCard(photo, autoSelect=true) {
+      const container = document.getElementById("photos-container");
+      if (!container) {
+        console.error("Brak kontenera #photos-container dla edytora galerii.");
+        return;
+      }
       const url = normalizePhotoUrl(photo.url);
       if (!url) return;
       const card = document.createElement("article");
