@@ -44,27 +44,53 @@
   <div id="map"></div>
 
   <div id="tripModal" class="modal" style="display: none;">
-    <div class="modal-content scrollable-modal">
-      <h2 id="tripModalTitle">Dodaj wyprawę</h2>
-      <form id="tripForm">
+    <div class="modal-content scrollable-modal editor-modal">
+      <div class="editor-modal-head">
+        <div><span class="editor-kicker">EDYCJA WYPRAWY</span><h2 id="tripModalTitle">Dodaj wyprawę</h2></div>
+        <button type="button" class="editor-close" onclick="closeTripModal()" aria-label="Zamknij">×</button>
+      </div>
+      <form id="tripForm" class="editor-form">
         <input type="hidden" id="tripId">
         <input type="hidden" id="originalTripId">
         <input type="hidden" id="tripLat">
         <input type="hidden" id="tripLng">
-        <label>Nazwa: <input type="text" id="tripName" required></label><br><br>
-        <label>Pełny opis wyprawy: <textarea id="tripDescription" rows="8" placeholder="Opisz dokładnie wyprawę, co robiliście, co zobaczyliście i jakie macie wspomnienia..."></textarea></label><br><br>
-        <label>Zdjęcie (URL): <input type="url" id="tripImage" required></label><br><br>
-        <label>Data od: <input type="date" id="tripDateFrom" required></label><br><br>
-        <label>Data do: <input type="date" id="tripDateTo"></label><br><br>
 
-        <button type="submit">Zapisz</button>
-        <button type="button" onclick="closeTripModal()">Anuluj</button>
+        <section class="editor-section">
+          <h3>🧳 Informacje o wyprawie</h3>
+          <label>Nazwa<input type="text" id="tripName" required></label>
+          <label>Pełny opis wyprawy<textarea id="tripDescription" rows="8" placeholder="Opisz dokładnie wyprawę, co robiliście, co zobaczyliście i jakie macie wspomnienia..."></textarea></label>
+          <div class="editor-two-col">
+            <label>Data od<input type="date" id="tripDateFrom" required></label>
+            <label>Data do<input type="date" id="tripDateTo"></label>
+          </div>
+        </section>
+
+        <section class="editor-section">
+          <h3>📷 Zdjęcie główne</h3>
+          <div class="main-image-editor">
+            <div class="main-image-preview"><img id="tripImagePreview" src="" alt="Podgląd zdjęcia głównego"><span id="tripImageEmpty">Brak zdjęcia</span></div>
+            <div class="main-image-controls">
+              <label>Adres URL zdjęcia<input type="url" id="tripImage" required placeholder="https://..."></label>
+              <p class="editor-hint">Możesz użyć Postimages lub dowolnego innego bezpośredniego adresu zdjęcia.</p>
+              <div class="editor-inline-actions"><button type="button" class="secondary-btn" id="tripImagePreviewBtn">👁️ Podgląd</button><button type="button" class="danger-btn" id="tripImageClearBtn">🗑️ Usuń</button></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="editor-section editor-location-note">
+          <h3>📍 Lokalizacja</h3>
+          <p>Lokalizacja pozostaje ustalana przez <strong>kliknięcie na mapie</strong>. Nie zmieniamy tego sposobu działania.</p>
+          <div class="coords-readonly"><span>Lat: <strong id="tripLatPreview">—</strong></span><span>Lng: <strong id="tripLngPreview">—</strong></span></div>
+        </section>
+
+        <div class="editor-actions"><button type="button" class="secondary-btn" onclick="closeTripModal()">Anuluj</button><button type="submit" class="primary-btn">💾 Zapisz zmiany</button></div>
       </form>
     </div>
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script type="module">
+    import { detectCountryCode } from "./country-utils.js";
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
     import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js";
     import { getDatabase, ref, get, set, remove, update } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js";
@@ -86,9 +112,9 @@
 
     const editModeBtn = document.getElementById("editModeBtn");
     const addTripBtn = document.getElementById("addTripBtn");
-    const urlParams = new URLSearchParams(window.location.search);
-    const focusTripId = urlParams.get("trip");
     let userRole = 'guest';
+    const markersByTripId = new Map();
+    const tripReturnId = new URLSearchParams(window.location.search).get('trip');
 
     const map = L.map("map");
     const mapTilerKey = "EjqeSoSxOwUIHRfUyvHr";
@@ -199,6 +225,7 @@
     function loadTrips() {
         get(ref(database, 'trips')).then((snapshot) => {
             map.eachLayer(l => { if (l instanceof L.Marker) map.removeLayer(l); });
+            markersByTripId.clear();
 
             const trips = snapshot.val();
             if (trips) {
@@ -206,25 +233,13 @@
                     const trip = trips[key];
                     if (trip.lat && trip.lng) {
                         const marker = L.marker([trip.lat, trip.lng]).addTo(map);
+                        markersByTripId.set(key, marker);
                         const popupContent = buildTripPopupContent(key, trip, userRole === 'admin');
                         marker.bindPopup(popupContent);
                     }
                 });
             }
-            // Jeśli wracamy z konkretnej wyprawy, ustaw mapę na jej współrzędnych.
-            // Parametr ?trip= ma pierwszeństwo przed zapamiętanym widokiem mapy.
-            if (focusTripId && trips && trips[focusTripId] && trips[focusTripId].lat && trips[focusTripId].lng) {
-                const trip = trips[focusTripId];
-                map.setView([parseFloat(trip.lat), parseFloat(trip.lng)], 6);
-                // Nie dodajemy drugiego markera — istniejący marker jest wyszukiwany poniżej.
-                map.eachLayer(layer => {
-                    if (layer instanceof L.Marker && layer.getLatLng().lat == parseFloat(trip.lat) && layer.getLatLng().lng == parseFloat(trip.lng)) {
-                        layer.openPopup();
-                    }
-                });
-            } else {
-                restoreMapState();
-            }
+            restoreMapState();
         }).catch(err => {
             console.error("Błąd ładowania wypraw:", err);
             showMessage("❌ Nie udało się załadować listy wypraw.");
@@ -238,7 +253,20 @@
         sessionStorage.setItem('mapZoom', map.getZoom());
     }
 
-    function restoreMapState() {
+    async function restoreMapState() {
+        if (tripReturnId) {
+            try {
+                const snapshot = await get(ref(database, `trips/${tripReturnId}`));
+                const trip = snapshot.val();
+                if (trip && Number.isFinite(Number(trip.lat)) && Number.isFinite(Number(trip.lng))) {
+                    // Powrót z wyprawy używa dokładnie standardowego zoomu mapy: 6.
+                    map.setView([Number(trip.lat), Number(trip.lng)], 6);
+                    const marker = markersByTripId.get(tripReturnId);
+                    if (marker) marker.openPopup();
+                    return;
+                }
+            } catch (e) { console.warn('Nie udało się ustawić mapy na wyprawie:', e); }
+        }
         const savedLat = sessionStorage.getItem('mapCenterLat');
         const savedLng = sessionStorage.getItem('mapCenterLng');
         const savedZoom = sessionStorage.getItem('mapZoom');
@@ -291,6 +319,8 @@
       document.getElementById("tripId").value = "";
       document.getElementById("originalTripId").value = ""; // Dodano oryginalny ID
       document.getElementById("tripModalTitle").textContent = "Dodaj nową wyprawę";
+      updateTripImagePreview();
+      updateTripCoordsPreview();
       document.getElementById("tripModal").style.display = "flex";
     };
 
@@ -308,6 +338,8 @@
                 document.getElementById("tripLat").value = trip.lat;
                 document.getElementById("tripLng").value = trip.lng;
                 document.getElementById("tripModalTitle").textContent = "Edytuj wyprawę";
+                updateTripImagePreview();
+                updateTripCoordsPreview();
                 document.getElementById("tripModal").style.display = "flex";
             }
         });
@@ -320,14 +352,26 @@
       const originalTripId = document.getElementById("originalTripId").value;
       const newTripId = generateId(tripName);
 
+      const lat = parseFloat(document.getElementById("tripLat").value);
+      const lng = parseFloat(document.getElementById("tripLng").value);
+      const oldTripSnapshot = originalTripId ? await get(ref(database, `trips/${originalTripId}`)) : null;
+      const oldTrip = oldTripSnapshot?.val() || null;
+      let countryCode = oldTrip?.countryCode || null;
+      if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        const unchanged = oldTrip && Number(oldTrip.lat) === lat && Number(oldTrip.lng) === lng;
+        if (!unchanged || !countryCode) {
+          try { countryCode = await detectCountryCode(lat, lng); } catch (e) { console.warn("Nie udało się wykryć kraju wyprawy:", e); }
+        }
+      }
       const tripData = {
         name: tripName,
         description: document.getElementById("tripDescription").value,
         image: document.getElementById("tripImage").value,
         dateFrom: document.getElementById("tripDateFrom").value,
         dateTo: document.getElementById("tripDateTo").value,
-        lat: parseFloat(document.getElementById("tripLat").value) || null,
-        lng: parseFloat(document.getElementById("tripLng").value) || null
+        lat: Number.isFinite(lat) ? lat : null,
+        lng: Number.isFinite(lng) ? lng : null,
+        countryCode: countryCode || null
       };
 
       try {
@@ -394,6 +438,27 @@
       return dateStr ? new Date(dateStr).toLocaleDateString("pl-PL", { day: "numeric", month: "long", year: "numeric" }) : "Brak daty";
     }
     
+    // --- Podgląd i wygodna obsługa zdjęcia głównego ---
+    function updateTripImagePreview() {
+      const url = document.getElementById("tripImage").value.trim();
+      const img = document.getElementById("tripImagePreview");
+      const empty = document.getElementById("tripImageEmpty");
+      if (!url) { img.removeAttribute("src"); img.style.display = "none"; empty.style.display = "block"; return; }
+      img.onload = () => { img.style.display = "block"; empty.style.display = "none"; };
+      img.onerror = () => { img.style.display = "none"; empty.style.display = "block"; empty.textContent = "Nie można załadować zdjęcia"; };
+      img.src = url;
+    }
+    function updateTripCoordsPreview() {
+      document.getElementById("tripLatPreview").textContent = document.getElementById("tripLat").value || "—";
+      document.getElementById("tripLngPreview").textContent = document.getElementById("tripLng").value || "—";
+    }
+    document.getElementById("tripImage").addEventListener("input", updateTripImagePreview);
+    document.getElementById("tripImagePreviewBtn").addEventListener("click", updateTripImagePreview);
+    document.getElementById("tripImageClearBtn").addEventListener("click", () => {
+      document.getElementById("tripImage").value = "";
+      updateTripImagePreview();
+    });
+
     // --- Obsługa UI i modalów ---
     window.closeTripModal = function() { document.getElementById("tripModal").style.display = "none"; };
     window.showMessage = function(text) {

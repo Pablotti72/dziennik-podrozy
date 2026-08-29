@@ -66,17 +66,35 @@
         </label><br><br>
         <label>Data wizyty: <input type="date" id="placeDate" required></label><br><br>
 
-        <h3>Galeria zdjęć</h3>
-        <div id="photos-container">
-          <div class="photo-item">
-            <label>Zdjęcie URL: <input type="url" class="photo-url" placeholder="https://..."></label><br>
-            <label>Komentarz: <input type="text" class="photo-caption" placeholder="Opis zdjęcia"></label><br><br>
+        <section class="editor-section">
+          <h3>📷 Zdjęcie główne miejsca</h3>
+          <div class="main-image-editor place-main-editor">
+            <div class="main-image-preview"><img id="placeImagePreview" src="" alt="Podgląd zdjęcia głównego miejsca"><span id="placeImageEmpty">Brak zdjęcia</span></div>
+            <div class="main-image-controls">
+              <label>Adres URL zdjęcia<input type="url" id="placeImage" required placeholder="https://..."></label>
+              <p class="editor-hint">Możesz użyć Postimages lub dowolnego innego źródła.</p>
+              <div class="editor-inline-actions"><button type="button" class="secondary-btn" id="placeImagePreviewBtn">👁️ Podgląd</button><button type="button" class="danger-btn" id="placeImageClearBtn">🗑️ Usuń</button></div>
+            </div>
           </div>
-        </div>
-        <button type="button" onclick="addPhotoField()">➕ Dodaj zdjęcie</button><br><br>
+        </section>
 
-        <button type="submit">Zapisz</button>
-        <button type="button" onclick="closePlaceModal()">Anuluj</button>
+        <section class="editor-section">
+          <h3>📸 Galeria zdjęć miejsca</h3>
+          <div class="gallery-import-box">
+            <label>Importuj z galerii Postimages<input type="url" id="postimagesGalleryUrl" placeholder="https://postimg.cc/gallery/..." /></label>
+            <div class="editor-inline-actions"><button type="button" class="primary-btn" id="postimagesImportBtn">🔄 Pobierz zdjęcia</button><a id="postimagesOpenLink" class="secondary-btn" href="#" target="_blank" rel="noopener" hidden>↗ Otwórz galerię</a></div>
+            <p class="editor-hint">Jeśli Postimages zablokuje odczyt galerii z przeglądarki, pokażemy bezpieczną alternatywę: wklejenie listy bezpośrednich linków.</p>
+          </div>
+          <div class="gallery-import-fallback" id="postimagesFallback" hidden>
+            <label>Wklej listę linków zdjęć<textarea id="manualGalleryLinks" rows="4" placeholder="Wklej linki rozdzielone spacją, przecinkiem lub nową linią"></textarea></label>
+            <button type="button" class="secondary-btn" id="parseGalleryLinksBtn">➕ Dodaj linki</button>
+          </div>
+          <div class="gallery-selection-head"><span id="gallerySelectionCount">0 zdjęć</span><div><button type="button" class="secondary-btn" id="selectAllPhotosBtn">Zaznacz wszystkie</button><button type="button" class="secondary-btn" id="clearAllPhotosBtn">Odznacz wszystkie</button></div></div>
+          <div id="photos-container" class="photo-editor-grid"></div>
+          <div class="manual-photo-row"><input type="url" id="manualPhotoUrl" placeholder="https://.../zdjecie.jpg"><button type="button" class="secondary-btn" id="addManualPhotoBtn">🔗 Dodaj zdjęcie z URL</button></div>
+        </section>
+
+        <div class="editor-actions"><button type="button" class="secondary-btn" onclick="closePlaceModal()">Anuluj</button><button type="submit" class="primary-btn">💾 Zapisz miejsce</button></div>
       </form>
     </div>
   </div>
@@ -132,9 +150,7 @@
     const map = L.map("trip-map");
     const mapTilerKey = "EjqeSoSxOwUIHRfUyvHr";
     L.tileLayer(`https://api.maptiler.com/maps/streets-v4/{z}/{x}/{y}.png?key=${mapTilerKey}`, {
-      tileSize: 512,
-      zoomOffset: -1,
-      minZoom: 1,
+      tileSize: 512, zoomOffset: -1, minZoom: 1,
       attribution: '&copy; <a href="https://www.maptiler.com/copyright/">MapTiler</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>',
       crossOrigin: true
     }).addTo(map);
@@ -231,7 +247,7 @@
           if (hasMarkers) {
               map.fitBounds(bounds, { padding: [50, 50] });
           } else if (!categoryFilter && trip.lat && trip.lng) {
-              map.setView([trip.lat, trip.lng], 6);
+              map.setView([trip.lat, trip.lng], 10);
           } else if (categoryFilter) {
               document.getElementById("tripDescription").textContent = `Brak miejsc w kategorii ${getCategoryLabel(categoryFilter)} w tej wyprawie.`;
           }
@@ -269,12 +285,13 @@
       document.getElementById("placeForm").reset();
       document.getElementById("placeId").value = "";
       document.getElementById("originalPlaceId").value = "";
-      document.getElementById("photos-container").innerHTML = `
-        <div class="photo-item">
-          <label>Zdjęcie URL: <input type="url" class="photo-url" placeholder="https://..."></label><br>
-          <label>Komentarz: <input type="text" class="photo-caption" placeholder="Opis zdjęcia"></label><br><br>
-        </div>
-      `;
+      renderPhotoEditor([]);
+      document.getElementById("postimagesGalleryUrl").value = "";
+      document.getElementById("manualGalleryLinks").value = "";
+      document.getElementById("manualPhotoUrl").value = "";
+      document.getElementById("postimagesFallback").hidden = true;
+      document.getElementById("placeImagePreview").removeAttribute("src");
+      updatePlaceImagePreview();
       document.getElementById("placeLat").value = lat;
       document.getElementById("placeLng").value = lng;
       document.getElementById("placeModalTitle").textContent = "Dodaj nowe miejsce";
@@ -297,26 +314,12 @@
       document.getElementById("placeId").value = id;
       document.getElementById("originalPlaceId").value = id;
 
-      const container = document.getElementById("photos-container");
-      container.innerHTML = "";
-      if (p.photos && p.photos.length > 0) {
-        p.photos.forEach(photo => {
-          const item = document.createElement("div");
-          item.className = "photo-item";
-          item.innerHTML = `
-            <label>Zdjęcie URL: <input type="url" class="photo-url" value="${photo.url || ''}" placeholder="https://..."></label><br>
-            <label>Komentarz: <input type="text" class="photo-caption" value="${photo.caption || ''}" placeholder="Opis zdjęcia"></label><br><br>
-          `;
-          container.appendChild(item);
-        });
-      } else {
-        container.innerHTML = `
-          <div class="photo-item">
-            <label>Zdjęcie URL: <input type="url" class="photo-url" placeholder="https://..."></label><br>
-            <label>Komentarz: <input type="text" class="photo-caption" placeholder="Opis zdjęcia"></label><br><br>
-          </div>
-        `;
-      }
+      renderPhotoEditor(p.photos || []);
+      document.getElementById("postimagesGalleryUrl").value = "";
+      document.getElementById("manualGalleryLinks").value = "";
+      document.getElementById("manualPhotoUrl").value = "";
+      document.getElementById("postimagesFallback").hidden = true;
+      updatePlaceImagePreview();
       document.getElementById("placeModalTitle").textContent = "Edytuj miejsce";
       document.getElementById("placeModal").style.display = "flex";
     };
@@ -328,15 +331,7 @@
       const originalPlaceId = document.getElementById("originalPlaceId").value;
       const newPlaceId = generateId(placeName);
 
-      const photos = [];
-      document.querySelectorAll(".photo-url").forEach((input, i) => {
-        if (input.value.trim() !== "") {
-          photos.push({
-            url: input.value.trim(),
-            caption: document.querySelectorAll(".photo-caption")[i]?.value.trim() || ""
-          });
-        }
-      });
+      const photos = getPhotoEditorData();
 
       const placeLat = parseFloat(document.getElementById("placeLat").value);
       const placeLng = parseFloat(document.getElementById("placeLng").value);
@@ -460,16 +455,81 @@
       if (!dateTo) return from;
       return `${from} – ${formatDate(dateTo)}`;
     }
-    window.addPhotoField = function() {
+    function photoObject(url, caption="", selected=true) { return { url: String(url || "").trim(), caption: String(caption || "").trim(), selected: selected !== false }; }
+    function normalizePhotoUrl(url) {
+      try { const u = new URL(String(url).trim()); return ['http:','https:'].includes(u.protocol) ? u.href : ''; } catch { return ''; }
+    }
+    function renderPhotoEditor(photos) {
       const container = document.getElementById("photos-container");
-      const item = document.createElement("div");
-      item.className = "photo-item";
-      item.innerHTML = `
-        <label>Zdjęcie URL: <input type="url" class="photo-url" placeholder="https://..."></label><br>
-        <label>Komentarz: <input type="text" class="photo-caption" placeholder="Opis zdjęcia"></label><br><br>
-      `;
-      container.appendChild(item);
+      container.innerHTML = "";
+      (photos || []).filter(p => p && p.url).forEach(p => appendPhotoCard(photoObject(p.url, p.caption, true)));
+      updateGallerySelectionCount();
+    }
+    function appendPhotoCard(photo, autoSelect=true) {
+      const url = normalizePhotoUrl(photo.url);
+      if (!url) return;
+      const card = document.createElement("article");
+      card.className = "photo-editor-card";
+      card.dataset.selected = autoSelect ? "true" : "false";
+      card.innerHTML = `
+        <button type="button" class="photo-select" aria-label="Zaznacz zdjęcie">✓</button>
+        <div class="photo-editor-thumb"><img src="${escapeHtml(url)}" alt="Podgląd zdjęcia"><span class="photo-load-error">Brak podglądu</span></div>
+        <label class="photo-caption-label">Opis zdjęcia<input type="text" class="photo-caption" value="${escapeHtml(photo.caption || '')}" placeholder="Dodaj opis..."></label>
+        <button type="button" class="photo-remove">🗑️ Usuń</button>`;
+      const img=card.querySelector('img'); const err=card.querySelector('.photo-load-error');
+      img.onerror=()=>{img.style.display='none';err.style.display='block'};
+      card.querySelector('.photo-select').onclick=()=>{card.dataset.selected=card.dataset.selected==='true'?'false':'true';card.classList.toggle('is-unselected',card.dataset.selected!=='true');updateGallerySelectionCount()};
+      card.querySelector('.photo-editor-thumb').onclick=()=>card.querySelector('.photo-select').click();
+      card.querySelector('.photo-remove').onclick=()=>{card.remove();updateGallerySelectionCount()};
+      container.appendChild(card);
+    }
+    function getPhotoEditorData() {
+      return [...document.querySelectorAll('.photo-editor-card')].filter(c=>c.dataset.selected==='true').map(c=>({url:c.querySelector('img')?.src || '', caption:c.querySelector('.photo-caption')?.value.trim() || ''})).filter(p=>p.url);
+    }
+    function updateGallerySelectionCount() {
+      const all=document.querySelectorAll('.photo-editor-card').length; const selected=document.querySelectorAll('.photo-editor-card[data-selected="true"]').length;
+      document.getElementById('gallerySelectionCount').textContent=`Wybrano ${selected} z ${all} zdjęć`;
+    }
+    document.getElementById('selectAllPhotosBtn').onclick=()=>{document.querySelectorAll('.photo-editor-card').forEach(c=>{c.dataset.selected='true';c.classList.remove('is-unselected')});updateGallerySelectionCount()};
+    document.getElementById('clearAllPhotosBtn').onclick=()=>{document.querySelectorAll('.photo-editor-card').forEach(c=>{c.dataset.selected='false';c.classList.add('is-unselected')});updateGallerySelectionCount()};
+    document.getElementById('addManualPhotoBtn').onclick=()=>{
+      const field=document.getElementById('manualPhotoUrl'); const normalized=normalizePhotoUrl(field.value);
+      if(!normalized){showMessage('❌ Wklej prawidłowy adres URL zdjęcia.');return;} appendPhotoCard(photoObject(normalized,''),true); field.value=''; updateGallerySelectionCount();
     };
+    document.getElementById('parseGalleryLinksBtn').onclick=()=>{
+      const raw=document.getElementById('manualGalleryLinks').value;
+      const links=raw.split(/[\s,;]+/).map(normalizePhotoUrl).filter(Boolean);
+      const unique=[...new Set(links)]; unique.forEach(u=>appendPhotoCard(photoObject(u,''),true));
+      updateGallerySelectionCount();
+    };
+    document.getElementById('postimagesOpenLink').addEventListener('click',()=>{});
+    document.getElementById('postimagesImportBtn').onclick=async()=>{
+      const input=document.getElementById('postimagesGalleryUrl'); const url=input.value.trim();
+      if(!url){showMessage('❌ Wklej najpierw adres galerii Postimages.');return;}
+      document.getElementById('postimagesOpenLink').href=url; document.getElementById('postimagesOpenLink').hidden=false;
+      const btn=document.getElementById('postimagesImportBtn'); btn.disabled=true; btn.textContent='⏳ Pobieranie...';
+      try {
+        const res=await fetch(url,{mode:'cors'}); if(!res.ok) throw new Error('HTTP '+res.status); const html=await res.text();
+        const doc=new DOMParser().parseFromString(html,'text/html');
+        const urls=[...doc.querySelectorAll('img[src],a[href]')].map(el=>el.getAttribute('src')||el.getAttribute('href')).filter(x=>x && /postimg|postimages/i.test(x));
+        const images=[...new Set(urls.map(normalizePhotoUrl).filter(x=>x && /\.(jpe?g|png|webp|gif)(?:[?#].*)?$/i.test(x)))];
+        if(!images.length) throw new Error('Nie znaleziono bezpośrednich linków');
+        images.forEach(u=>appendPhotoCard(photoObject(u,''),true)); updateGallerySelectionCount(); showMessage(`✅ Znaleziono ${images.length} zdjęć. Zaznacz te, które chcesz dodać.`);
+      } catch(e) {
+        console.warn('Import galerii Postimages nie powiódł się:',e);
+        document.getElementById('postimagesFallback').hidden=false;
+        showMessage('ℹ️ Postimages nie pozwala przeglądarce odczytać galerii bezpośrednio. Otwórz galerię i wklej listę bezpośrednich linków w polu poniżej.');
+      } finally { btn.disabled=false; btn.textContent='🔄 Pobierz zdjęcia'; }
+    };
+    function updatePlaceImagePreview(){
+      const url=document.getElementById('placeImage').value.trim(), img=document.getElementById('placeImagePreview'), empty=document.getElementById('placeImageEmpty');
+      if(!url){img.style.display='none';empty.style.display='block';empty.textContent='Brak zdjęcia';return;}
+      img.onload=()=>{img.style.display='block';empty.style.display='none'}; img.onerror=()=>{img.style.display='none';empty.style.display='block';empty.textContent='Nie można załadować zdjęcia'}; img.src=url;
+    }
+    document.getElementById('placeImage').addEventListener('input',updatePlaceImagePreview);
+    document.getElementById('placeImagePreviewBtn').onclick=updatePlaceImagePreview;
+    document.getElementById('placeImageClearBtn').onclick=()=>{document.getElementById('placeImage').value='';updatePlaceImagePreview()};
+
     window.closePlaceModal = function() { document.getElementById("placeModal").style.display = "none"; };
     window.closeMsgModal = function() { document.getElementById("msgModal").style.display = "none"; };
     window.showMessage = function(text) { document.getElementById("msgText").textContent = text; document.getElementById("msgModal").style.display = "flex"; };
