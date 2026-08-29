@@ -77,12 +77,6 @@
           </div>
         </section>
 
-        <section class="editor-section editor-location-note">
-          <h3>📍 Lokalizacja</h3>
-          <p>Lokalizacja pozostaje ustalana przez <strong>kliknięcie na mapie</strong>. Nie zmieniamy tego sposobu działania.</p>
-          <div class="coords-readonly"><span>Lat: <strong id="tripLatPreview">—</strong></span><span>Lng: <strong id="tripLngPreview">—</strong></span></div>
-        </section>
-
         <div class="editor-actions"><button type="button" class="secondary-btn" onclick="closeTripModal()">Anuluj</button><button type="submit" class="primary-btn">💾 Zapisz zmiany</button></div>
       </form>
     </div>
@@ -320,7 +314,6 @@
       document.getElementById("originalTripId").value = ""; // Dodano oryginalny ID
       document.getElementById("tripModalTitle").textContent = "Dodaj nową wyprawę";
       updateTripImagePreview();
-      updateTripCoordsPreview();
       document.getElementById("tripModal").style.display = "flex";
     };
 
@@ -339,7 +332,6 @@
                 document.getElementById("tripLng").value = trip.lng;
                 document.getElementById("tripModalTitle").textContent = "Edytuj wyprawę";
                 updateTripImagePreview();
-                updateTripCoordsPreview();
                 document.getElementById("tripModal").style.display = "flex";
             }
         });
@@ -352,16 +344,17 @@
       const originalTripId = document.getElementById("originalTripId").value;
       const newTripId = generateId(tripName);
 
-      const lat = parseFloat(document.getElementById("tripLat").value);
-      const lng = parseFloat(document.getElementById("tripLng").value);
       const oldTripSnapshot = originalTripId ? await get(ref(database, `trips/${originalTripId}`)) : null;
       const oldTrip = oldTripSnapshot?.val() || null;
+
+      // Lokalizacja nie jest już edytowana w formularzu.
+      // Przy edycji zachowujemy istniejące współrzędne i kraj bez zmian.
+      // Przy dodawaniu nowej wyprawy współrzędne nadal pochodzą z kliknięcia na mapie.
+      const lat = originalTripId ? Number(oldTrip?.lat) : parseFloat(document.getElementById("tripLat").value);
+      const lng = originalTripId ? Number(oldTrip?.lng) : parseFloat(document.getElementById("tripLng").value);
       let countryCode = oldTrip?.countryCode || null;
-      if (Number.isFinite(lat) && Number.isFinite(lng)) {
-        const unchanged = oldTrip && Number(oldTrip.lat) === lat && Number(oldTrip.lng) === lng;
-        if (!unchanged || !countryCode) {
-          try { countryCode = await detectCountryCode(lat, lng); } catch (e) { console.warn("Nie udało się wykryć kraju wyprawy:", e); }
-        }
+      if (!originalTripId && Number.isFinite(lat) && Number.isFinite(lng)) {
+        try { countryCode = await detectCountryCode(lat, lng); } catch (e) { console.warn("Nie udało się wykryć kraju wyprawy:", e); }
       }
       const tripData = {
         name: tripName,
@@ -447,10 +440,6 @@
       img.onload = () => { img.style.display = "block"; empty.style.display = "none"; };
       img.onerror = () => { img.style.display = "none"; empty.style.display = "block"; empty.textContent = "Nie można załadować zdjęcia"; };
       img.src = url;
-    }
-    function updateTripCoordsPreview() {
-      document.getElementById("tripLatPreview").textContent = document.getElementById("tripLat").value || "—";
-      document.getElementById("tripLngPreview").textContent = document.getElementById("tripLng").value || "—";
     }
     document.getElementById("tripImage").addEventListener("input", updateTripImagePreview);
     document.getElementById("tripImagePreviewBtn").addEventListener("click", updateTripImagePreview);

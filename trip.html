@@ -80,7 +80,7 @@
         <section class="editor-section">
           <h3>📸 Galeria zdjęć miejsca</h3>
           <div class="gallery-import-box">
-            <label>Dodaj listę linków zdjęć
+            <label>Dodaj 1 lub więcej linków do zdjęć
               <textarea id="manualGalleryLinks" rows="6" placeholder="Wklej wiele bezpośrednich linków do zdjęć — każdy w nowej linii, albo rozdziel je spacją/przecinkiem"></textarea>
             </label>
             <p class="editor-hint">Wklej dowolną liczbę bezpośrednich linków do zdjęć. Mogą pochodzić z Postimages lub z innych źródeł.</p>
@@ -88,7 +88,6 @@
           </div>
           <div class="gallery-selection-head"><span id="gallerySelectionCount">0 zdjęć</span><div><button type="button" class="secondary-btn" id="selectAllPhotosBtn">Zaznacz wszystkie</button><button type="button" class="secondary-btn" id="clearAllPhotosBtn">Odznacz wszystkie</button></div></div>
           <div id="photos-container" class="photo-editor-grid"></div>
-          <div class="manual-photo-row"><input type="url" id="manualPhotoUrl" placeholder="https://.../zdjecie.jpg"><button type="button" class="secondary-btn" id="addManualPhotoBtn">🔗 Dodaj zdjęcie z URL</button></div>
         </section>
 
         <div class="editor-actions"><button type="button" class="secondary-btn" onclick="closePlaceModal()">Anuluj</button><button type="submit" class="primary-btn">💾 Zapisz miejsce</button></div>
@@ -284,7 +283,6 @@
       document.getElementById("originalPlaceId").value = "";
       renderPhotoEditor([]);
       document.getElementById("manualGalleryLinks").value = "";
-      document.getElementById("manualPhotoUrl").value = "";
       document.getElementById("placeImagePreview").removeAttribute("src");
       updatePlaceImagePreview();
       document.getElementById("placeLat").value = lat;
@@ -311,7 +309,6 @@
 
       renderPhotoEditor(p.photos || []);
       document.getElementById("manualGalleryLinks").value = "";
-      document.getElementById("manualPhotoUrl").value = "";
       updatePlaceImagePreview();
       document.getElementById("placeModalTitle").textContent = "Edytuj miejsce";
       document.getElementById("placeModal").style.display = "flex";
@@ -490,10 +487,6 @@
     }
     document.getElementById('selectAllPhotosBtn').onclick=()=>{document.querySelectorAll('.photo-editor-card').forEach(c=>{c.dataset.selected='true';c.classList.remove('is-unselected')});updateGallerySelectionCount()};
     document.getElementById('clearAllPhotosBtn').onclick=()=>{document.querySelectorAll('.photo-editor-card').forEach(c=>{c.dataset.selected='false';c.classList.add('is-unselected')});updateGallerySelectionCount()};
-    document.getElementById('addManualPhotoBtn').onclick=()=>{
-      const field=document.getElementById('manualPhotoUrl'); const normalized=normalizePhotoUrl(field.value);
-      if(!normalized){showMessage('❌ Wklej prawidłowy adres URL zdjęcia.');return;} appendPhotoCard(photoObject(normalized,''),true); field.value=''; updateGallerySelectionCount();
-    };
     document.getElementById('parseGalleryLinksBtn').onclick=()=>{
       const raw=document.getElementById('manualGalleryLinks').value;
       const links=raw.split(/[\s,;]+/).map(normalizePhotoUrl).filter(Boolean);
