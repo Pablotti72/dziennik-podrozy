@@ -86,6 +86,8 @@
 
     const editModeBtn = document.getElementById("editModeBtn");
     const addTripBtn = document.getElementById("addTripBtn");
+    const urlParams = new URLSearchParams(window.location.search);
+    const focusTripId = urlParams.get("trip");
     let userRole = 'guest';
 
     const map = L.map("map");
@@ -209,7 +211,20 @@
                     }
                 });
             }
-            restoreMapState();
+            // Jeśli wracamy z konkretnej wyprawy, ustaw mapę na jej współrzędnych.
+            // Parametr ?trip= ma pierwszeństwo przed zapamiętanym widokiem mapy.
+            if (focusTripId && trips && trips[focusTripId] && trips[focusTripId].lat && trips[focusTripId].lng) {
+                const trip = trips[focusTripId];
+                map.setView([parseFloat(trip.lat), parseFloat(trip.lng)], 6);
+                // Nie dodajemy drugiego markera — istniejący marker jest wyszukiwany poniżej.
+                map.eachLayer(layer => {
+                    if (layer instanceof L.Marker && layer.getLatLng().lat == parseFloat(trip.lat) && layer.getLatLng().lng == parseFloat(trip.lng)) {
+                        layer.openPopup();
+                    }
+                });
+            } else {
+                restoreMapState();
+            }
         }).catch(err => {
             console.error("Błąd ładowania wypraw:", err);
             showMessage("❌ Nie udało się załadować listy wypraw.");
