@@ -466,6 +466,11 @@
       updateGallerySelectionCount();
     }
     function appendPhotoCard(photo, autoSelect=true) {
+      const container = document.getElementById("photos-container");
+      if (!container) {
+        console.error("Brak kontenera #photos-container dla edytora galerii.");
+        return;
+      }
       const url = normalizePhotoUrl(photo.url);
       if (!url) return;
       const card = document.createElement("article");
@@ -496,140 +501,29 @@
       const field=document.getElementById('manualPhotoUrl'); const normalized=normalizePhotoUrl(field.value);
       if(!normalized){showMessage('❌ Wklej prawidłowy adres URL zdjęcia.');return;} appendPhotoCard(photoObject(normalized,''),true); field.value=''; updateGallerySelectionCount();
     };
-    function extractImageUrls(raw) {
-      const source = String(raw || '');
-      const matches = source.match(/https?:\/\/[^\s"'<>\] +/g) || [];
-      return [...new Set(matches.map(value => value.replace(/[),.;\]]+$/g, '')).map(normalizePhotoUrl).filter(Boolean))];
-    }
-
     document.getElementById('parseGalleryLinksBtn').onclick=()=>{
       const raw=document.getElementById('manualGalleryLinks').value;
-      const links=extractImageUrls(raw).filter(u => /\.(jpe?g|png|webp|gif)(?:[?#].*)?$/i.test(u) || /(?:postimg|postimages)/i.test(u));
-      const before=document.querySelectorAll('.photo-editor-card').length;
-      links.forEach(u=>appendPhotoCard(photoObject(u,''),true));
+      const links=raw.split(/[\s,;]+/).map(normalizePhotoUrl).filter(Boolean);
+      const unique=[...new Set(links)]; unique.forEach(u=>appendPhotoCard(photoObject(u,''),true));
       updateGallerySelectionCount();
-      const added=document.querySelectorAll('.photo-editor-card').length-before;
-      showMessage(added ? `✅ Dodano ${added} zdjęć/linków.` : '⚠️ Nie znaleziono prawidłowych adresów zdjęć w wklejonym tekście.');
     };
-
-    const postimagesUrlInput=document.getElementById('postimagesGalleryUrl');
-    const postimagesOpenLink=document.getElementById('postimagesOpenLink');
-    function updatePostimagesOpenLink(){
-      const url=postimagesUrlInput.value.trim();
-      if(url){ postimagesOpenLink.href=url; postimagesOpenLink.hidden=false; }
-      else { postimagesOpenLink.hidden=true; postimagesOpenLink.removeAttribute('href'); }
-    }
-    postimagesUrlInput.addEventListener('input', updatePostimagesOpenLink);
-
-    function extractPostimagesAlbumId(url) {
-      try {
-        const u = new URL(url);
-        const match = u.pathname.match(/\/gallery\/([^/?#]+)/i);
-        return match ? match[1] : '';
-      } catch { return ''; }
-    }
-
-    async function fetchPostimagesJson(albumId) {
-      const all=[];
-      for(let page=1; page<=100; page++){
-        const body=`action=list&album=${encodeURIComponent(albumId)}&page=${page}`;
-        const response=await fetch('https://postimg.cc/json',{
-          method:'POST', mode:'cors', credentials:'omit',
-          headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'}, body
-        });
-        if(!response.ok) throw new Error(`Postimages JSON HTTP ${response.status}`);
-        const data=await response.json();
-        if(!Array.isArray(data.images)) throw new Error('Nieprawidłowa odpowiedź Postimages');
-        all.push(...data.images);
-        if(!data.has_page_next) break;
-      }
-      return all;
-    }
-
-    function postimagesTokenFromRecord(record){
-      return typeof record?.[0] === 'string' ? record[0].trim() : '';
-    }
-
-    async function resolvePostimagesRecords(records){
-      const resolved=[];
-      const queue=records.map(postimagesTokenFromRecord).filter(Boolean);
-      for(let i=0;i<queue.length;i+=6){
-        const batch=queue.slice(i,i+6);
-        const results=await Promise.all(batch.map(async token=>{
-          try{
-            const pageText=await fetchTextViaReader(`https://postimg.cc/${encodeURIComponent(token)}`);
-            const urls=extractImageUrls(pageText).filter(u=>/i\.postimg\.cc\//i.test(u));
-            return urls[0] || '';
-          }catch(e){
-            console.warn('Nie udało się pobrać bezpośredniego URL zdjęcia:',token,e);
-            return '';
-          }
-        }));
-        resolved.push(...results.filter(Boolean));
-      }
-      return [...new Set(resolved)];
-    }
-
-    async function fetchTextViaReader(url){
-      const readerUrl=`https://r.jina.ai/${url}`;
-      const response=await fetch(readerUrl,{mode:'cors'});
-      if(!response.ok) throw new Error(`Reader HTTP ${response.status}`);
-      return response.text();
-    }
-
-    async function importPostimagesViaReader(galleryUrl){
-      const text=await fetchTextViaReader(galleryUrl);
-      // Jina Reader zwykle zwraca linki obrazów w markdownie.
-      let urls=extractImageUrls(text).filter(u=>/i\.postimg\.cc\//i.test(u));
-      if(!urls.length){
-        // Awaryjnie spróbuj znaleźć strony pojedynczych zdjęć i rozwiązać je przez Reader.
-        const pages=[...new Set(extractImageUrls(text).filter(u=>/postimg\.cc\/(?!gallery\/)/i.test(u)))].slice(0,100);
-        const resolved=[];
-        for(const pageUrl of pages){
-          try{
-            const pageText=await fetchTextViaReader(pageUrl);
-            resolved.push(...extractImageUrls(pageText).filter(u=>/i\.postimg\.cc\//i.test(u)));
-          }catch(e){ console.warn('Nie udało się rozwiązać zdjęcia Postimages:',pageUrl,e); }
-        }
-        urls=resolved;
-      }
-      return [...new Set(urls)];
-    }
-
+    document.getElementById('postimagesOpenLink').addEventListener('click',()=>{});
     document.getElementById('postimagesImportBtn').onclick=async()=>{
       const input=document.getElementById('postimagesGalleryUrl'); const url=input.value.trim();
       if(!url){showMessage('❌ Wklej najpierw adres galerii Postimages.');return;}
-      updatePostimagesOpenLink();
+      document.getElementById('postimagesOpenLink').href=url; document.getElementById('postimagesOpenLink').hidden=false;
       const btn=document.getElementById('postimagesImportBtn'); btn.disabled=true; btn.textContent='⏳ Pobieranie...';
-      document.getElementById('postimagesFallback').hidden=true;
       try {
-        const albumId=extractPostimagesAlbumId(url);
-        if(!albumId) throw new Error('Nieprawidłowy adres galerii Postimages');
-
-        let images=[];
-        try {
-          // Najpierw próbujemy endpointu JSON Postimages. Sam endpoint zwraca identyfikatory zdjęć,
-          // dlatego następnie rozwiązujemy je do bezpośrednich URL-i obrazów przez Reader.
-          const records=await fetchPostimagesJson(albumId);
-          images=await resolvePostimagesRecords(records);
-        } catch(jsonError) {
-          console.warn('Bezpośredni import JSON Postimages zablokowany:',jsonError);
-        }
-
-        if(!images.length){
-          images=await importPostimagesViaReader(url);
-        }
-        if(!images.length) throw new Error('Nie znaleziono zdjęć w galerii');
-
-        const before=document.querySelectorAll('.photo-editor-card').length;
-        images.forEach(u=>appendPhotoCard(photoObject(u,''),true));
-        updateGallerySelectionCount();
-        const added=document.querySelectorAll('.photo-editor-card').length-before;
-        showMessage(`✅ Znaleziono ${images.length} zdjęć. ${added ? `Dodano ${added} nowych. ` : ''}Zaznacz te, które chcesz zachować.`);
+        const res=await fetch(url,{mode:'cors'}); if(!res.ok) throw new Error('HTTP '+res.status); const html=await res.text();
+        const doc=new DOMParser().parseFromString(html,'text/html');
+        const urls=[...doc.querySelectorAll('img[src],a[href]')].map(el=>el.getAttribute('src')||el.getAttribute('href')).filter(x=>x && /postimg|postimages/i.test(x));
+        const images=[...new Set(urls.map(normalizePhotoUrl).filter(x=>x && /\.(jpe?g|png|webp|gif)(?:[?#].*)?$/i.test(x)))];
+        if(!images.length) throw new Error('Nie znaleziono bezpośrednich linków');
+        images.forEach(u=>appendPhotoCard(photoObject(u,''),true)); updateGallerySelectionCount(); showMessage(`✅ Znaleziono ${images.length} zdjęć. Zaznacz te, które chcesz dodać.`);
       } catch(e) {
-        console.error('Import galerii Postimages nie powiódł się:',e);
+        console.warn('Import galerii Postimages nie powiódł się:',e);
         document.getElementById('postimagesFallback').hidden=false;
-        showMessage('⚠️ Nie udało się automatycznie pobrać galerii. Otwórz galerię przyciskiem „Otwórz galerię”, skopiuj „Codes for all images” i wklej je w polu poniżej. Program wyciągnie z tekstu adresy zdjęć automatycznie.');
+        showMessage('ℹ️ Postimages nie pozwala przeglądarce odczytać galerii bezpośrednio. Otwórz galerię i wklej listę bezpośrednich linków w polu poniżej.');
       } finally { btn.disabled=false; btn.textContent='🔄 Pobierz zdjęcia'; }
     };
     function updatePlaceImagePreview(){
