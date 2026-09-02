@@ -219,20 +219,26 @@
 
               let popupContent;
               if (userRole === 'admin') {
+                  const safePlaceId = encodeURIComponent(String(p.id || ""));
+                  const safeTripId = encodeURIComponent(String(tripId || ""));
+                  const safeImageUrl = normalizePhotoUrl(p.image);
                   popupContent = `
-                      <strong><a href="place.html?tripId=${tripId}&placeId=${p.id}">${p.name}</a></strong><br>
+                      <strong><a href="place.html?tripId=${safeTripId}&placeId=${safePlaceId}">${escapeHtml(p.name)}</a></strong><br>
                       ${shortDescription(p.description)}
-                      <img src="${p.image}" width="100"><br>
-                      <small>${p.category} • ${formatDate(p.date)}</small><br><br>
-                      <button onclick="editPlace('${p.id}')">✏️ Edytuj</button>
-                      <button onclick="deletePlace('${p.id}')">🗑️ Usuń</button>
+                      ${safeImageUrl ? `<img src="${escapeHtml(safeImageUrl)}" width="100" alt="${escapeHtml(p.name)}">` : ""}<br>
+                      <small>${escapeHtml(getCategoryLabel(p.category))} • ${escapeHtml(formatDate(p.date))}</small><br><br>
+                      <button onclick="editPlace(decodeURIComponent('${safePlaceId}'))">✏️ Edytuj</button>
+                      <button onclick="deletePlace(decodeURIComponent('${safePlaceId}'))">🗑️ Usuń</button>
                   `;
               } else {
+                  const safeTripId = encodeURIComponent(String(tripId || ""));
+                  const safePlaceId = encodeURIComponent(String(p.id || ""));
+                  const safeImageUrl = normalizePhotoUrl(p.image);
                   popupContent = `
-                      <strong><a href="place.html?tripId=${tripId}&placeId=${p.id}">${p.name}</a></strong><br>
+                      <strong><a href="place.html?tripId=${safeTripId}&placeId=${safePlaceId}">${escapeHtml(p.name)}</a></strong><br>
                       ${shortDescription(p.description)}
-                      <img src="${p.image}" width="100"><br>
-                      <small>${p.category} • ${formatDate(p.date)}</small><br><br>
+                      ${safeImageUrl ? `<img src="${escapeHtml(safeImageUrl)}" width="100" alt="${escapeHtml(p.name)}">` : ""}<br>
+                      <small>${escapeHtml(getCategoryLabel(p.category))} • ${escapeHtml(formatDate(p.date))}</small><br><br>
                       <em>Kliknij, aby zobaczyć szczegóły</em>
                   `;
               }
@@ -353,9 +359,17 @@
         if (originalPlaceId) {
           // Edycja
           if (originalPlaceId !== newPlaceId) {
-            // Zmiana nazwy, utwórz nowy wpis i usuń stary
-            await set(ref(database, `trips/${tripId}/places/${newPlaceId}`), placeData);
-            await remove(ref(database, `trips/${tripId}/places/${originalPlaceId}`));
+            // Zmiana nazwy: zachowaj cały istniejący rekord miejsca
+            // (np. longDescription i przyszłe pola) i nadpisz tylko dane formularza.
+            const oldPlace = tripData?.places?.[originalPlaceId];
+            if (!oldPlace) throw new Error("Nie znaleziono oryginalnego miejsca.");
+            const renamedPlaceData = { ...oldPlace, ...placeData };
+
+            // Atomowa aktualizacja: nowy rekord + usunięcie starego w jednej operacji.
+            const updates = {};
+            updates[`trips/${tripId}/places/${newPlaceId}`] = renamedPlaceData;
+            updates[`trips/${tripId}/places/${originalPlaceId}`] = null;
+            await update(ref(database), updates);
             showMessage("✅ Zmieniono nazwę i zapisano miejsce!");
           } else {
             // Zwykła edycja

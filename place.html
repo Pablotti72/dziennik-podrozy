@@ -104,11 +104,22 @@
             const item = document.createElement("div");
             item.className = "photo-item";
             item.onclick = () => showGallery(index);
-            item.innerHTML = `
-              <img src="${photo.url}" alt="${photo.caption}" class="place-image"
-                onerror="this.onerror=null;this.src='https://placehold.co/150x150/e0e0e0/555555?text=Brak+zdjęcia';" />
-              ${photo.caption ? `<div class="photo-caption">${photo.caption}</div>` : ""}
-            `;
+            const img = document.createElement("img");
+            img.className = "place-image";
+            img.alt = photo.caption || "Zdjęcie galerii";
+            img.src = photo.url || "https://placehold.co/150x150/e0e0e0/555555?text=Brak+zdjęcia";
+            img.onerror = () => {
+              img.onerror = null;
+              img.src = "https://placehold.co/150x150/e0e0e0/555555?text=Brak+zdjęcia";
+            };
+            item.appendChild(img);
+
+            if (photo.caption) {
+              const caption = document.createElement("div");
+              caption.className = "photo-caption";
+              caption.textContent = photo.caption;
+              item.appendChild(caption);
+            }
             galleryElement.appendChild(item);
           });
         })

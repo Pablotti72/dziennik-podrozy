@@ -371,21 +371,25 @@
         if (originalTripId) {
           // Edycja
           if (originalTripId !== newTripId) {
-            // Zmiana nazwy, utwórz nowy wpis i usuń stary
+            // Zmiana nazwy: zachowujemy CAŁY istniejący rekord i nadpisujemy
+            // tylko pola edytowane w formularzu. Nie tracimy longDescription,
+            // countries, places ani pól dodanych w przyszłości.
             const oldTripRef = ref(database, `trips/${originalTripId}`);
             const snapshot = await get(oldTripRef);
             const oldTripData = snapshot.val();
-            
-            // Przenieś również miejsca z starej wyprawy do nowej
-            if (oldTripData && oldTripData.places) {
-                tripData.places = oldTripData.places;
-            }
-            
-            await set(ref(database, `trips/${newTripId}`), tripData);
-            await remove(oldTripRef);
+            if (!oldTripData) throw new Error("Nie znaleziono oryginalnej wyprawy.");
+
+            const renamedTripData = { ...oldTripData, ...tripData };
+
+            // Atomowa aktualizacja: nowy rekord powstaje i stary jest usuwany
+            // w ramach jednej operacji wielościeżkowej.
+            const updates = {};
+            updates[`trips/${newTripId}`] = renamedTripData;
+            updates[`trips/${originalTripId}`] = null;
+            await update(ref(database), updates);
             showMessage("✅ Zmieniono nazwę i zapisano wyprawę!");
           } else {
-            // Zwykła edycja
+            // Zwykła edycja — update nie usuwa pól, których formularz nie edytuje.
             await update(ref(database, `trips/${originalTripId}`), tripData);
             showMessage("✅ Zapisano!");
           }
