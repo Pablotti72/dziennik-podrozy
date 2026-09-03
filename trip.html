@@ -63,7 +63,7 @@
             <option value="inny">🔧 Inny</option>
           </select>
         </label><br><br>
-        <label>Data wizyty: <input type="date" id="placeDate" required></label><br><br>
+        <label>Data wizyty: <input type="text" id="placeDate" placeholder="DD.MM.RRRR" inputmode="numeric" autocomplete="off" required> <button type="button" id="placeDatePickerBtn" title="Wybierz datę z kalendarza">📅</button><input type="date" id="placeDatePicker" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0" tabindex="-1" aria-hidden="true"></label><br><br>
 
         <section class="editor-section">
           <h3>📷 Zdjęcie główne miejsca</h3>
@@ -197,7 +197,7 @@
           } else {
             tripImage.style.display = "none";
           }
-          document.getElementById("tripDescription").textContent = trip.description || "Brak opisu wyprawy.";
+          document.getElementById("tripDescription").textContent = formatDescriptionWithYear(trip.description, trip.dateFrom) || "Brak opisu wyprawy.";
 
           map.eachLayer(l => { if (l instanceof L.Marker) map.removeLayer(l); });
           const bounds = L.latLngBounds();
@@ -307,7 +307,7 @@
       document.getElementById("placeDescription").value = p.description || '';
       document.getElementById("placeImage").value = p.image;
       document.getElementById("placeCategory").value = p.category;
-      document.getElementById("placeDate").value = p.date || '';
+      document.getElementById("placeDate").value = formatDateForInput(p.date || '');
       document.getElementById("placeLat").value = p.lat;
       document.getElementById("placeLng").value = p.lng;
       document.getElementById("placeId").value = id;
@@ -319,6 +319,30 @@
       document.getElementById("placeModalTitle").textContent = "Edytuj miejsce";
       document.getElementById("placeModal").style.display = "flex";
     };
+
+    function formatDateForInput(value) {
+      if (!value) return '';
+      const m = String(value).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      return m ? `${m[3]}.${m[2]}.${m[1]}` : value;
+    }
+
+    function parseDateFromInput(value) {
+      const v = String(value || '').trim();
+      const m = v.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+      if (!m) return v;
+      return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+    }
+
+    const placeDateInput = document.getElementById('placeDate');
+    const placeDatePicker = document.getElementById('placeDatePicker');
+    document.getElementById('placeDatePickerBtn').addEventListener('click', () => {
+      placeDatePicker.value = parseDateFromInput(placeDateInput.value);
+      if (placeDatePicker.showPicker) placeDatePicker.showPicker();
+      else placeDatePicker.click();
+    });
+    placeDatePicker.addEventListener('change', () => {
+      placeDateInput.value = formatDateForInput(placeDatePicker.value);
+    });
 
     document.getElementById("placeForm").addEventListener("submit", async function(e) {
       e.preventDefault();
@@ -348,7 +372,7 @@
         description: document.getElementById("placeDescription").value,
         image: document.getElementById("placeImage").value,
         category: document.getElementById("placeCategory").value,
-        date: document.getElementById("placeDate").value,
+        date: parseDateFromInput(document.getElementById("placeDate").value),
         lat: placeLat,
         lng: placeLng,
         countryCode: placeCountryCode,
@@ -425,6 +449,14 @@
         .replace(/^_+|_+$/g, "");
     }
     function escapeHtml(value) {      return String(value ?? "").replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","\'":"&#39;"}[ch]));
+    }
+
+    function formatDescriptionWithYear(description, dateFrom) {
+      const value = (description || "").trim();
+      if (!value) return "";
+      const yearMatch = value.match(/\b(19|20)\d{2}\b/);
+      const year = dateFrom ? new Date(dateFrom).getFullYear() : null;
+      return year && !yearMatch ? `${value} ${year}` : value;
     }
 
     function shortDescription(text) {
